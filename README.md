@@ -120,10 +120,3 @@ transisi visual, dsb) — jsdom mensimulasikan DOM tapi tidak me-render
 tampilan. Setelah upload ke GitHub Pages, coba klik-klik semua menu untuk
 memastikan tidak ada yang aneh secara visual; kalau ada yang janggal, kirim
 screenshot & saya bantu perbaiki.
-
-## Catatan untuk versi APK (Flutter) yang sebelumnya kamu minta
-
-Bug "dua produk nama sama saling menimpa" di atas **juga ada** di kode Flutter
-yang saya kirim sebelumnya (logika impornya sama). Kalau kamu masih berencana
-lanjut build versi APK itu, kabari saya — saya bantu tempelkan perbaikan yang
-sama ke situ juga.
