@@ -1,0 +1,2 @@
+# notaku
+notaku jajaj Hajatan
