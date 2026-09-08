@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14151A">
+<title>NotaKu</title>
+<meta name="description" content="Aplikasi kasir & nota penjualan sederhana.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NotaKu">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="app">
+  <header id="topbar">
+    <button id="btnMenu" class="icon-btn" aria-label="Menu">
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <button id="btnBack" class="icon-btn hidden" aria-label="Kembali">
+      <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <h1 id="pageTitle">NotaKu</h1>
+    <div id="topbarActions"></div>
+  </header>
+
+  <main id="pageRoot"></main>
+
+  <nav id="bottomnav">
+    <button class="nav-btn" data-route="home">
+      <svg viewBox="0 0 24 24"><path d="M5 3h14v18l-3.5-2.2L12 21l-3.5-2.2L5 21V3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <span>Nota</span>
+    </button>
+    <button class="nav-btn" data-route="products">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" fill="currentColor"/><rect x="14" y="3" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="14" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="14" y="14" width="7" height="7" rx="1" fill="currentColor"/></svg>
+      <span>Produk</span>
+    </button>
+    <button class="nav-btn" data-route="reports">
+      <svg viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Laporan</span>
+    </button>
+    <button class="nav-btn" data-route="settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M19.4 13a7.6 7.6 0 000-2l2-1.5-2-3.5-2.4.6a7.6 7.6 0 00-1.7-1L15 3h-6l-.3 2.6a7.6 7.6 0 00-1.7 1l-2.4-.6-2 3.5L4.6 11a7.6 7.6 0 000 2l-2 1.5 2 3.5 2.4-.6a7.6 7.6 0 001.7 1L9 21h6l.3-2.6a7.6 7.6 0 001.7-1l2.4.6 2-3.5L19.4 13z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+      <span>Setting</span>
+    </button>
+  </nav>
+</div>
+
+<div id="drawerOverlay" class="drawer-overlay hidden"></div>
+<aside id="drawer" class="drawer">
+  <div class="drawer-title">NotaKu</div>
+  <button class="drawer-item" data-route="home">Nota</button>
+  <button class="drawer-item" data-route="products">Produk</button>
+  <button class="drawer-item" data-route="customers">Pelanggan</button>
+  <button class="drawer-item" data-route="reports">Laporan</button>
+  <div class="drawer-sep"></div>
+  <button class="drawer-item" data-route="settings">Setting</button>
+</aside>
+
+<div id="sheetRoot"></div>
+<div id="toast"></div>
+<div id="loadingOverlay" class="hidden"><div class="spinner"></div></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
