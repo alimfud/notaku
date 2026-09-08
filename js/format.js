@@ -69,3 +69,13 @@ export function uid() {
 export function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, (m) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
 }
+
+/**
+ * Ganti token [printed_datetime] pada catatan kaki struk dengan tanggal & jam
+ * TRANSAKSI (bukan waktu mencetak) — banyak dibawa dari import database lama
+ * yang formatnya literal seperti itu, tidak ada gunanya ditampilkan mentah.
+ */
+export function resolveFooterNote(footerNote, saleDateLabel, saleTimeLabel) {
+  if (!footerNote) return '';
+  return footerNote.replace(/\[printed_datetime\]/gi, `${saleDateLabel} ${saleTimeLabel}`);
+}

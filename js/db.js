@@ -130,6 +130,20 @@ export async function remove(store, key) {
   });
 }
 
+/** Hapus semua baris yang cocok dengan sebuah index value (mis. semua saleItems milik satu sale). */
+export async function removeByIndex(store, indexName, value) {
+  const t = await tx([store], 'readwrite');
+  return new Promise((resolve, reject) => {
+    const req = t.objectStore(store).index(indexName).openCursor(IDBKeyRange.only(value));
+    req.onsuccess = () => {
+      const cursor = req.result;
+      if (cursor) { cursor.delete(); cursor.continue(); }
+    };
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
 export async function clearStore(store) {
   const t = await tx([store], 'readwrite');
   return new Promise((resolve, reject) => {

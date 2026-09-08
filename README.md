@@ -75,10 +75,49 @@ otomatis). Tidak perlu proses publish/submit apa pun — beda dengan Play Store.
 
 ## Fitur
 
-Sama seperti versi Flutter: Nota (buat/lihat/cetak/bagikan/bayar), Produk,
+Sama seperti versi Flutter: Nota (buat/lihat/**ubah**/cetak/bagikan/bayar), Produk,
 Pelanggan, Laporan, Setting (info toko, nomor nota, printer), Backup/Restore,
 dan **Impor Database Aplikasi Lama** (baca file `.db` dari aplikasi nota lain,
 bisa dipilih dari Google Drive lewat pemilih file bawaan HP).
+
+### Edit nota yang sudah tersimpan (v1.1.0)
+
+Nota yang sudah disimpan **bisa diubah sepenuhnya** lewat ikon pensil di
+halaman Detail Nota:
+- Ganti pelanggan, tambah/hapus/ubah item (qty & harga), ubah diskon, ubah catatan.
+- **Tanggal & jam transaksi bisa dikoreksi** — berguna kalau tanggal/jam yang
+  tercatat otomatis (waktu nota dibuat) berbeda dari waktu pengambilan/transaksi
+  sesungguhnya.
+- **Riwayat pembayaran bisa dikoreksi satu per satu** — ketuk baris pembayaran
+  mana pun di Detail Nota untuk mengubah nominal/tanggal/catatannya, atau
+  menghapusnya kalau salah input. Status LUNAS/SEBAGIAN/dst otomatis dihitung
+  ulang setiap kali.
+- Nomor telepon toko sekarang ikut tampil di struk (sebelumnya cuma alamat).
+- Token `[printed_datetime]` di catatan kaki (biasanya terbawa dari import
+  database lama) otomatis diganti tanggal & jam **transaksi** — bukan
+  ditampilkan mentah sebagai teks `[printed_datetime]`.
+
+## Offline setelah terinstall (v1.1.0)
+
+Prioritas: aplikasi tetap bisa dipakai penuh kalau internet toko bermasalah,
+ASALKAN sudah pernah dibuka sekali dalam keadaan online setelah install/update
+(supaya service worker sempat menyimpan semua file ke cache HP).
+
+Yang tetap jalan offline: buat/lihat/ubah nota, produk, pelanggan, laporan,
+cetak, dan backup lokal (mengunduh file cadangan) — semuanya karena data ada
+di IndexedDB (lokal) dan seluruh kode aplikasi (setiap halaman, bukan cuma
+shell utama) sengaja di-precache oleh service worker (`sw.js`), bukan dimuat
+dari jaringan setiap saat.
+
+Yang **butuh koneksi internet** (karena mengandalkan file besar dari CDN
+eksternal, sengaja tidak dibundel supaya beban awal aplikasi tetap ringan):
+- **Impor database aplikasi lama** (perlu mengunduh `sql.js` ~1MB sekali)
+- **Bagikan nota sebagai gambar** (perlu mengunduh `html2canvas` sekali)
+
+Begitu kedua fitur itu pernah dipakai sekali secara online, browser akan
+meng-cache library-nya sendiri (HTTP cache biasa) dan kemungkinan besar tetap
+bisa dipakai offline setelahnya juga — tapi ini tidak dijamin 100% (tidak
+seperti file inti NotaKu yang sengaja di-precache eksplisit).
 
 ## Cetak & bagikan (perbedaan dari versi APK)
 
@@ -114,9 +153,27 @@ web ini SUDAH diuji jalan sungguhan** dengan Node.js + jsdom + fake-indexeddb
   tersimpan.
 - ✅ Impor diuji 2x berturut-turut dengan file yang sama — jumlah data tidak
   berubah (tidak terjadi duplikasi).
+- ✅ **(v1.1.0)** Edit nota diuji: ubah qty item lama + tambah item baru →
+  item lama tidak terduplikasi (diganti bersih), tanggal/jam transaksi
+  berubah sesuai input, total dihitung ulang dengan benar.
+- ✅ **(v1.1.0)** Koreksi pembayaran diuji: ubah nominal pembayaran yang salah
+  ketik → status LUNAS/SEBAGIAN dihitung ulang otomatis; hapus pembayaran →
+  status kembali ke BELUM BAYAR.
+- ✅ **(v1.1.0)** Token `[printed_datetime]` diuji tergantikan dengan tanggal
+  & jam transaksi yang benar, bukan tampil mentah sebagai teks.
+- ✅ **(v1.1.0)** Rute baru `sale/:id/edit` diuji lewat router sungguhan
+  (bukan cuma manggil fungsi service langsung) — navigasi, judul halaman,
+  dan render form semua diverifikasi jalan.
 
 Yang **belum** diuji: interaksi UI penuh di browser sungguhan (klik tombol,
 transisi visual, dsb) — jsdom mensimulasikan DOM tapi tidak me-render
 tampilan. Setelah upload ke GitHub Pages, coba klik-klik semua menu untuk
 memastikan tidak ada yang aneh secara visual; kalau ada yang janggal, kirim
 screenshot & saya bantu perbaiki.
+
+## Catatan untuk versi APK (Flutter) yang sebelumnya kamu minta
+
+Bug "dua produk nama sama saling menimpa" di atas **juga ada** di kode Flutter
+yang saya kirim sebelumnya (logika impornya sama). Kalau kamu masih berencana
+lanjut build versi APK itu, kabari saya — saya bantu tempelkan perbaikan yang
+sama ke situ juga.
