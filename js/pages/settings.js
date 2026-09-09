@@ -14,7 +14,9 @@ export async function render(root, params) {
   if (sub === 'store') return renderStore(root);
   if (sub === 'invoice') return renderInvoice(root);
   if (sub === 'printer') return renderPrinter(root);
+  if (sub === 'qris') return renderQris(root);
   if (sub === 'backup') return renderBackup(root);
+  if (sub === 'autobackup') return renderAutoBackup(root);
   return renderHub(root);
 }
 
@@ -34,7 +36,8 @@ function renderHub(root) {
     <div style="padding-top:8px;">
       ${tile('🏪', 'Info Toko', 'Nama, alamat, telepon toko', 'settings/store')}
       ${tile('🧾', 'Nomor Nota', 'Prefix, digit, mode reset nomor', 'settings/invoice')}
-      ${tile('🖨️', 'Printer', 'Ukuran kertas struk', 'settings/printer')}
+      ${tile('🖨️', 'Printer', 'Ukuran kertas & printer Bluetooth', 'settings/printer')}
+      ${tile('🔳', 'QRIS', 'Tampilkan kode QRIS di struk belum lunas', 'settings/qris')}
       <div style="height:8px;"></div>
       ${tile('☁️', 'Backup / Restore', 'Cadangkan data & impor database lama', 'settings/backup')}
     </div>
@@ -110,18 +113,115 @@ async function renderPrinter(root) {
   setPageTitle('Printer');
   setTopbarActions([]);
   const s = await getSettings();
+  const bt = await import('../services/printing/bluetoothPrinter.js');
+  const btOk = bt.isConnected();
+  const btInfo = bt.currentDeviceInfo();
+
   root.innerHTML = `
-    <div class="section-title">Ukuran Kertas</div>
+    <div class="section-title">Printer Bluetooth (Cetak Langsung)</div>
+    <div style="padding:0 16px 12px;">
+      <div class="info-card" style="margin:0 0 12px;">
+        <div class="info-title">Catatan penting</div>
+        <div class="info-text">Cetak Bluetooth langsung hanya untuk printer BLE (Bluetooth Low Energy) dan hanya jalan di Chrome/Edge Android — tidak di iPhone. Kalau printer kamu tidak muncul saat "Cari Printer", kemungkinan itu printer Bluetooth klasik yang memang tidak bisa diakses browser — pakai "Cetak / Simpan PDF" sebagai gantinya.</div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--outline);">
+        <div>
+          <div style="font-size:14px;font-weight:700;">${btOk ? 'Tersambung' : (s.btPrinterId ? 'Tersimpan (belum tersambung)' : 'Belum ada printer')}</div>
+          <div class="row-meta">${btOk ? escapeHtml(btInfo.name) : (s.btPrinterName ? escapeHtml(s.btPrinterName) : '—')}</div>
+        </div>
+        <button class="btn small secondary" id="btnBtConnect" style="margin:0;">${btOk ? 'Sambung Ulang' : 'Cari Printer'}</button>
+      </div>
+      ${s.btPrinterId ? `<button class="btn small ghost" id="btnBtForget" style="margin:10px 0 0;">Lupakan Printer Ini</button>` : ''}
+    </div>
+
+    <div class="section-title">Lebar Kertas Bluetooth</div>
+    <label class="field-radio"><input type="radio" name="charwidth" value="32" ${s.btCharWidth === 32 ? 'checked' : ''}><div><div class="radio-title">58mm (32 karakter/baris)</div></div></label>
+    <label class="field-radio"><input type="radio" name="charwidth" value="48" ${s.btCharWidth === 48 ? 'checked' : ''}><div><div class="radio-title">80mm (48 karakter/baris)</div></div></label>
+
+    <div class="section-title">Ukuran Kertas (Cetak / Simpan PDF)</div>
     <label class="field-radio"><input type="radio" name="paper" value="THERMAL_58MM" ${s.paperSize === 'THERMAL_58MM' ? 'checked' : ''}><div><div class="radio-title">Thermal 58mm</div><div class="radio-sub">Printer struk kecil (kasir portabel)</div></div></label>
     <label class="field-radio"><input type="radio" name="paper" value="THERMAL_80MM" ${s.paperSize === 'THERMAL_80MM' ? 'checked' : ''}><div><div class="radio-title">Thermal 80mm</div><div class="radio-sub">Printer struk standar toko</div></div></label>
     <label class="field-radio"><input type="radio" name="paper" value="PDF_A4" ${s.paperSize === 'PDF_A4' ? 'checked' : ''}><div><div class="radio-title">A4 (dokumen biasa)</div><div class="radio-sub">Untuk dicetak di printer biasa</div></div></label>
     <div class="info-card">
-      <div class="info-text">Cetak memakai fitur cetak bawaan browser (window.print), cocok untuk printer thermal yang sudah terpasang sebagai printer sistem, atau "Simpan sebagai PDF" bawaan browser/HP.</div>
+      <div class="info-text">"Cetak / Simpan PDF" memakai fitur cetak bawaan browser — cocok untuk printer apa pun yang sudah terpasang sebagai printer sistem HP/laptop, atau kalau printer Bluetooth-mu tidak didukung cetak langsung.</div>
     </div>
   `;
+
   root.querySelectorAll('input[name="paper"]').forEach((r) => {
     r.onchange = async () => { await saveSettings({ paperSize: r.value }); toast('Ukuran kertas disimpan'); };
   });
+  root.querySelectorAll('input[name="charwidth"]').forEach((r) => {
+    r.onchange = async () => { await saveSettings({ btCharWidth: Number(r.value) }); toast('Lebar kertas Bluetooth disimpan'); };
+  });
+
+  root.querySelector('#btnBtConnect').onclick = async () => {
+    try {
+      const info = await bt.scanAndConnect();
+      await saveSettings({ btPrinterId: info.id, btPrinterName: info.name });
+      toast(`Tersambung ke ${info.name}`);
+      await renderPrinter(root);
+    } catch (e) {
+      toast(e.message || 'Gagal menyambungkan printer.');
+    }
+  };
+  const forgetBtn = root.querySelector('#btnBtForget');
+  if (forgetBtn) {
+    forgetBtn.onclick = async () => {
+      bt.disconnect();
+      await saveSettings({ btPrinterId: '', btPrinterName: '' });
+      toast('Printer dilupakan');
+      await renderPrinter(root);
+    };
+  }
+}
+
+async function renderQris(root) {
+  setPageTitle('QRIS');
+  setTopbarActions([]);
+  const s = await getSettings();
+  root.innerHTML = `
+    <div style="padding:16px;">
+      <label style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:15px;font-weight:700;">Tampilkan QRIS di Struk</div>
+          <div class="row-meta">Muncul otomatis kalau nota BELUM LUNAS, hilang kalau sudah lunas.</div>
+        </div>
+        <input type="checkbox" id="qrisToggle" ${s.qrisEnabled ? 'checked' : ''} style="width:44px;height:24px;">
+      </label>
+    </div>
+    <div style="padding:0 16px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Gambar QRIS</div>
+      ${s.qrisImageData ? `<img src="${s.qrisImageData}" style="width:160px;height:160px;object-fit:contain;border:1px solid var(--outline);border-radius:12px;display:block;margin-bottom:10px;">` : `<div class="info-card" style="margin:0 0 10px;"><div class="info-text">Belum ada gambar QRIS. Upload dari galeri HP kamu (foto/screenshot kode QRIS statis milik tokomu, bisa didapat dari aplikasi bank/e-wallet).</div></div>`}
+      <input type="file" id="qrisFile" accept="image/*" style="display:none">
+      <button class="btn secondary small" id="btnUploadQris">${s.qrisImageData ? 'Ganti Gambar' : 'Upload Gambar QRIS'}</button>
+      ${s.qrisImageData ? `<button class="btn danger small" id="btnRemoveQris" style="margin-left:8px;">Hapus</button>` : ''}
+    </div>
+  `;
+  root.querySelector('#qrisToggle').onchange = async (e) => {
+    await saveSettings({ qrisEnabled: e.target.checked });
+    toast(e.target.checked ? 'QRIS diaktifkan' : 'QRIS dimatikan');
+  };
+  root.querySelector('#btnUploadQris').onclick = () => root.querySelector('#qrisFile').click();
+  root.querySelector('#qrisFile').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { toast('Ukuran gambar maksimal 2MB'); return; }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      await saveSettings({ qrisImageData: reader.result });
+      toast('Gambar QRIS disimpan');
+      await renderQris(root);
+    };
+    reader.readAsDataURL(file);
+  };
+  const removeBtn = root.querySelector('#btnRemoveQris');
+  if (removeBtn) {
+    removeBtn.onclick = async () => {
+      await saveSettings({ qrisImageData: '' });
+      toast('Gambar QRIS dihapus');
+      await renderQris(root);
+    };
+  }
 }
 
 async function renderBackup(root) {
@@ -132,6 +232,9 @@ async function renderBackup(root) {
       <div style="font-size:16px;font-weight:800;margin-bottom:6px;">Cadangkan Data</div>
       <div style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;">Unduh file cadangan seluruh data NotaKu (nota, produk, pelanggan, pengaturan), lalu simpan ke Google Drive atau tempat lain lewat aplikasi file HP kamu.</div>
       <button class="btn" id="btnBackup" style="margin:0;">Unduh Cadangan</button>
+    </div>
+    <div style="padding:0 16px 16px;">
+      ${tile('⏱️', 'Atur Backup Otomatis', 'Jadwalkan backup ke Google Drive', 'settings/autobackup')}
     </div>
     <div style="padding:0 16px 16px;">
       <div style="font-size:16px;font-weight:800;margin-bottom:6px;">Pulihkan dari Cadangan NotaKu</div>
@@ -150,6 +253,8 @@ async function renderBackup(root) {
       <div style="font-size:11.5px;color:var(--muted);margin-top:10px;">Tips: kalau file tersimpan di Google Drive, pilih "Files"/"Berkas" pada layar pemilih file lalu masuk ke akun Drive-mu — file akan diunduh sementara secara otomatis oleh browser untuk dibaca.</div>
     </div>
   `;
+
+  root.querySelectorAll('[data-route]').forEach((el) => { el.onclick = () => navigate(el.dataset.route); });
 
   root.querySelector('#btnBackup').onclick = async () => {
     try {
@@ -202,4 +307,128 @@ async function renderBackup(root) {
       toast(err.message || 'Gagal mengimpor database lama.');
     }
   };
+}
+
+async function renderAutoBackup(root) {
+  setPageTitle('Atur Backup Otomatis');
+  const s = await getSettings();
+  const cfg = s.autoBackup;
+  const drive = await import('../services/driveBackupService.js');
+  const configured = drive.isConfigured();
+
+  setTopbarActions([{ icon: 'edit', title: 'Simpan', onClick: () => saveAutoBackupForm(root) }]);
+
+  if (!configured) {
+    root.innerHTML = `
+      <div class="info-card" style="margin:16px;">
+        <div class="info-title">Perlu setup sekali sebelum dipakai</div>
+        <div class="info-text">Fitur ini butuh Google Client ID yang didaftarkan sendiri di Google Cloud Console (gratis). Ikuti langkah di <b>docs/DRIVE_SETUP.md</b> pada project NotaKu, lalu isi <code>js/config.js</code>.</div>
+      </div>`;
+    return;
+  }
+
+  root.innerHTML = `
+    <div style="padding:16px;">
+      <label style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-size:15px;font-weight:700;">Aktifkan Backup Otomatis</div>
+        <input type="checkbox" id="enableToggle" ${cfg.enabled ? 'checked' : ''} style="width:44px;height:24px;">
+      </label>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--outline);border-bottom:1px solid var(--outline);margin-bottom:16px;">
+        <div>
+          <div style="font-size:13.5px;font-weight:700;">Akun Google Drive</div>
+          <div class="row-meta">${cfg.driveConnected ? escapeHtml(cfg.driveAccountEmail || 'Tersambung') : 'Belum tersambung'}</div>
+        </div>
+        <button class="btn small secondary" id="btnDriveConnect" style="margin:0;">${cfg.driveConnected ? 'Putuskan' : 'Hubungkan'}</button>
+      </div>
+      <div class="info-card" style="margin:0 0 20px;">
+        <div class="info-text">Gunakan akun Google yang sama di semua perangkat kalau ingin semua HP/laptop toko mengakses file backup yang sama.</div>
+      </div>
+
+      <div style="font-size:13.5px;font-weight:700;margin-bottom:10px;">Jam Backup</div>
+      <div id="timeSlots">
+        ${(cfg.scheduleTimes || []).map((t, i) => `
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;" data-slot="${i}">
+            <input type="checkbox" checked disabled>
+            <input type="time" value="${t}" class="slotTime" style="border:1px solid var(--outline);border-radius:8px;padding:6px 8px;">
+            <button class="btn small ghost removeSlot" style="margin:0;">Hapus</button>
+          </div>`).join('')}
+      </div>
+      <button class="btn small secondary" id="btnAddSlot" style="margin:0 0 20px;">+ Tambah Jam</button>
+
+      <div class="field" style="padding:0;margin-bottom:16px;">
+        <label>Hapus file backup yang lebih lama dari (hari)</label>
+        <input id="deleteOlderThan" type="number" value="${cfg.deleteOlderThanDays}">
+      </div>
+
+      <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:20px;">
+        <input type="checkbox" id="confirmToggle" ${cfg.confirmBeforeBackup ? 'checked' : ''} style="margin-top:2px;">
+        <span style="font-size:13.5px;">Konfirmasi sebelum backup (muncul dialog tiap kali sebelum upload)</span>
+      </label>
+
+      ${cfg.lastBackupAt ? `<div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Backup terakhir: ${new Date(cfg.lastBackupAt).toLocaleString('id-ID')}</div>` : ''}
+
+      <button class="btn" id="btnBackupNow">Backup Sekarang</button>
+
+      <div class="info-card" style="margin-top:20px;">
+        <div class="info-title">Soal "otomatis"</div>
+        <div class="info-text">Backup di jam yang dijadwalkan akan berjalan begitu aplikasi dibuka/kembali aktif SETELAH jam tersebut lewat — bukan persis di jam itu kalau aplikasi sedang tidak dibuka sama sekali (keterbatasan web app tanpa server, lihat docs/DRIVE_SETUP.md).</div>
+      </div>
+    </div>
+  `;
+
+  root.querySelector('#btnDriveConnect').onclick = async () => {
+    if (cfg.driveConnected) {
+      await drive.disconnectAccount();
+      toast('Akun Google Drive diputuskan');
+      await renderAutoBackup(root);
+      return;
+    }
+    try {
+      const email = await drive.connectAccount();
+      toast(`Tersambung sebagai ${email}`);
+      await renderAutoBackup(root);
+    } catch (e) { toast(e.message || 'Gagal menghubungkan akun Google.'); }
+  };
+
+  root.querySelector('#btnAddSlot').onclick = () => {
+    const container = root.querySelector('#timeSlots');
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:10px;';
+    div.innerHTML = `<input type="checkbox" checked disabled><input type="time" value="09:00" class="slotTime" style="border:1px solid var(--outline);border-radius:8px;padding:6px 8px;"><button class="btn small ghost removeSlot" style="margin:0;">Hapus</button>`;
+    container.appendChild(div);
+    div.querySelector('.removeSlot').onclick = () => div.remove();
+  };
+  root.querySelectorAll('.removeSlot').forEach((btn) => {
+    btn.onclick = (e) => e.target.closest('[data-slot]')?.remove();
+  });
+
+  root.querySelector('#btnBackupNow').onclick = async () => {
+    if (!cfg.driveConnected) { toast('Hubungkan akun Google Drive dulu'); return; }
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+    try {
+      await drive.runBackupNow();
+      toast('Backup berhasil diunggah ke Drive');
+      await renderAutoBackup(root);
+    } catch (e) {
+      toast(e.message || 'Backup gagal.');
+    } finally {
+      document.getElementById('loadingOverlay').classList.add('hidden');
+    }
+  };
+}
+
+async function saveAutoBackupForm(root) {
+  const s = await getSettings();
+  const times = Array.from(root.querySelectorAll('.slotTime')).map((i) => i.value).filter(Boolean);
+  await saveSettings({
+    autoBackup: {
+      ...s.autoBackup,
+      enabled: root.querySelector('#enableToggle').checked,
+      scheduleTimes: times,
+      deleteOlderThanDays: Number(root.querySelector('#deleteOlderThan').value) || 0,
+      confirmBeforeBackup: root.querySelector('#confirmToggle').checked,
+    },
+  });
+  toast('Pengaturan backup otomatis disimpan');
 }

@@ -1,4 +1,4 @@
 {
-  "version": "1.1.0",
-  "notes": "Nota bisa diedit penuh (item, tanggal/jam, diskon), koreksi pembayaran, nomor telepon toko di struk, perbaikan token [printed_datetime], dan dukungan offline penuh setelah aplikasi terpasang."
+  "version": "1.2.0",
+  "notes": "Perbaikan bug Cek Pembaruan yang selalu gagal padahal online. Fitur baru: cetak langsung ke printer Bluetooth (BLE), QRIS otomatis di struk belum lunas, backup terjadwal ke Google Drive, tandai nota selesai/belum selesai, LUNAS otomatis setelah 2 hari, urutkan nota berdasarkan tanggal pengambilan atau tanggal dibuat, omzet bulanan di beranda, dan laporan omset keseluruhan dengan rincian."
 }

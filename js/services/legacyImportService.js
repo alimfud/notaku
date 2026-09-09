@@ -211,6 +211,13 @@ export async function importLegacyFile(file, { importStoreSettings = true, onPro
         note: (row.Catatan || '').trim(),
         status,
         isDeleted: 0,
+        // Nota hasil impor adalah riwayat LAMA — dianggap "selesai" dari awal
+        // supaya tidak memenuhi daftar "belum selesai" (yang harusnya fokus
+        // ke pesanan baru yang sedang berjalan). Status pembayaran (LUNAS/
+        // dst) tetap dihitung apa adanya dari data lama, tidak terpengaruh ini.
+        completed: 1,
+        autoMarkedPaid: 0,
+        autoLunasOverridden: 0,
         createdAt: now,
         updatedAt: now,
       });

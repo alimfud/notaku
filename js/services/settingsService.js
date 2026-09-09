@@ -14,6 +14,28 @@ const DEFAULTS = {
   invoiceResetMode: 'NEVER', // NEVER | DAILY | MONTHLY
   invoiceLastResetDate: '',
   paperSize: 'THERMAL_58MM', // THERMAL_58MM | THERMAL_80MM | PDF_A4
+
+  // Printer Bluetooth (BLE)
+  btPrinterId: '',          // id perangkat Web Bluetooth yang terakhir tersambung (untuk sambung ulang otomatis)
+  btPrinterName: '',
+  btCharWidth: 32,          // 32 (58mm) atau 48 (80mm) karakter per baris
+
+  // QRIS
+  qrisEnabled: false,
+  qrisImageData: '',        // base64 data URL gambar QRIS
+
+  // Auto backup ke Google Drive
+  autoBackup: {
+    enabled: false,
+    driveConnected: false,
+    driveAccountEmail: '',
+    scheduleTimes: ['07:00', '12:00', '17:00'],
+    deleteOlderThanDays: 30,
+    confirmBeforeBackup: false,
+    lastBackupAt: '',       // ISO datetime backup terakhir berhasil
+    lastCheckedDate: '',    // yyyy-MM-dd, dipakai supaya tidak backup berkali-kali di hari yang sama untuk jam yang sama
+    lastCheckedSlots: [],   // daftar jam yang SUDAH dieksekusi hari ini, direset saat lastCheckedDate berganti
+  },
 };
 
 let _cache = null;

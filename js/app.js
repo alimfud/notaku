@@ -75,7 +75,11 @@ export function navigateBack() {
 export async function checkForUpdate(silent = true) {
   const { toast } = await import('./ui/toast.js');
   try {
-    const res = await fetch('./version.json?t=' + Date.now());
+    // cache: 'no-store' memaksa browser mengambil langsung dari jaringan
+    // tanpa lewat HTTP cache — tidak perlu trik query-string "?t=..." lagi
+    // (yang sebelumnya justru memicu bug di sw.js, sudah diperbaiki juga).
+    const res = await fetch('./version.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (data.version && data.version !== APP_VERSION) {
       toast(`Versi baru ${data.version} tersedia. Tutup dan buka lagi aplikasi untuk update.`);
@@ -83,6 +87,7 @@ export async function checkForUpdate(silent = true) {
       toast('Aplikasi sudah versi terbaru (' + APP_VERSION + ')');
     }
   } catch (e) {
+    console.error('[checkForUpdate]', e);
     if (!silent) toast('Gagal memeriksa pembaruan. Periksa koneksi internet.');
   }
 }
@@ -165,4 +170,42 @@ function registerServiceWorker() {
   await handleRouteChange();
   registerServiceWorker();
   import('./installPrompt.js').then(({ initInstallPrompt }) => initInstallPrompt());
+  runBackgroundChecks();
+
+  // Ulangi pengecekan tiap kali aplikasi kembali aktif (mis. HP dibuka lagi
+  // setelah dikunci) — ini bagian dari pendekatan "catch-up" untuk aturan
+  // auto-lunas & jadwal backup, lihat komentar di saleService.js dan
+  // driveBackupService.js soal batasan "otomatis" pada web app statis.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') runBackgroundChecks();
+  });
 })();
+
+async function runBackgroundChecks() {
+  try {
+    const { applyAutoLunasRule } = await import('./services/saleService.js');
+    const changed = await applyAutoLunasRule();
+    if (changed > 0) {
+      const { route } = parseHash();
+      if (route === 'home') handleRouteChange(); // refresh list kalau lagi di Home
+    }
+  } catch (e) {
+    console.error('[runBackgroundChecks] auto-lunas', e);
+  }
+
+  try {
+    const { checkScheduleOnAppOpen } = await import('./services/driveBackupService.js');
+    await checkScheduleOnAppOpen({
+      onConfirm: async (slot) => {
+        const { confirmDialog } = await import('./ui/dialog.js');
+        return confirmDialog({
+          title: 'Backup Terjadwal',
+          message: `Sudah waktunya backup otomatis (jadwal ${slot}). Lanjutkan sekarang?`,
+          confirmLabel: 'Backup Sekarang',
+        });
+      },
+    });
+  } catch (e) {
+    console.error('[runBackgroundChecks] auto-backup', e);
+  }
+}

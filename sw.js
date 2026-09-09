@@ -19,7 +19,7 @@
 // gambar (perlu html2canvas). Fitur inti (lihat/buat/ubah nota, produk,
 // pelanggan, laporan, cetak, backup lokal) semuanya tetap jalan offline.
 
-const CACHE_VERSION = 'notaku-web-v1.1.0'; // naikkan setiap rilis
+const CACHE_VERSION = 'notaku-web-v1.2.0'; // naikkan setiap rilis
 
 const CORE_ASSETS = [
   './',
@@ -30,6 +30,7 @@ const CORE_ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './js/app.js',
+  './js/config.js',
   './js/db.js',
   './js/format.js',
   './js/version.js',
@@ -45,9 +46,12 @@ const CORE_ASSETS = [
   './js/pages/settings.js',
   './js/services/backupService.js',
   './js/services/customerService.js',
+  './js/services/driveBackupService.js',
   './js/services/invoiceNumber.js',
   './js/services/legacyImportService.js',
   './js/services/printerService.js',
+  './js/services/printing/bluetoothPrinter.js',
+  './js/services/printing/escpos.js',
   './js/services/productService.js',
   './js/services/reportService.js',
   './js/services/saleCalculation.js',
@@ -80,24 +84,56 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  // Jangan cache dependency eksternal besar (sql.js/html2canvas dari CDN) di
-  // service worker kita — biarkan browser HTTP cache yang urus itu, supaya
-  // sw.js sendiri tetap ringan dan cepat di-update.
+
+  // Dependency eksternal besar (sql.js/html2canvas dari CDN) — biarkan
+  // browser HTTP cache yang urus, service worker kita tidak ikut campur.
   if (url.origin !== self.location.origin) {
-    event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => caches.match(event.request))
+        .then((res) => res || Response.error())
+    );
     return;
   }
+
+  // version.json HARUS SELALU diambil langsung dari jaringan — tujuannya
+  // memang mengecek versi TERBARU, jadi tidak boleh pernah dilayani dari
+  // cache (baik cache SW maupun cache HTTP browser). Sebelumnya file ini
+  // dilayani lewat jalur cache-first umum di bawah, dan karena URL-nya
+  // diberi query string pembeda (?t=...) supaya tidak kena cache, itu
+  // JUSTRU membuat servicenya SELALU cache-miss di sini — begitu fetch
+  // jaringannya gagal karena sebab apa pun (walau cuma hiccup sesaat),
+  // .catch() jatuh ke `cached` yang undefined, dan respondWith(undefined)
+  // dianggap error KERAS oleh browser ("Failed to fetch") walau internet
+  // sebenarnya menyala. Ini bug yang sudah diperbaiki di sini: sekarang
+  // request ke version.json ditangani terpisah, tidak lewat cache lookup
+  // sama sekali, dan SELALU mengembalikan Response yang valid.
+  if (url.pathname.endsWith('version.json')) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' })
+        .catch(() => caches.match('./version.json')) // fallback offline: versi lama yang sempat ter-precache
+        .then((res) => res || new Response(JSON.stringify({ error: 'offline' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        }))
+    );
+    return;
+  }
+
+  // Aset lain: cache-first (kecepatan transisi), lalu perbarui cache di
+  // background kalau memang perlu ambil dari jaringan. PENTING: jalur ini
+  // sekarang dijamin SELALU mengembalikan sebuah Response yang valid —
+  // tidak pernah `undefined` — supaya tidak mengulang bug yang sama.
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      const network = fetch(event.request)
+      if (cached) return cached;
+      return fetch(event.request)
         .then((res) => {
           const copy = res.clone();
           caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, copy));
           return res;
         })
-        .catch(() => cached);
-      // Cache-first untuk kecepatan transisi; update cache di background (stale-while-revalidate).
-      return cached || network;
+        .catch(() => new Response('', { status: 504, statusText: 'Offline dan belum pernah di-cache' }));
     })
   );
 });

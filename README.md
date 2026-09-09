@@ -54,7 +54,6 @@ penuh tanpa address bar — dari segi tampilan & rasa pakai, sama seperti
 aplikasi native.
 
 ## Deploy ke GitHub Pages
-
 1. Buat repo baru di https://github.com (Public).
 2. Upload semua file **di dalam** folder ini (`index.html`, `css/`, `js/`,
    `icons/`, `manifest.json`, `sw.js`, `version.json`) ke root repo tersebut.
@@ -72,6 +71,96 @@ menaikkan versi di dua tempat:
 ...maka pengguna yang sudah install akan otomatis mengunduh versi baru di
 background begitu mereka membuka aplikasi (ada notifikasi kecil, lalu reload
 otomatis). Tidak perlu proses publish/submit apa pun — beda dengan Play Store.
+
+## v1.2.0 — fitur baru & perbaikan bug
+
+### 🐛 Perbaikan: "Cek Pembaruan" selalu gagal padahal online
+
+**Penyebabnya ditemukan dan diperbaiki**: `sw.js` (service worker) sebelumnya
+memakai strategi cache yang, khusus untuk request `version.json` (yang sengaja
+diberi query string `?t=...` supaya selalu fresh, tidak kena cache), punya
+celah — kalau fetch jaringannya gagal karena sebab apa pun (bahkan hiccup
+sesaat), service worker mengembalikan `undefined` alih-alih sebuah Response,
+yang oleh browser dianggap error KERAS ("Failed to fetch") walau internet
+sebenarnya menyala. Sekarang `version.json` ditangani jalur khusus yang
+SELALU mengembalikan Response valid, dan tidak lagi butuh trik query-string
+cache-busting (pakai `cache: 'no-store'` di fetch API sebagai gantinya).
+**Upload ulang `sw.js` dan `js/app.js` supaya perbaikan ini aktif** (service
+worker versi baru akan otomatis menggantikan yang lama begitu pengguna
+membuka aplikasi).
+
+### 🖨️ Cetak langsung ke printer Bluetooth
+
+Setting → Printer → "Cari Printer" untuk menyambungkan printer thermal via
+Bluetooth. Sekali tersambung, NotaKu mengingat printer itu — buka nota lain
+kapan saja, pilih "Cetak via Bluetooth", dan (kalau printer menyala &
+Bluetooth HP aktif) langsung tersambung ulang tanpa perlu cari lagi.
+
+**Batasan platform yang jujur perlu diketahui** (bukan keterbatasan kode ini,
+tapi keterbatasan Web Bluetooth API di browser):
+- **Hanya untuk printer Bluetooth Low Energy (BLE)**. Banyak printer thermal
+  murah memakai Bluetooth Classic/SPP — jenis ini **tidak bisa** diakses dari
+  browser web sama sekali, di platform apa pun. Kalau printer kamu tidak
+  muncul saat "Cari Printer", kemungkinan itu penyebabnya — pakai
+  "Cetak / Simpan PDF" sebagai gantinya (bisa dibagikan ke app seperti RawBT
+  yang bisa menjembatani ke printer Classic).
+- **Hanya Chrome/Edge di Android & Desktop** — Safari/iPhone tidak mendukung
+  Web Bluetooth sama sekali (ini kebijakan Apple, bukan sesuatu yang bisa
+  diakali dari kode web).
+- Support mencakup UUID service/characteristic yang UMUM dipakai printer
+  thermal generic — printer dengan chipset yang sangat berbeda mungkin tetap
+  tidak terdeteksi meski BLE.
+
+### 🔳 QRIS otomatis di struk
+
+Setting → QRIS → aktifkan & upload gambar kode QRIS statis tokomu (dari
+aplikasi bank/e-wallet). QRIS otomatis muncul di struk (preview, cetak PDF,
+maupun cetak Bluetooth) **hanya kalau nota belum lunas** — begitu status
+LUNAS, QRIS otomatis hilang dari tampilan struk berikutnya.
+
+### ☁️ Backup terjadwal ke Google Drive
+
+Setting → Backup/Restore → Atur Backup Otomatis: hubungkan akun Google,
+jadwalkan beberapa jam backup per hari, atur penghapusan file lama otomatis.
+**Butuh setup sekali** (Google Client ID gratis milikmu sendiri) — lihat
+[docs/DRIVE_SETUP.md](docs/DRIVE_SETUP.md) untuk langkah lengkapnya.
+
+Baca juga catatan jujur soal keterbatasan "otomatis" pada web app statis di
+dalam dokumen itu dan di komentar `js/services/driveBackupService.js` —
+backup di jam PERSIS yang dijadwalkan hanya terjamin kalau aplikasi kebetulan
+dibuka/aktif sekitar jam itu, bukan berjalan di latar belakang 100% pasti
+seperti aplikasi native.
+
+### ✅ Tandai nota selesai / belum selesai
+
+Fokus ke pekerjaan yang belum kelar: di Detail Nota ada tombol "Tandai
+Selesai". Di Home, ada centang "Fokus yang belum selesai" (aktif secara
+default) supaya daftar nota tidak dipenuhi pesanan lama yang sudah beres.
+Nota hasil impor dari database lama otomatis ditandai selesai dari awal
+(riwayat lama, bukan pekerjaan yang sedang berjalan).
+
+### 🕑 LUNAS otomatis setelah 2 hari dari tanggal pengambilan
+
+Kalau nota belum dibayar tapi sudah lewat 2 hari dari tanggal pengambilan,
+NotaKu otomatis menandainya LUNAS (asumsi: biasanya pelanggan sudah bayar
+saat ambil, cuma lupa dicatat). Ada label "(otomatis)" kecil di status, dan
+di Detail Nota ada tombol "Batalkan" kalau ternyata memang belum dibayar —
+setelah dibatalkan, nota itu **tidak akan** ditandai LUNAS otomatis lagi.
+
+### 🔀 Urutkan nota: tanggal pengambilan vs tanggal dibuat
+
+Di Home ada dropdown untuk memilih urutan daftar nota: berdasarkan **tanggal
+pengambilan** (default — tanggal/jam yang ditampilkan di setiap baris nota
+memang tanggal pengambilan, bukan waktu nota dibuat) atau **tanggal nota
+dibuat** (waktu pemesanan).
+
+### 📊 Omzet bulan ini di beranda, dan laporan omset keseluruhan
+
+Kartu ringkasan di Home sekarang menampilkan **Omzet Bulan Ini** (bukan cuma
+hari ini). Halaman Laporan punya bagian baru **"Omset Keseluruhan"**: total
+omzet sepanjang waktu, total sudah diterima vs piutang, rincian per status
+pembayaran (LUNAS/SEBAGIAN/BELUM BAYAR/LEBIH BAYAR beserta jumlah & nominal),
+dan rincian omzet per bulan.
 
 ## Fitur
 
@@ -164,6 +253,34 @@ web ini SUDAH diuji jalan sungguhan** dengan Node.js + jsdom + fake-indexeddb
 - ✅ **(v1.1.0)** Rute baru `sale/:id/edit` diuji lewat router sungguhan
   (bukan cuma manggil fungsi service langsung) — navigasi, judul halaman,
   dan render form semua diverifikasi jalan.
+- ✅ **(v1.2.0)** Urutkan nota (pengambilan vs dibuat) diuji: nota dengan
+  tanggal pengambilan lebih baru vs nota yang dibuat lebih baru muncul di
+  urutan berbeda sesuai mode yang dipilih.
+- ✅ **(v1.2.0)** Filter "belum selesai" diuji: nota yang ditandai selesai
+  otomatis tersembunyi dari daftar fokus.
+- ✅ **(v1.2.0)** Aturan LUNAS otomatis diuji lengkap: nota 5 hari lalu belum
+  bayar → otomatis LUNAS; nota 1 hari lalu → TIDAK disentuh (belum 2 hari);
+  dibatalkan manual → kembali BELUM BAYAR dan **tidak pernah** ditandai
+  otomatis lagi walau aturan dijalankan ulang.
+- ✅ **(v1.2.0)** QRIS diuji: muncul di struk saat nota belum lunas, otomatis
+  hilang begitu nota dilunasi — diverifikasi lewat render sungguhan, bukan
+  cuma baca kode.
+- ✅ **(v1.2.0)** Laporan omset keseluruhan diuji: total omzet, jumlah
+  transaksi, dan rincian per status pembayaran dihitung ulang manual dan
+  dicocokkan dengan hasil kode — sama persis.
+- ✅ **(v1.2.0)** Semua halaman Setting baru (Printer+Bluetooth, QRIS, Backup,
+  Atur Backup Otomatis) diuji render tanpa error lewat router sungguhan.
+- ✅ **(v1.2.0)** Bug "Cek Pembaruan selalu gagal" — akar masalah ditemukan
+  dengan menelusuri logika `sw.js` baris demi baris (bukan tebak-tebakan),
+  dan perbaikannya membuat jalur tersebut tidak mungkin lagi mengembalikan
+  respons tidak valid.
+
+Yang **belum** diuji: interaksi Bluetooth/Drive sungguhan (jsdom tidak
+mendukung Web Bluetooth API maupun kanvas gambar) — ini WAJAR karena
+keduanya butuh hardware/akun nyata, hanya bisa diuji di HP/browser
+sungguhan. Kode sudah ditulis mengikuti spesifikasi resmi API-nya dengan
+penanganan error yang jelas, tapi belum ada jaminan "sudah pasti jalan
+100%" seperti fitur lain yang berhasil diuji end-to-end secara terprogram.
 
 Yang **belum** diuji: interaksi UI penuh di browser sungguhan (klik tombol,
 transisi visual, dsb) — jsdom mensimulasikan DOM tapi tidak me-render

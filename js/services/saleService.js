@@ -1,7 +1,7 @@
 // saleService.js — orkestrasi nota: validasi -> hitung -> nomor invoice -> simpan.
 
 import * as db from '../db.js';
-import { uid, dbDate, timeLabel } from '../format.js';
+import { uid, dbDate, timeLabel, todayDbDate } from '../format.js';
 import { calculateSubtotal, calculateTotal, resolveStatus } from './saleCalculation.js';
 import { generateAndAdvance } from './invoiceNumber.js';
 
@@ -43,6 +43,9 @@ export async function createSale({ customer, lines, discountAmount = 0, initialP
       note,
       status,
       isDeleted: 0,
+      completed: 0,        // penanda "sudah selesai dikerjakan/diambil" — beda dari status pembayaran
+      autoMarkedPaid: 0,   // true kalau LUNAS ini hasil aturan otomatis (2 hari lewat tgl pengambilan), bukan input manual
+      autoLunasOverridden: 0, // true kalau user pernah membatalkan status LUNAS otomatis -> aturan tidak berlaku lagi utk nota ini
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     };
@@ -212,25 +215,97 @@ export async function deleteSale(saleId) {
   }
 }
 
+/**
+ * Status yang ditampilkan ke user. Beda dengan resolveStatus() murni karena
+ * memperhitungkan [autoMarkedPaid] — nota yang ditandai LUNAS otomatis (lihat
+ * applyAutoLunasRule) tampil LUNAS walau catatan pembayaran belum menutup
+ * total, KECUALI user sudah membatalkannya lewat revertAutoLunas.
+ */
+export function computeDisplayStatus(sale, paidAmount) {
+  if (sale.autoMarkedPaid) return 'PAID';
+  return resolveStatus(sale.total, paidAmount);
+}
+
+/** Tandai nota selesai dikerjakan/diambil atau belum — independen dari status pembayaran. */
+export async function setCompleted(saleId, completed) {
+  const sale = await db.get('sales', saleId);
+  if (!sale) return;
+  sale.completed = completed ? 1 : 0;
+  sale.updatedAt = new Date().toISOString();
+  await db.put('sales', sale);
+}
+
+/**
+ * Aturan otomatis: kalau sudah lewat >= 2 hari dari TANGGAL PENGAMBILAN dan
+ * nota belum lunas, anggap LUNAS (asumsi: pelanggan sudah bayar saat ambil,
+ * tokonya cuma lupa mencatat). Dipanggil saat aplikasi dibuka (lihat app.js).
+ * Nota yang PERNAH dibatalkan manual oleh user (autoLunasOverridden) tidak
+ * akan disentuh lagi oleh aturan ini selamanya — keputusan manual dihormati.
+ */
+export async function applyAutoLunasRule() {
+  const sales = (await db.getAll('sales')).filter((s) => !s.isDeleted && !s.autoMarkedPaid && !s.autoLunasOverridden);
+  if (!sales.length) return 0;
+  const allPayments = await db.getAll('payments');
+  const paidBySale = new Map();
+  for (const p of allPayments) paidBySale.set(p.saleId, (paidBySale.get(p.saleId) || 0) + p.amount);
+
+  const todayMs = new Date(todayDbDate() + 'T00:00:00').getTime();
+  const toUpdate = [];
+  for (const sale of sales) {
+    const paid = paidBySale.get(sale.id) || 0;
+    if (sale.total - paid <= 0.5) continue; // sudah lunas beneran, tidak perlu ditandai
+    const saleDateMs = new Date(sale.saleDate + 'T00:00:00').getTime();
+    const daysPast = Math.floor((todayMs - saleDateMs) / 86400000);
+    if (daysPast >= 2) {
+      toUpdate.push({ ...sale, autoMarkedPaid: 1, status: 'PAID', updatedAt: new Date().toISOString() });
+    }
+  }
+  if (toUpdate.length) await db.bulkPut('sales', toUpdate);
+  return toUpdate.length;
+}
+
+/** Batalkan status LUNAS otomatis (user tahu kalau nota itu SUNGGUH belum dibayar). */
+export async function revertAutoLunas(saleId) {
+  const sale = await db.get('sales', saleId);
+  if (!sale) return;
+  const allPayments = await db.getByIndex('payments', 'saleId', saleId);
+  const paidAmount = allPayments.reduce((s, p) => s + p.amount, 0);
+  sale.autoMarkedPaid = 0;
+  sale.autoLunasOverridden = 1;
+  sale.status = resolveStatus(sale.total, paidAmount);
+  sale.updatedAt = new Date().toISOString();
+  await db.put('sales', sale);
+}
+
 /** Ambil nota + agregat sudah-dibayar (setara SaleSummary Flutter). */
 export async function getSaleSummary(saleId) {
   const sale = await db.get('sales', saleId);
   if (!sale) return null;
   const payments = await db.getByIndex('payments', 'saleId', saleId);
   const paidAmount = payments.reduce((s, p) => s + p.amount, 0);
-  return { sale, paidAmount, remaining: sale.total - paidAmount, payments };
+  return { sale, paidAmount, remaining: sale.total - paidAmount, payments, displayStatus: computeDisplayStatus(sale, paidAmount) };
 }
 
-export async function getAllSaleSummaries({ search = '', dateFrom = null, dateTo = null } = {}) {
+/**
+ * @param {string} sortBy 'pickup' (tanggal pengambilan, default) | 'created' (tanggal/waktu nota dibuat)
+ * @param {boolean} onlyIncomplete kalau true, hanya kembalikan nota yang BELUM ditandai selesai
+ */
+export async function getAllSaleSummaries({ search = '', dateFrom = null, dateTo = null, sortBy = 'pickup', onlyIncomplete = false } = {}) {
   let sales = await db.getAll('sales');
   sales = sales.filter((s) => !s.isDeleted);
+  if (onlyIncomplete) sales = sales.filter((s) => !s.completed);
   if (search.trim()) {
     const q = search.trim().toLowerCase();
     sales = sales.filter((s) => s.customerName.toLowerCase().includes(q) || s.invoiceNumber.toLowerCase().includes(q));
   }
   if (dateFrom) sales = sales.filter((s) => s.saleDate >= dateFrom);
   if (dateTo) sales = sales.filter((s) => s.saleDate <= dateTo);
-  sales.sort((a, b) => (b.saleDate + b.saleTime).localeCompare(a.saleDate + a.saleTime) || b.createdAt.localeCompare(a.createdAt));
+
+  if (sortBy === 'created') {
+    sales.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  } else {
+    sales.sort((a, b) => (b.saleDate + b.saleTime).localeCompare(a.saleDate + a.saleTime) || b.createdAt.localeCompare(a.createdAt));
+  }
 
   const allPayments = await db.getAll('payments');
   const paidBySale = new Map();
@@ -238,6 +313,6 @@ export async function getAllSaleSummaries({ search = '', dateFrom = null, dateTo
 
   return sales.map((sale) => {
     const paidAmount = paidBySale.get(sale.id) || 0;
-    return { sale, paidAmount, remaining: sale.total - paidAmount };
+    return { sale, paidAmount, remaining: sale.total - paidAmount, displayStatus: computeDisplayStatus(sale, paidAmount) };
   });
 }

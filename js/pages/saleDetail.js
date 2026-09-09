@@ -1,6 +1,6 @@
 // pages/saleDetail.js
 
-import { getSaleSummary, addPayment, updatePayment, deletePayment, deleteSale, AppError } from '../services/saleService.js';
+import { getSaleSummary, addPayment, updatePayment, deletePayment, deleteSale, setCompleted, revertAutoLunas, AppError } from '../services/saleService.js';
 import * as db from '../db.js';
 import { getSettings } from '../services/settingsService.js';
 import { rupiah, dateShort, escapeHtml, qtyLabel, resolveFooterNote } from '../format.js';
@@ -24,7 +24,8 @@ async function draw(root, saleId) {
   const items = await db.getByIndex('saleItems', 'saleId', saleId);
   items.sort((a, b) => a.sortOrder - b.sortOrder);
   const settings = await getSettings();
-  const { sale, paidAmount, remaining, payments } = summary;
+  const { sale, paidAmount, remaining, payments, displayStatus } = summary;
+  const showQris = settings.qrisEnabled && settings.qrisImageData && displayStatus !== 'PAID' && displayStatus !== 'OVERPAID';
 
   setTopbarActions([
     { icon: 'edit', title: 'Ubah Nota', onClick: () => navigate(`sale/${saleId}/edit`) },
@@ -35,6 +36,11 @@ async function draw(root, saleId) {
   const footerResolved = resolveFooterNote(settings.footerNote, dateShort(sale.saleDate), sale.saleTime);
 
   root.innerHTML = `
+    ${sale.autoMarkedPaid ? `
+      <div style="margin:16px 16px 0;padding:12px 14px;border-radius:12px;background:var(--primary-container);display:flex;align-items:center;gap:10px;">
+        <div style="flex:1;font-size:12.5px;color:var(--ink-soft);">Ditandai <b>LUNAS otomatis</b> karena sudah &gt;2 hari dari tanggal pengambilan.</div>
+        <button id="revertAutoBtn" style="background:none;border:1px solid var(--ink);border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;white-space:nowrap;">Batalkan</button>
+      </div>` : ''}
     <div style="padding:16px;">
       <div class="receipt" id="receiptCapture" style="border:1px solid var(--outline);border-radius:16px;">
         <div class="receipt-shop">${escapeHtml(settings.storeName)}</div>
@@ -58,6 +64,11 @@ async function draw(root, saleId) {
           </div>
         </div>
         ${sale.note ? `<div class="row-meta" style="margin-top:8px;">Catatan: ${escapeHtml(sale.note)}</div>` : ''}
+        ${showQris ? `
+          <div style="text-align:center;margin-top:14px;">
+            <div style="font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Scan QRIS untuk bayar</div>
+            <img src="${settings.qrisImageData}" alt="QRIS" style="width:160px;height:160px;object-fit:contain;">
+          </div>` : ''}
         ${footerResolved ? `<div class="receipt-footer">${escapeHtml(footerResolved)}</div>` : ''}
       </div>
     </div>
@@ -74,13 +85,33 @@ async function draw(root, saleId) {
           </button>`).join('')}
       </div>` : ''}
     <div style="padding:20px 16px;">
-      <button id="addPaymentBtn" class="btn" style="margin:0;">+ Tambah Pembayaran</button>
+      <button id="toggleCompletedBtn" class="btn ${sale.completed ? 'secondary' : ''}" style="margin:0;">${sale.completed ? '↺ Tandai Belum Selesai' : '✓ Tandai Selesai'}</button>
+      <button id="addPaymentBtn" class="btn secondary" style="margin-top:10px;">+ Tambah Pembayaran</button>
       <button id="printBtn" class="btn secondary" style="margin-top:10px;">Cetak</button>
     </div>
   `;
 
   root.querySelector('#addPaymentBtn').onclick = () => handleAddPayment(root, saleId, remaining);
   root.querySelector('#printBtn').onclick = () => printReceipt();
+  root.querySelector('#toggleCompletedBtn').onclick = async () => {
+    await setCompleted(saleId, !sale.completed);
+    toast(sale.completed ? 'Ditandai belum selesai' : 'Ditandai selesai');
+    await draw(root, saleId);
+  };
+  const revertBtn = root.querySelector('#revertAutoBtn');
+  if (revertBtn) {
+    revertBtn.onclick = async () => {
+      const confirmed = await confirmDialog({
+        title: 'Batalkan LUNAS Otomatis?',
+        message: 'Nota ini akan ditandai BELUM LUNAS lagi sesuai jumlah pembayaran yang sungguh tercatat. Nota ini tidak akan ditandai LUNAS otomatis lagi di kemudian hari.',
+        confirmLabel: 'Ya, Batalkan',
+      });
+      if (!confirmed) return;
+      await revertAutoLunas(saleId);
+      toast('Status LUNAS otomatis dibatalkan');
+      await draw(root, saleId);
+    };
+  }
   root.querySelectorAll('[data-pid]').forEach((btn) => {
     btn.onclick = () => handleEditPayment(root, saleId, payments.find((p) => p.id === btn.dataset.pid));
   });
@@ -177,19 +208,31 @@ async function handleDelete(root, saleId) {
 }
 
 async function showShareSheet(root, sale, items, settings, paidAmount, remaining) {
+  const { isConnected, currentDeviceInfo } = await import('../services/printing/bluetoothPrinter.js');
+  const btConnected = isConnected ? isConnected() : false;
+  const btInfo = currentDeviceInfo ? currentDeviceInfo() : null;
+
   const result = await openSheet((body, close) => {
     body.innerHTML = `
       <div class="sheet-title">Bagikan Nota</div>
+      <button class="settings-tile" id="btPrint"><div class="icon-box">🔵</div><div class="settings-body"><div class="settings-title">Cetak via Bluetooth</div><div class="settings-sub">${btConnected ? 'Tersambung: ' + escapeHtml(btInfo.name) : (settings.btPrinterId ? 'Tersimpan — akan coba sambung ulang' : 'Belum ada printer tersambung')}</div></div></button>
       <button class="settings-tile" id="shareText"><div class="icon-box">💬</div><div class="settings-body"><div class="settings-title">Bagikan sebagai Teks</div></div></button>
       <button class="settings-tile" id="shareImage"><div class="icon-box">🖼️</div><div class="settings-body"><div class="settings-title">Bagikan sebagai Gambar</div></div></button>
-      <button class="settings-tile" id="doPrint"><div class="icon-box">🖨️</div><div class="settings-body"><div class="settings-title">Cetak</div></div></button>
+      <button class="settings-tile" id="doPrint"><div class="icon-box">🖨️</div><div class="settings-body"><div class="settings-title">Cetak / Simpan PDF</div></div></button>
     `;
+    body.querySelector('#btPrint').onclick = () => close('bluetooth');
     body.querySelector('#shareText').onclick = () => close('text');
     body.querySelector('#shareImage').onclick = () => close('image');
     body.querySelector('#doPrint').onclick = () => close('print');
   });
 
   if (result === 'print') { printReceipt(); return; }
+
+  if (result === 'bluetooth') {
+    await handleBluetoothPrint(sale, items, settings, paidAmount, remaining);
+    return;
+  }
+
   if (result === 'text') {
     const receiptData = {
       storeName: settings.storeName, invoiceNumber: sale.invoiceNumber, dateLabel: dateShort(sale.saleDate),
@@ -209,4 +252,60 @@ async function showShareSheet(root, sale, items, settings, paidAmount, remaining
       if (status === 'downloaded') toast('Gambar nota diunduh');
     } catch (e) { toast(e.message || 'Gagal membuat gambar nota.'); }
   }
+}
+
+async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining) {
+  const bt = await import('../services/printing/bluetoothPrinter.js');
+  const receiptData = {
+    storeName: settings.storeName, storeAddress: settings.storeAddress, storePhone: settings.storePhone,
+    invoiceNumber: sale.invoiceNumber, dateLabel: dateShort(sale.saleDate), timeLabel: sale.saleTime,
+    customerName: sale.customerName,
+    lines: items.map((i) => ({ name: i.productName, qty: i.qty, unit: i.unit, price: i.price, subtotal: i.subtotal })),
+    discount: sale.discountAmount, total: sale.total, paid: paidAmount, remaining, note: sale.note,
+    footerNote: resolveFooterNote(settings.footerNote, dateShort(sale.saleDate), sale.saleTime),
+  };
+
+  document.getElementById('loadingOverlay').classList.remove('hidden');
+  try {
+    if (!bt.isConnected()) {
+      const reconnected = settings.btPrinterId ? await bt.reconnectSaved(settings.btPrinterId) : null;
+      if (!reconnected) {
+        document.getElementById('loadingOverlay').classList.add('hidden');
+        const confirmScan = await confirmDialog({
+          title: 'Printer Belum Tersambung',
+          message: 'Cari printer Bluetooth sekarang? Pastikan printer sudah menyala dan Bluetooth HP aktif.',
+          confirmLabel: 'Cari Printer',
+        });
+        if (!confirmScan) return;
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+        await bt.scanAndConnect();
+      }
+    }
+
+    let qrisCanvas = null;
+    const showQris = settings.qrisEnabled && settings.qrisImageData && remaining > 0.5;
+    if (showQris) qrisCanvas = await loadImageToCanvas(settings.qrisImageData);
+
+    await bt.printReceiptViaBluetooth(receiptData, { charWidth: settings.btCharWidth || 32, qrisCanvas });
+    toast('Berhasil dikirim ke printer');
+  } catch (e) {
+    toast(e.message || 'Gagal mencetak via Bluetooth.');
+  } finally {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  }
+}
+
+function loadImageToCanvas(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      resolve(canvas);
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
 }
