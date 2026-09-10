@@ -72,6 +72,69 @@ menaikkan versi di dua tempat:
 background begitu mereka membuka aplikasi (ada notifikasi kecil, lalu reload
 otomatis). Tidak perlu proses publish/submit apa pun — beda dengan Play Store.
 
+## v1.3.0 — mode kasir, printer, dan nomor invoice
+
+### 🐛 Perbaikan: TOTAL berantakan saat cetak Bluetooth
+
+Ditemukan penyebabnya: teks "TOTAL" dan nama toko dicetak dengan mode "lebar
+ganda" (double-width) di printer, tapi perhitungan lebar kolom di kode tidak
+menyesuaikan — hasilnya teks kepanjangan dari muatan kertas dan tabrakan.
+Sekarang dicetak bold saja (tanpa lebar ganda), jauh lebih aman dan konsisten
+di berbagai printer thermal murah.
+
+### 🔳 QRIS dihapus dari cetak Bluetooth
+
+QRIS **tidak lagi dicetak** lewat printer Bluetooth — resolusi cetak printer
+thermal murah sering membuat kode QR tidak bisa di-scan sama sekali. QRIS
+tetap tampil di layar (Detail Nota) dan saat dibagikan sebagai gambar/PDF,
+yang resolusinya utuh dan tetap bisa di-scan dari layar HP.
+
+### 🛒 Mode Kasir Mini Market
+
+Layar "Nota Baru" sekarang punya kolom pencarian/scan barcode yang selalu
+terlihat (bukan pop-up terpisah) + stepper jumlah — cocok dipakai berturutan
+dengan barcode scanner fisik (yang berperilaku seperti keyboard: ketik kode
+lalu "Enter" otomatis). Ketik nama produk untuk cari, atau scan barcode untuk
+langsung menambah. Bar ringkasan di bawah selalu menampilkan Item / Qty /
+Subtotal berjalan.
+
+### 📵 Privasi nomor HP pelanggan di struk
+
+Setting → Info Toko → "Sembunyikan nomor HP pelanggan di struk" (aktif
+secara default): struk cuma menampilkan 3 digit terakhir nomor HP pelanggan
+(mis. `*********771`). Bisa dimatikan kalau ingin nomor penuh tetap tampil.
+
+### 💚 Chat WA langsung dari nota
+
+Menu "Bagikan" di Detail Nota sekarang punya opsi "Chat WA [nomor]" di
+posisi paling atas — langsung membuka WhatsApp ke nomor pelanggan dengan isi
+nota sudah terisi otomatis di kolom pesan, tanpa perlu copy-paste manual.
+
+### 🔤 Format item pakai tanda "@"
+
+Baris item di struk (preview, cetak, share) sekarang format:
+`2 pcs x @ Rp15.000,-` (sebelumnya `2 pcs x Rp15.000`, tanpa tanda "@").
+
+### 🧾 Nomor invoice berbasis waktu (default baru)
+
+Setting → Nomor Nota → dua pilihan format:
+- **Berdasarkan Waktu Dibuat** (default): prefix + YYMMDDHH, contoh nota
+  dibuat 9 September 2026 jam 21:xx -> `INV-26090921`. Perlu diketahui: dua
+  nota yang dibuat di jam yang sama pada hari yang sama akan mendapat nomor
+  invoice yang **sama** di skema ini (cuma presisi sampai jam) — ID internal
+  tiap nota tetap selalu unik untuk semua keperluan teknis, ini murni soal
+  nomor yang tercetak di struk.
+- **Nomor Urut**: skema lama (prefix + angka urut + mode reset), dijamin
+  unik, tetap tersedia kalau kamu lebih suka ini.
+
+### 🕓 Catatan kaki struk mengikuti waktu TERAKHIR DIPERBARUI
+
+Tanggal/jam di bawah "Terima kasih" (token `[printed_datetime]`) sekarang
+mengikuti kapan nota **terakhir diubah** (edit item, tambah/ubah/hapus
+pembayaran) — bukan waktu pengambilan yang tetap. **Nomor invoice di bagian
+atas TIDAK ikut berubah** — begitu dibuat, nomor itu permanen, cuma stempel
+tanggal di footer yang ter-update mengikuti perubahan terakhir.
+
 ## v1.2.0 — fitur baru & perbaikan bug
 
 ### 🐛 Perbaikan: "Cek Pembaruan" selalu gagal padahal online
@@ -274,6 +337,21 @@ web ini SUDAH diuji jalan sungguhan** dengan Node.js + jsdom + fake-indexeddb
   dengan menelusuri logika `sw.js` baris demi baris (bukan tebak-tebakan),
   dan perbaikannya membuat jalur tersebut tidak mungkin lagi mengembalikan
   respons tidak valid.
+- ✅ **(v1.3.0)** Mode Kasir Mini Market diuji lewat router sungguhan: cari
+  produk by nama, scan barcode (exact match + Enter, meniru perilaku scanner
+  fisik), stepper qty, penggabungan qty saat produk sama discan dua kali —
+  semua diverifikasi lewat interaksi DOM nyata (klik, input, keydown), bukan
+  cuma manggil fungsi service.
+- ✅ **(v1.3.0)** Masking nomor HP pelanggan diuji: struk menampilkan format
+  `*********771`, nomor lengkap TIDAK bocor ke tampilan struk; sekaligus
+  diverifikasi tombol "Chat WA" tetap menampilkan nomor lengkap (karena itu
+  memang aksi yang butuh nomor utuh untuk membuka WhatsApp).
+- ✅ **(v1.3.0)** Nomor invoice format DATETIME diuji hasilnya persis sesuai
+  spesifikasi (`INV-26090921` untuk nota dibuat 9 Sep 2026 jam 21:xx); mode
+  SEQUENTIAL lama diuji ulang untuk pastikan tidak rusak oleh perubahan ini.
+- ✅ **(v1.3.0)** Diuji: nomor invoice TIDAK berubah setelah nota diedit,
+  sementara `updatedAt` (sumber tanggal footer) berubah — sesuai permintaan
+  "nomor invoice tetap, tanggal footer ikut update".
 
 Yang **belum** diuji: interaksi Bluetooth/Drive sungguhan (jsdom tidak
 mendukung Web Bluetooth API maupun kanvas gambar) — ini WAJAR karena

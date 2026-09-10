@@ -61,8 +61,20 @@ async function renderStore(root) {
     <div class="field"><label>Alamat</label><textarea id="fAddress" rows="2">${escapeHtml(s.storeAddress)}</textarea></div>
     <div class="field"><label>Telepon</label><input id="fPhone" value="${escapeHtml(s.storePhone)}"></div>
     <div class="field"><label>Catatan Kaki Struk</label><textarea id="fFooter" rows="3">${escapeHtml(s.footerNote)}</textarea></div>
+    <div class="section-title">Privasi Data Pelanggan</div>
+    <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;">
+      <div>
+        <div style="font-size:14px;font-weight:600;">Sembunyikan nomor HP pelanggan di struk</div>
+        <div class="row-meta">Kalau aktif, struk cuma menampilkan 3 digit terakhir (mis. *********771)</div>
+      </div>
+      <input type="checkbox" id="maskPhoneToggle" ${s.maskCustomerPhone ? 'checked' : ''} style="width:44px;height:24px;flex-shrink:0;margin-left:12px;">
+    </label>
     <button class="btn" id="fSave">Simpan</button>
   `;
+  root.querySelector('#maskPhoneToggle').onchange = async (e) => {
+    await saveSettings({ maskCustomerPhone: e.target.checked });
+    toast('Pengaturan privasi disimpan');
+  };
   root.querySelector('#fSave').onclick = async () => {
     await saveSettings({
       storeName: root.querySelector('#fName').value.trim(),
@@ -80,31 +92,62 @@ async function renderInvoice(root) {
   const s = await getSettings();
   root.innerHTML = `
     <div class="field"><label>Awalan (Prefix)</label><input id="fPrefix" value="${escapeHtml(s.invoicePrefix)}"></div>
-    <div class="field"><label>Jumlah Digit</label><input id="fDigit" type="number" value="${s.invoiceDigitCount}"></div>
-    <div class="field"><label>Nomor Berikutnya</label><input id="fNext" type="number" value="${s.invoiceNextNumber}"></div>
-    <div class="section-title">Mode Reset</div>
-    <label class="field-radio"><input type="radio" name="reset" value="NEVER" ${s.invoiceResetMode === 'NEVER' ? 'checked' : ''}><div><div class="radio-title">Tidak Pernah</div><div class="radio-sub">Nomor terus naik, tidak pernah kembali ke awal</div></div></label>
-    <label class="field-radio"><input type="radio" name="reset" value="DAILY" ${s.invoiceResetMode === 'DAILY' ? 'checked' : ''}><div><div class="radio-title">Harian</div><div class="radio-sub">Nomor kembali ke 1 setiap hari baru</div></div></label>
-    <label class="field-radio"><input type="radio" name="reset" value="MONTHLY" ${s.invoiceResetMode === 'MONTHLY' ? 'checked' : ''}><div><div class="radio-title">Bulanan</div><div class="radio-sub">Nomor kembali ke 1 setiap bulan baru</div></div></label>
+
+    <div class="section-title">Format Nomor</div>
+    <label class="field-radio"><input type="radio" name="numformat" value="DATETIME" ${s.invoiceNumberFormat === 'DATETIME' ? 'checked' : ''}><div><div class="radio-title">Berdasarkan Waktu Dibuat</div><div class="radio-sub">Format: Prefix + TahunBulanTanggalJam, contoh nota dibuat hari ini jam 21 -> tampil seperti pratinjau di bawah. Sederhana, tapi dua nota di jam yang sama bisa punya nomor sama.</div></div></label>
+    <label class="field-radio"><input type="radio" name="numformat" value="SEQUENTIAL" ${s.invoiceNumberFormat === 'SEQUENTIAL' ? 'checked' : ''}><div><div class="radio-title">Nomor Urut</div><div class="radio-sub">Prefix + angka urut yang selalu naik dan dijamin unik.</div></div></label>
+
+    <div id="sequentialFields" style="${s.invoiceNumberFormat === 'SEQUENTIAL' ? '' : 'display:none;'}">
+      <div class="field"><label>Jumlah Digit</label><input id="fDigit" type="number" value="${s.invoiceDigitCount}"></div>
+      <div class="field"><label>Nomor Berikutnya</label><input id="fNext" type="number" value="${s.invoiceNextNumber}"></div>
+      <div class="section-title">Mode Reset</div>
+      <label class="field-radio"><input type="radio" name="reset" value="NEVER" ${s.invoiceResetMode === 'NEVER' ? 'checked' : ''}><div><div class="radio-title">Tidak Pernah</div><div class="radio-sub">Nomor terus naik, tidak pernah kembali ke awal</div></div></label>
+      <label class="field-radio"><input type="radio" name="reset" value="DAILY" ${s.invoiceResetMode === 'DAILY' ? 'checked' : ''}><div><div class="radio-title">Harian</div><div class="radio-sub">Nomor kembali ke 1 setiap hari baru</div></div></label>
+      <label class="field-radio"><input type="radio" name="reset" value="MONTHLY" ${s.invoiceResetMode === 'MONTHLY' ? 'checked' : ''}><div><div class="radio-title">Bulanan</div><div class="radio-sub">Nomor kembali ke 1 setiap bulan baru</div></div></label>
+    </div>
+
     <div class="info-card" style="margin-top:14px;"><div class="info-text" id="preview"></div></div>
     <button class="btn" id="fSave">Simpan</button>
   `;
+
+  function currentFormat() {
+    return root.querySelector('input[name="numformat"]:checked').value;
+  }
+
   function updatePreview() {
     const prefix = root.querySelector('#fPrefix').value;
-    const digit = Number(root.querySelector('#fDigit').value) || 5;
-    const next = Number(root.querySelector('#fNext').value) || 1;
-    root.querySelector('#preview').textContent = `Contoh nomor: ${prefix}${String(next).padStart(digit, '0')}`;
+    const now = new Date();
+    if (currentFormat() === 'DATETIME') {
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const hh = String(now.getHours()).padStart(2, '0');
+      root.querySelector('#preview').textContent = `Contoh nomor (sekarang): ${prefix}${yy}${mm}${dd}${hh}`;
+    } else {
+      const digit = Number(root.querySelector('#fDigit').value) || 5;
+      const next = Number(root.querySelector('#fNext').value) || 1;
+      root.querySelector('#preview').textContent = `Contoh nomor: ${prefix}${String(next).padStart(digit, '0')}`;
+    }
   }
+
+  root.querySelectorAll('input[name="numformat"]').forEach((r) => {
+    r.addEventListener('change', () => {
+      root.querySelector('#sequentialFields').style.display = r.value === 'SEQUENTIAL' ? '' : 'none';
+      updatePreview();
+    });
+  });
   root.querySelectorAll('input').forEach((i) => i.addEventListener('input', updatePreview));
   updatePreview();
+
   root.querySelector('#fSave').onclick = async () => {
-    const resetMode = root.querySelector('input[name="reset"]:checked').value;
-    await saveSettings({
-      invoicePrefix: root.querySelector('#fPrefix').value.trim(),
-      invoiceDigitCount: Number(root.querySelector('#fDigit').value) || 5,
-      invoiceNextNumber: Number(root.querySelector('#fNext').value) || 1,
-      invoiceResetMode: resetMode,
-    });
+    const format = currentFormat();
+    const patch = { invoicePrefix: root.querySelector('#fPrefix').value.trim(), invoiceNumberFormat: format };
+    if (format === 'SEQUENTIAL') {
+      patch.invoiceDigitCount = Number(root.querySelector('#fDigit').value) || 5;
+      patch.invoiceNextNumber = Number(root.querySelector('#fNext').value) || 1;
+      patch.invoiceResetMode = root.querySelector('input[name="reset"]:checked').value;
+    }
+    await saveSettings(patch);
     toast('Pengaturan nomor nota disimpan');
   };
 }

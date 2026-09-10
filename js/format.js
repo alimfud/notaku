@@ -70,12 +70,41 @@ export function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, (m) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
 }
 
+/** "085156657771" -> "*********771" (tampilkan cuma 3 digit terakhir). */
+export function maskPhone(phone) {
+  if (!phone) return '';
+  const digits = phone.trim();
+  if (digits.length <= 3) return digits;
+  return '*'.repeat(digits.length - 3) + digits.slice(-3);
+}
+
+/** ISO datetime -> "09/09/2026 21:12:16" (dipakai untuk stempel "terakhir diperbarui" di catatan kaki struk). */
+export function fullDateTimeLabel(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  return `${dd}/${mm}/${yyyy} ${hh}:${mi}:${ss}`;
+}
+
+/** Ubah nomor telepon lokal (mis. "0851...") jadi format internasional untuk link wa.me (mis. "6285..."). */
+export function toWhatsAppNumber(phone) {
+  const digits = (phone || '').replace(/[^0-9]/g, '');
+  if (!digits) return '';
+  return digits.startsWith('0') ? '62' + digits.slice(1) : digits;
+}
+
 /**
  * Ganti token [printed_datetime] pada catatan kaki struk dengan tanggal & jam
- * TRANSAKSI (bukan waktu mencetak) — banyak dibawa dari import database lama
- * yang formatnya literal seperti itu, tidak ada gunanya ditampilkan mentah.
+ * TERAKHIR NOTA DIPERBARUI (bukan waktu mencetak) — begitu ada penambahan
+ * pembayaran atau nota diedit, tanggal/jam ini ikut ter-update, TAPI nomor
+ * invoice tetap seperti semula (tidak pernah berubah setelah dibuat).
  */
-export function resolveFooterNote(footerNote, saleDateLabel, saleTimeLabel) {
+export function resolveFooterNote(footerNote, updatedAtIso) {
   if (!footerNote) return '';
-  return footerNote.replace(/\[printed_datetime\]/gi, `${saleDateLabel} ${saleTimeLabel}`);
+  return footerNote.replace(/\[printed_datetime\]/gi, fullDateTimeLabel(updatedAtIso));
 }

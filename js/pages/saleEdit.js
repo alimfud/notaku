@@ -95,7 +95,7 @@ function drawLines(root) {
     <div class="item-line" data-i="${i}">
       <div style="flex:1;min-width:0;">
         <div class="il-name">${escapeHtml(l.name)}</div>
-        <div class="il-detail">${qtyLabel(l.qty)} ${escapeHtml(l.unit || '')} x ${rupiah(l.price)}</div>
+        <div class="il-detail">${qtyLabel(l.qty)} ${escapeHtml(l.unit || '')} x @ ${rupiah(l.price)},-</div>
       </div>
       <div style="text-align:right;">
         <div class="il-total">${rupiah(l.qty * l.price)}</div>

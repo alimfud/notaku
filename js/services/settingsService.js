@@ -13,6 +13,7 @@ const DEFAULTS = {
   invoiceNextNumber: 1,
   invoiceResetMode: 'NEVER', // NEVER | DAILY | MONTHLY
   invoiceLastResetDate: '',
+  invoiceNumberFormat: 'DATETIME', // 'DATETIME' (prefix+YYMMDDHH) | 'SEQUENTIAL' (prefix+nomor urut)
   paperSize: 'THERMAL_58MM', // THERMAL_58MM | THERMAL_80MM | PDF_A4
 
   // Printer Bluetooth (BLE)
@@ -23,6 +24,9 @@ const DEFAULTS = {
   // QRIS
   qrisEnabled: false,
   qrisImageData: '',        // base64 data URL gambar QRIS
+
+  // Privasi data pelanggan di struk
+  maskCustomerPhone: true,  // kalau true, nomor HP pelanggan di struk cuma tampil 3 digit terakhir
 
   // Auto backup ke Google Drive
   autoBackup: {

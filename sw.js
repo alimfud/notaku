@@ -19,7 +19,7 @@
 // gambar (perlu html2canvas). Fitur inti (lihat/buat/ubah nota, produk,
 // pelanggan, laporan, cetak, backup lokal) semuanya tetap jalan offline.
 
-const CACHE_VERSION = 'notaku-web-v1.2.0'; // naikkan setiap rilis
+const CACHE_VERSION = 'notaku-web-v1.3.0'; // naikkan setiap rilis
 
 const CORE_ASSETS = [
   './',

@@ -1,4 +1,4 @@
 {
-  "version": "1.2.0",
-  "notes": "Perbaikan bug Cek Pembaruan yang selalu gagal padahal online. Fitur baru: cetak langsung ke printer Bluetooth (BLE), QRIS otomatis di struk belum lunas, backup terjadwal ke Google Drive, tandai nota selesai/belum selesai, LUNAS otomatis setelah 2 hari, urutkan nota berdasarkan tanggal pengambilan atau tanggal dibuat, omzet bulanan di beranda, dan laporan omset keseluruhan dengan rincian."
+  "version": "1.3.0",
+  "notes": "Perbaikan cetak Bluetooth (TOTAL tidak lagi berantakan, QRIS dihapus dari cetak Bluetooth karena resolusinya sering tidak bisa di-scan). Mode Kasir Mini Market untuk input item lebih cepat (cari/scan barcode + stepper qty). Nomor telepon pelanggan bisa disembunyikan di struk (3 digit terakhir saja). Tombol Chat WA langsung ke pelanggan. Format item pakai '@' (mis. '2 pcs x @ Rp15.000,-'). Nomor invoice baru berbasis waktu dibuat (YYMMDDHH) sebagai default, opsi nomor urut tetap tersedia. Catatan kaki struk sekarang mengikuti waktu terakhir nota diperbarui, bukan waktu pengambilan, sementara nomor invoice tidak pernah berubah."
 }

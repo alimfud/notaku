@@ -3,16 +3,21 @@
 import { getSaleSummary, addPayment, updatePayment, deletePayment, deleteSale, setCompleted, revertAutoLunas, AppError } from '../services/saleService.js';
 import * as db from '../db.js';
 import { getSettings } from '../services/settingsService.js';
-import { rupiah, dateShort, escapeHtml, qtyLabel, resolveFooterNote } from '../format.js';
+import { rupiah, dateShort, escapeHtml, qtyLabel, resolveFooterNote, maskPhone, toWhatsAppNumber } from '../format.js';
 import { openSheet, confirmDialog } from '../ui/dialog.js';
 import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, navigateBack } from '../app.js';
-import { printReceipt, shareAsText, shareAsImage } from '../services/printerService.js';
+import { printReceipt, shareAsText, shareAsImage, buildShareText } from '../services/printerService.js';
 
 export async function render(root, params) {
   setPageTitle('Detail Nota');
   const saleId = params[0];
   await draw(root, saleId);
+}
+
+function itemLineLabel(qty, unit, price) {
+  // Format sesuai permintaan: "1 pcs x @ Rp10.000,-" (bukan "1 x Rp10.000").
+  return `${qtyLabel(qty)} ${unit || ''} x @ ${rupiah(price)},-`.replace(/\s+x/, ' x');
 }
 
 async function draw(root, saleId) {
@@ -26,6 +31,7 @@ async function draw(root, saleId) {
   const settings = await getSettings();
   const { sale, paidAmount, remaining, payments, displayStatus } = summary;
   const showQris = settings.qrisEnabled && settings.qrisImageData && displayStatus !== 'PAID' && displayStatus !== 'OVERPAID';
+  const phoneDisplay = sale.customerPhone ? (settings.maskCustomerPhone ? maskPhone(sale.customerPhone) : sale.customerPhone) : '';
 
   setTopbarActions([
     { icon: 'edit', title: 'Ubah Nota', onClick: () => navigate(`sale/${saleId}/edit`) },
@@ -33,7 +39,7 @@ async function draw(root, saleId) {
     { icon: 'delete', title: 'Hapus', onClick: () => handleDelete(root, saleId) },
   ]);
 
-  const footerResolved = resolveFooterNote(settings.footerNote, dateShort(sale.saleDate), sale.saleTime);
+  const footerResolved = resolveFooterNote(settings.footerNote, sale.updatedAt);
 
   root.innerHTML = `
     ${sale.autoMarkedPaid ? `
@@ -50,10 +56,12 @@ async function draw(root, saleId) {
           <span>${dateShort(sale.saleDate)}</span><span>${sale.saleTime}</span><span>${escapeHtml(sale.invoiceNumber)}</span>
         </div>
         <div class="receipt-customer">${escapeHtml(sale.customerName)}</div>
+        ${sale.customerAddress ? `<div class="row-meta">${escapeHtml(sale.customerAddress)}</div>` : ''}
+        ${phoneDisplay ? `<div class="row-meta">${escapeHtml(phoneDisplay)}</div>` : ''}
         ${items.map((it) => `
           <div class="receipt-item">
             <div class="ri-top"><span>${escapeHtml(it.productName)}</span><span>${rupiah(it.subtotal)}</span></div>
-            <div class="ri-bottom"><span>${qtyLabel(it.qty)} ${escapeHtml(it.unit || '')} x ${rupiah(it.price)}</span></div>
+            <div class="ri-bottom"><span>${itemLineLabel(it.qty, it.unit, it.price)}</span></div>
           </div>`).join('')}
         <div class="receipt-totals">
           ${sale.discountAmount > 0 ? `<div class="tr"><span>Diskon</span><span>-${rupiah(sale.discountAmount)}</span></div>` : ''}
@@ -207,19 +215,37 @@ async function handleDelete(root, saleId) {
   }
 }
 
+function buildReceiptDataForShare(sale, items, settings, paidAmount, remaining) {
+  return {
+    storeName: settings.storeName,
+    invoiceNumber: sale.invoiceNumber,
+    dateLabel: dateShort(sale.saleDate),
+    customerName: sale.customerName,
+    lines: items.map((i) => ({ name: i.productName, qty: i.qty, unit: i.unit, subtotal: i.subtotal, price: i.price })),
+    total: sale.total,
+    paid: paidAmount,
+    remaining,
+    footerNote: resolveFooterNote(settings.footerNote, sale.updatedAt),
+  };
+}
+
 async function showShareSheet(root, sale, items, settings, paidAmount, remaining) {
   const { isConnected, currentDeviceInfo } = await import('../services/printing/bluetoothPrinter.js');
   const btConnected = isConnected ? isConnected() : false;
   const btInfo = currentDeviceInfo ? currentDeviceInfo() : null;
+  const hasPhone = !!sale.customerPhone;
 
   const result = await openSheet((body, close) => {
     body.innerHTML = `
       <div class="sheet-title">Bagikan Nota</div>
+      ${hasPhone ? `<button class="settings-tile" id="chatWa"><div class="icon-box">💚</div><div class="settings-body"><div class="settings-title">Chat WA ${escapeHtml(sale.customerPhone)}</div><div class="settings-sub">Buka WhatsApp langsung ke nomor pelanggan</div></div></button>` : ''}
       <button class="settings-tile" id="btPrint"><div class="icon-box">🔵</div><div class="settings-body"><div class="settings-title">Cetak via Bluetooth</div><div class="settings-sub">${btConnected ? 'Tersambung: ' + escapeHtml(btInfo.name) : (settings.btPrinterId ? 'Tersimpan — akan coba sambung ulang' : 'Belum ada printer tersambung')}</div></div></button>
-      <button class="settings-tile" id="shareText"><div class="icon-box">💬</div><div class="settings-body"><div class="settings-title">Bagikan sebagai Teks</div></div></button>
       <button class="settings-tile" id="shareImage"><div class="icon-box">🖼️</div><div class="settings-body"><div class="settings-title">Bagikan sebagai Gambar</div></div></button>
+      <button class="settings-tile" id="shareText"><div class="icon-box">💬</div><div class="settings-body"><div class="settings-title">Bagikan sebagai Teks</div></div></button>
       <button class="settings-tile" id="doPrint"><div class="icon-box">🖨️</div><div class="settings-body"><div class="settings-title">Cetak / Simpan PDF</div></div></button>
     `;
+    const chatBtn = body.querySelector('#chatWa');
+    if (chatBtn) chatBtn.onclick = () => close('chatwa');
     body.querySelector('#btPrint').onclick = () => close('bluetooth');
     body.querySelector('#shareText').onclick = () => close('text');
     body.querySelector('#shareImage').onclick = () => close('image');
@@ -227,20 +253,19 @@ async function showShareSheet(root, sale, items, settings, paidAmount, remaining
   });
 
   if (result === 'print') { printReceipt(); return; }
+  if (result === 'bluetooth') { await handleBluetoothPrint(sale, items, settings, paidAmount, remaining); return; }
 
-  if (result === 'bluetooth') {
-    await handleBluetoothPrint(sale, items, settings, paidAmount, remaining);
+  if (result === 'chatwa') {
+    const waNumber = toWhatsAppNumber(sale.customerPhone);
+    if (!waNumber) { toast('Nomor WA pelanggan tidak valid.'); return; }
+    const text = buildShareText(buildReceiptDataForShare(sale, items, settings, paidAmount, remaining));
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(text)}`, '_blank');
     return;
   }
 
   if (result === 'text') {
-    const receiptData = {
-      storeName: settings.storeName, invoiceNumber: sale.invoiceNumber, dateLabel: dateShort(sale.saleDate),
-      customerName: sale.customerName, lines: items.map((i) => ({ name: i.productName, qty: i.qty, unit: i.unit, subtotal: i.subtotal })),
-      total: sale.total, paid: paidAmount, remaining, footerNote: resolveFooterNote(settings.footerNote, dateShort(sale.saleDate), sale.saleTime),
-    };
     try {
-      const status = await shareAsText(receiptData);
+      const status = await shareAsText(buildReceiptDataForShare(sale, items, settings, paidAmount, remaining));
       if (status === 'copied') toast('Teks nota disalin ke clipboard');
     } catch (e) { toast('Gagal membagikan nota.'); }
     return;
@@ -256,13 +281,14 @@ async function showShareSheet(root, sale, items, settings, paidAmount, remaining
 
 async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining) {
   const bt = await import('../services/printing/bluetoothPrinter.js');
+  const phoneDisplay = sale.customerPhone ? (settings.maskCustomerPhone ? maskPhone(sale.customerPhone) : sale.customerPhone) : '';
   const receiptData = {
     storeName: settings.storeName, storeAddress: settings.storeAddress, storePhone: settings.storePhone,
     invoiceNumber: sale.invoiceNumber, dateLabel: dateShort(sale.saleDate), timeLabel: sale.saleTime,
-    customerName: sale.customerName,
+    customerName: sale.customerName, customerAddress: sale.customerAddress, customerPhoneDisplay: phoneDisplay,
     lines: items.map((i) => ({ name: i.productName, qty: i.qty, unit: i.unit, price: i.price, subtotal: i.subtotal })),
     discount: sale.discountAmount, total: sale.total, paid: paidAmount, remaining, note: sale.note,
-    footerNote: resolveFooterNote(settings.footerNote, dateShort(sale.saleDate), sale.saleTime),
+    footerNote: resolveFooterNote(settings.footerNote, sale.updatedAt),
   };
 
   document.getElementById('loadingOverlay').classList.remove('hidden');
@@ -282,30 +308,11 @@ async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining
       }
     }
 
-    let qrisCanvas = null;
-    const showQris = settings.qrisEnabled && settings.qrisImageData && remaining > 0.5;
-    if (showQris) qrisCanvas = await loadImageToCanvas(settings.qrisImageData);
-
-    await bt.printReceiptViaBluetooth(receiptData, { charWidth: settings.btCharWidth || 32, qrisCanvas });
+    await bt.printReceiptViaBluetooth(receiptData, { charWidth: settings.btCharWidth || 32 });
     toast('Berhasil dikirim ke printer');
   } catch (e) {
     toast(e.message || 'Gagal mencetak via Bluetooth.');
   } finally {
     document.getElementById('loadingOverlay').classList.add('hidden');
   }
-}
-
-function loadImageToCanvas(dataUrl) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      resolve(canvas);
-    };
-    img.onerror = reject;
-    img.src = dataUrl;
-  });
 }

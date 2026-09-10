@@ -15,7 +15,7 @@ export function printReceipt() {
 export function buildShareText(data) {
   let text = `${data.storeName}\n${data.invoiceNumber} - ${data.dateLabel}\nKepada: ${data.customerName}\n\n`;
   data.lines.forEach((l, i) => {
-    text += `${i + 1}. ${l.name} (${l.qty} ${l.unit}) = ${rupiah(l.subtotal)}\n`;
+    text += `${i + 1}. ${l.name}\n    ${l.qty} ${l.unit} x @ ${rupiah(l.price)},- = ${rupiah(l.subtotal)}\n`;
   });
   text += `\nTOTAL: ${rupiah(data.total)}\nBAYAR: ${rupiah(data.paid)}\n`;
   text += data.remaining > 0 ? `SISA: ${rupiah(data.remaining)}\n` : 'LUNAS\n';
