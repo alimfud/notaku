@@ -27,11 +27,11 @@ export async function render(root) {
     <div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px 10px;gap:10px;">
       <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft);">
         <input type="checkbox" id="onlyIncompleteToggle" ${_onlyIncomplete ? 'checked' : ''}>
-        Fokus yang belum selesai
+        Proses
       </label>
       <select id="sortSelect" style="font-size:12.5px;border:1px solid var(--outline);border-radius:8px;padding:6px 8px;background:var(--surface-dim);color:var(--ink);">
-        <option value="pickup" ${_sortBy === 'pickup' ? 'selected' : ''}>Urutkan: Tgl Pengambilan</option>
-        <option value="created" ${_sortBy === 'created' ? 'selected' : ''}>Urutkan: Tgl Nota Dibuat</option>
+        <option value="pickup" ${_sortBy === 'pickup' ? 'selected' : ''}>Tgl Ambil</option>
+        <option value="created" ${_sortBy === 'created' ? 'selected' : ''}>Tgl Dibuat</option>
       </select>
     </div>
     <div id="notaList" class="list"></div>

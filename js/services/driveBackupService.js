@@ -124,11 +124,29 @@ export async function disconnectAccount() {
   await saveSettings({ autoBackup: { ...settings.autoBackup, driveConnected: false, driveAccountEmail: '' } });
 }
 
+/**
+ * Ambil pesan error SUNGGUHAN dari Google (bukan cuma nomor status), supaya
+ * masalah seperti 401/403 bisa didiagnosis dari toast/dialog yang tampil ke
+ * user, tanpa perlu buka console. Google selalu mengirim body JSON berisi
+ * `error.message` yang menjelaskan akar masalah (token invalid, API belum
+ * diaktifkan, scope tidak diizinkan, dst).
+ */
+async function readGoogleError(res) {
+  try {
+    const data = await res.json();
+    const msg = data?.error?.message || data?.error_description || JSON.stringify(data);
+    return `${msg} (HTTP ${res.status})`;
+  } catch (e) {
+    return `HTTP ${res.status} ${res.statusText}`;
+  }
+}
+
 async function findOrCreateFolder(token) {
   const q = encodeURIComponent(`name='${DRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
   const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
     headers: { Authorization: `Bearer ${token}` },
   });
+  if (!searchRes.ok) throw new Error('Gagal mengakses Google Drive: ' + await readGoogleError(searchRes));
   const searchData = await searchRes.json();
   if (searchData.files?.length) return searchData.files[0].id;
 
@@ -137,6 +155,7 @@ async function findOrCreateFolder(token) {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: DRIVE_FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' }),
   });
+  if (!createRes.ok) throw new Error('Gagal membuat folder di Drive: ' + await readGoogleError(createRes));
   const createData = await createRes.json();
   return createData.id;
 }
@@ -152,7 +171,7 @@ async function uploadBackupFile(token, folderId, blob, filename) {
     headers: { Authorization: `Bearer ${token}` },
     body: form,
   });
-  if (!res.ok) throw new Error('Upload ke Drive gagal (status ' + res.status + ').');
+  if (!res.ok) throw new Error('Upload ke Drive gagal: ' + await readGoogleError(res));
   return res.json();
 }
 
@@ -174,6 +193,24 @@ async function deleteOldBackups(token, folderId, olderThanDays) {
 
 /** Jalankan satu kali backup ke Drive sekarang juga. */
 export async function runBackupNow() {
+  try {
+    await runBackupOnce();
+  } catch (e) {
+    // Kalau gagalnya karena token invalid/kedaluwarsa (401), coba SEKALI lagi
+    // dengan token baru sebelum benar-benar menyerah — banyak kasus "gagal
+    // padahal baru saja login" sebenarnya cuma token basi yang belum sempat
+    // di-refresh otomatis.
+    if (String(e.message).includes('401') || String(e.message).toLowerCase().includes('invalid')) {
+      _accessToken = null;
+      _tokenExpiryMs = 0;
+      await runBackupOnce();
+    } else {
+      throw e;
+    }
+  }
+}
+
+async function runBackupOnce() {
   const token = await ensureToken();
   const folderId = await findOrCreateFolder(token);
   const blob = await createBackupBlob();
@@ -228,4 +265,106 @@ export async function checkScheduleOnAppOpen({ onConfirm } = {}) {
     const latest = await getSettings();
     await saveSettings({ autoBackup: { ...latest.autoBackup, lastCheckedDate: todayKey, lastCheckedSlots: [...slotsToday, dueSlot] } });
   }
+}
+
+// ======================================================================
+// SINKRONISASI ANTAR PERANGKAT (satu database yang sama, beberapa HP/laptop)
+// ======================================================================
+//
+// Berbeda dengan "Backup Otomatis" di atas (yang membuat FILE BARU bertanda
+// waktu setiap kali jalan, murni untuk arsip/pemulihan), fitur ini memakai
+// SATU FILE TETAP di Drive ("notaku-sync.json") sebagai "titik temu" data
+// antar perangkat: perangkat mana pun bisa mendorong (push) data lokalnya ke
+// file itu, atau menarik (pull) isi file itu untuk menimpa data lokalnya.
+//
+// ============================== BATASAN JUJUR ==============================
+// Ini BUKAN sinkronisasi realtime/otomatis dua-arah dengan penggabungan
+// perubahan (merge) seperti Google Docs. Yang tersedia: "last write wins" —
+// siapa pun yang terakhir menekan tombol PUSH, itulah yang akan dibaca
+// perangkat lain saat mereka PULL. Kalau dua HP mengedit data BERBEDA di
+// waktu yang sama lalu keduanya push, yang push BELAKANGAN akan menimpa
+// push yang lebih dulu (perubahan yang lebih dulu akan hilang tertimpa).
+//
+// Cara aman memakainya dengan banyak perangkat:
+//   1. Sebelum mulai kerja di sebuah perangkat, PULL dulu (ambil data terbaru).
+//   2. Setelah selesai kerja, PUSH (kirim perubahan ke perangkat lain).
+//   3. Jangan mengedit di dua perangkat bersamaan tanpa pull/push di antaranya.
+// Untuk sinkronisasi otomatis penuh tanpa risiko ini, dibutuhkan server
+// database sungguhan (di luar cakupan web app statis tanpa backend).
+// ============================================================================
+
+const SYNC_FILE_NAME = 'notaku-sync.json';
+
+async function findSyncFile(token) {
+  const q = encodeURIComponent(`name='${SYNC_FILE_NAME}' and trashed=false`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Gagal memeriksa file sinkron di Drive: ' + await readGoogleError(res));
+  const data = await res.json();
+  return data.files?.[0] || null;
+}
+
+/** Info status sinkron untuk ditampilkan di UI (tanpa mengunduh isi filenya). */
+export async function getCloudSyncStatus() {
+  const token = await ensureToken();
+  const file = await findSyncFile(token);
+  const settings = await getSettings();
+  return {
+    cloudExists: !!file,
+    cloudModifiedTime: file?.modifiedTime || null,
+    lastPushedAt: settings.autoBackup.lastSyncPushAt || null,
+    lastPulledAt: settings.autoBackup.lastSyncPullAt || null,
+  };
+}
+
+/** Kirim (timpa) data lokal ke file sinkron di Drive. */
+export async function pushToCloud() {
+  const token = await ensureToken();
+  const existing = await findSyncFile(token);
+  const blob = await createBackupBlob();
+  const metadata = { name: SYNC_FILE_NAME };
+  const form = new FormData();
+
+  let url, method;
+  if (existing) {
+    url = `https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=multipart`;
+    method = 'PATCH';
+    form.append('metadata', new Blob([JSON.stringify({})], { type: 'application/json' }));
+  } else {
+    url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+    method = 'POST';
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  }
+  form.append('file', blob);
+
+  const res = await fetch(url, { method, headers: { Authorization: `Bearer ${token}` }, body: form });
+  if (!res.ok) throw new Error('Gagal mengirim data ke Drive: ' + await readGoogleError(res));
+
+  const settings = await getSettings();
+  await saveSettings({ autoBackup: { ...settings.autoBackup, lastSyncPushAt: new Date().toISOString() } });
+}
+
+/**
+ * Ambil data dari file sinkron di Drive dan TIMPA seluruh data lokal.
+ * Pemanggil (UI) WAJIB sudah menampilkan dialog konfirmasi sebelum ini,
+ * sama seperti restore backup biasa.
+ */
+export async function pullFromCloud() {
+  const token = await ensureToken();
+  const file = await findSyncFile(token);
+  if (!file) throw new Error('Belum ada data sinkron di Drive. Push dari salah satu perangkat dulu.');
+
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Gagal mengambil data dari Drive: ' + await readGoogleError(res));
+
+  const jsonBlob = await res.blob();
+  const { restoreFromFile } = await import('./backupService.js');
+  // restoreFromFile menerima objek mirip File (butuh .text()) — Blob sudah cukup.
+  await restoreFromFile(jsonBlob);
+
+  const settings = await getSettings();
+  await saveSettings({ autoBackup: { ...settings.autoBackup, lastSyncPullAt: new Date().toISOString() } });
 }

@@ -2,8 +2,9 @@
 
 import * as db from '../db.js';
 import { uid, dbDate, timeLabel, todayDbDate } from '../format.js';
-import { calculateSubtotal, calculateTotal, resolveStatus } from './saleCalculation.js';
+import { calculateSubtotal, computeAdjustments, defaultAdjustments, resolveStatus } from './saleCalculation.js';
 import { generateAndAdvance } from './invoiceNumber.js';
+import { saveCustomer } from './customerService.js';
 
 export class AppError extends Error {
   constructor(message) {
@@ -12,21 +13,44 @@ export class AppError extends Error {
   }
 }
 
-export async function createSale({ customer, lines, discountAmount = 0, initialPayment = 0, note = '' }) {
+/**
+ * Kalau [customer] terhubung ke record Pelanggan sungguhan (id terisi, bukan
+ * sentinel CASH), simpan juga koreksi nama/alamat/telepon ke master data
+ * Pelanggan — supaya perbaikan data (mis. salah ketik nomor HP) ikut
+ * terbawa untuk transaksi berikutnya, bukan cuma nota yang sedang dibuat/diubah.
+ */
+async function syncCustomerMasterRecord(customer) {
+  if (!customer || !customer.id) return;
+  try {
+    await saveCustomer({ id: customer.id, name: customer.name, phone: customer.phone, address: customer.address });
+  } catch (e) {
+    console.error('[syncCustomerMasterRecord]', e);
+    // Gagal sinkron ke master data BUKAN alasan untuk membatalkan simpan nota
+    // (data di nota tetap tersimpan sebagai snapshot apa adanya).
+  }
+}
+
+export async function createSale({ customer, lines, adjustments = null, discountAmount = 0, initialPayment = 0, note = '' }) {
   if (!lines.length) throw new AppError('Transaksi harus mempunyai minimal 1 item.');
   for (const line of lines) {
     if (line.qty <= 0) throw new AppError(`Jumlah untuk "${line.name}" harus lebih dari 0.`);
     if (line.price < 0) throw new AppError(`Harga untuk "${line.name}" tidak valid.`);
   }
   if (initialPayment < 0) throw new AppError('Jumlah pembayaran tidak valid.');
+  if (!customer || !customer.name || !customer.name.trim()) throw new AppError('Nama pelanggan wajib diisi.');
 
   try {
     const now = new Date();
     const subtotal = calculateSubtotal(lines);
-    const total = calculateTotal(subtotal, discountAmount);
-    const status = resolveStatus(total, initialPayment);
+    // Backward-compat: kalau caller lama masih kirim discountAmount langsung
+    // (bukan objek adjustments lengkap), bungkus jadi adjustments sederhana.
+    const adj = adjustments || { ...defaultAdjustments(), discount: { enabled: discountAmount > 0, mode: 'amount', value: discountAmount } };
+    const calc = computeAdjustments(subtotal, adj);
+    const status = resolveStatus(calc.total, initialPayment);
     const invoiceNumber = await generateAndAdvance(now);
     const saleId = uid();
+
+    await syncCustomerMasterRecord(customer);
 
     const sale = {
       id: saleId,
@@ -38,8 +62,14 @@ export async function createSale({ customer, lines, discountAmount = 0, initialP
       saleDate: dbDate(now),
       saleTime: timeLabel(now),
       subtotal,
-      discountAmount,
-      total,
+      discountAmount: calc.discountAmount,
+      taxAmount: calc.taxAmount,
+      tax2Amount: calc.tax2Amount,
+      shippingAmount: calc.shippingAmount,
+      otherAmount: calc.otherAmount,
+      otherLabel: adj.other?.label || '',
+      adjustments: adj, // konfigurasi lengkap (enabled/percent/inclusive/dsb) disimpan apa adanya supaya bisa dibuka lagi saat edit
+      total: calc.total,
       note,
       status,
       isDeleted: 0,
@@ -59,6 +89,7 @@ export async function createSale({ customer, lines, discountAmount = 0, initialP
       qty: l.qty,
       price: l.price,
       subtotal: l.qty * l.price,
+      note: l.note || '',
       sortOrder: i,
     }));
 
@@ -148,20 +179,24 @@ async function recomputeSaleStatus(saleId) {
  * transaksi, dan catatan. Riwayat pembayaran tidak disentuh di sini — itu
  * diedit lewat updatePayment/deletePayment secara terpisah.
  */
-export async function updateSale(saleId, { customer, lines, discountAmount = 0, saleDate, saleTime, note = '' }) {
+export async function updateSale(saleId, { customer, lines, adjustments = null, discountAmount = 0, saleDate, saleTime, note = '' }) {
   if (!lines.length) throw new AppError('Transaksi harus mempunyai minimal 1 item.');
   for (const line of lines) {
     if (line.qty <= 0) throw new AppError(`Jumlah untuk "${line.name}" harus lebih dari 0.`);
     if (line.price < 0) throw new AppError(`Harga untuk "${line.name}" tidak valid.`);
   }
+  if (!customer || !customer.name || !customer.name.trim()) throw new AppError('Nama pelanggan wajib diisi.');
   try {
     const existing = await db.get('sales', saleId);
     if (!existing) throw new AppError('Nota tidak ditemukan.');
 
     const subtotal = calculateSubtotal(lines);
-    const total = calculateTotal(subtotal, discountAmount);
+    const adj = adjustments || existing.adjustments || { ...defaultAdjustments(), discount: { enabled: discountAmount > 0, mode: 'amount', value: discountAmount } };
+    const calc = computeAdjustments(subtotal, adj);
     const allPayments = await db.getByIndex('payments', 'saleId', saleId);
     const paidAmount = allPayments.reduce((s, p) => s + p.amount, 0);
+
+    await syncCustomerMasterRecord(customer);
 
     const updatedSale = {
       ...existing,
@@ -172,10 +207,16 @@ export async function updateSale(saleId, { customer, lines, discountAmount = 0, 
       saleDate: saleDate || existing.saleDate,
       saleTime: saleTime || existing.saleTime,
       subtotal,
-      discountAmount,
-      total,
+      discountAmount: calc.discountAmount,
+      taxAmount: calc.taxAmount,
+      tax2Amount: calc.tax2Amount,
+      shippingAmount: calc.shippingAmount,
+      otherAmount: calc.otherAmount,
+      otherLabel: adj.other?.label || '',
+      adjustments: adj,
+      total: calc.total,
       note,
-      status: resolveStatus(total, paidAmount),
+      status: resolveStatus(calc.total, paidAmount),
       updatedAt: new Date().toISOString(),
     };
 
@@ -188,6 +229,7 @@ export async function updateSale(saleId, { customer, lines, discountAmount = 0, 
       qty: l.qty,
       price: l.price,
       subtotal: l.qty * l.price,
+      note: l.note || '',
       sortOrder: i,
     }));
 
@@ -231,8 +273,31 @@ export async function setCompleted(saleId, completed) {
   const sale = await db.get('sales', saleId);
   if (!sale) return;
   sale.completed = completed ? 1 : 0;
+  if (!completed) sale.completedOverridden = 1; // user sengaja tandai balik "belum selesai" -> jangan diotomatiskan lagi
   sale.updatedAt = new Date().toISOString();
   await db.put('sales', sale);
+}
+
+/**
+ * Aturan otomatis: begitu TANGGAL PENGAMBILAN sudah lewat (hari ini > tanggal
+ * pengambilan), nota otomatis ditandai SELESAI — asumsi: kalau tanggal
+ * pengambilannya sudah lewat, pesanan itu praktis sudah selesai dikerjakan.
+ * Ini terpisah dari status pembayaran (lihat applyAutoLunasRule). Nota yang
+ * PERNAH ditandai balik "belum selesai" secara manual (completedOverridden)
+ * tidak akan disentuh lagi oleh aturan ini.
+ */
+export async function applyAutoCompleteRule() {
+  const sales = (await db.getAll('sales')).filter((s) => !s.isDeleted && !s.completed && !s.completedOverridden);
+  if (!sales.length) return 0;
+  const todayKey = todayDbDate();
+  const toUpdate = [];
+  for (const sale of sales) {
+    if (sale.saleDate < todayKey) {
+      toUpdate.push({ ...sale, completed: 1, autoCompleted: 1, updatedAt: new Date().toISOString() });
+    }
+  }
+  if (toUpdate.length) await db.bulkPut('sales', toUpdate);
+  return toUpdate.length;
 }
 
 /**

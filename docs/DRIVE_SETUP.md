@@ -67,3 +67,51 @@ sekali (dan itu bagus, supaya tidak sembarang orang bisa pakai fitur ini).
 - Baca juga catatan jujur soal keterbatasan "otomatis" di komentar bagian
   atas `js/services/driveBackupService.js` — backup di jam PERSIS yang
   dijadwalkan hanya terjamin kalau aplikasi kebetulan dibuka sekitar jam itu.
+
+## Troubleshooting: "Upload ke Drive gagal (status 401)"
+
+Sejak update terbaru, pesan error sekarang menampilkan alasan ASLI dari
+Google (bukan cuma angka status) — kalau backup gagal lagi, baca dulu teks
+lengkapnya di dialog yang muncul, itu petunjuk paling akurat. Beberapa
+penyebab umum status 401 / "Unauthorized":
+
+### "Apakah karena domain?" — jawaban singkat: kemungkinan kecil, tapi tetap cek
+
+Layar login Google **memang biasa menampilkan domain induk** (mis.
+`jajan.my.id`) alih-alih subdomain lengkap (`nota.jajan.my.id`) — ini
+tampilan kosmetik bawaan Google untuk keterbacaan, BUKAN berarti origin yang
+salah sedang dipakai. Jadi kemunculan itu **kemungkinan besar normal**, bukan
+akar masalah 401-nya.
+
+**Tapi tetap wajib dicek**: buka Google Cloud Console → Credentials → klik
+OAuth Client ID kamu → pastikan di **Authorized JavaScript origins** ADA
+baris yang PERSIS `https://nota.jajan.my.id` (subdomain lengkap, tanpa garis
+miring di akhir). Kalau yang terdaftar cuma `https://jajan.my.id` (tanpa
+`nota.`), itu tidak akan cocok dengan origin sungguhan situs kamu, dan WAJIB
+ditambahkan sebagai baris terpisah (subdomain berbeda dianggap origin berbeda
+oleh Google, sekalipun domain induknya sama).
+
+### Penyebab lain yang lebih sering jadi biang keladi 401
+
+1. **Google Drive API belum di-enable** di project itu. Cek: APIs & Services
+   → Library → cari "Google Drive API" → pastikan statusnya "Enabled" (bukan
+   cuma muncul di hasil pencarian).
+2. **Scope `drive.file` belum ditambahkan** di halaman OAuth consent screen →
+   Data Access / Scopes. Kalau cuma API-nya yang di-enable tapi scope-nya
+   tidak pernah ditambahkan di sana, token yang diterbitkan bisa "berhasil"
+   tapi tidak benar-benar diizinkan memanggil Drive API — persis gejala 401
+   sesudah login yang kelihatannya mulus.
+3. **Token kadaluarsa** (access token Google cuma berlaku ~1 jam). Ini sudah
+   ditangani otomatis oleh kode terbaru (retry sekali dengan token baru kalau
+   kena 401) — kalau masih gagal setelah retry, kemungkinan besar bukan ini
+   penyebabnya.
+4. Email yang dipakai login **belum terdaftar sebagai Test User** — tapi
+   kalau layar consent sempat muncul dan bisa di-klik "Continue", biasanya
+   ini sudah benar.
+
+### Cara paling cepat memastikan
+
+Setelah cek/benerin poin di atas, di halaman "Atur Backup Otomatis": klik
+**"Putuskan"** dulu (supaya token lama dibuang bersih), lalu **"Hubungkan"**
+lagi dari awal, baru coba **"Backup Sekarang"**.
+

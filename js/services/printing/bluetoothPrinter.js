@@ -152,7 +152,10 @@ async function writeBytes(bytes) {
 export async function printReceiptViaBluetooth(receiptData, { charWidth = 32 } = {}) {
   if (!isConnected()) throw new Error('Printer belum tersambung. Sambungkan dulu lewat Setting → Printer.');
 
+  const rp = (n) => Math.round(n || 0).toLocaleString('id-ID');
   const b = new EscPosBuilder();
+
+  // ---------- Kop toko ----------
   b.align('center');
   b.bold(true);
   b.line(receiptData.storeName);
@@ -160,28 +163,50 @@ export async function printReceiptViaBluetooth(receiptData, { charWidth = 32 } =
   if (receiptData.storeAddress) b.line(receiptData.storeAddress);
   if (receiptData.storePhone) b.line(receiptData.storePhone);
   b.divider(charWidth);
+
+  // ---------- Tanggal, jam, no. nota ----------
   b.align('left');
   b.twoColumn(receiptData.dateLabel, receiptData.timeLabel, charWidth);
   b.line(receiptData.invoiceNumber);
   b.divider(charWidth);
+
+  // ---------- Pelanggan (nama tebal, alamat+telepon satu baris — konsisten
+  // dengan tampilan layar, supaya tidak menumpuk banyak baris) ----------
   b.bold(true).line(receiptData.customerName).bold(false);
-  if (receiptData.customerAddress) b.line(receiptData.customerAddress);
-  if (receiptData.customerPhoneDisplay) b.line(receiptData.customerPhoneDisplay);
+  const addressPhoneLine = [receiptData.customerAddress, receiptData.customerPhoneDisplay].filter(Boolean).join(' - ');
+  if (addressPhoneLine) b.line(addressPhoneLine);
   b.feed(1);
 
-  for (const line of receiptData.lines) {
-    b.line(line.name);
+  // ---------- Daftar item ----------
+  let totalQty = 0;
+  receiptData.lines.forEach((line, i) => {
+    totalQty += line.qty || 0;
+    b.bold(true).line(`${i + 1}. ${line.name}`).bold(false);
     const qty = `${line.qty} ${line.unit || ''}`.trim();
-    b.twoColumn(`  ${qty} x @ ${line.price.toLocaleString('id-ID')},-`, line.subtotal.toLocaleString('id-ID'), charWidth);
-  }
+    b.twoColumn(`  ${qty} x @ ${rp(line.price)},-`, rp(line.subtotal), charWidth);
+    if (line.note) b.line(`  (${line.note})`);
+  });
   b.divider(charWidth);
-  if (receiptData.discount > 0) b.twoColumn('Diskon', '-' + receiptData.discount.toLocaleString('id-ID'), charWidth);
+
+  // ---------- Ringkasan qty & rincian biaya (Sub Total dulu, baru komponen
+  // tambahan, baru TOTAL — supaya jelas dari mana angka TOTAL berasal, tidak
+  // langsung lompat dari daftar item ke satu angka besar) ----------
+  const totalQtyLabel = totalQty === Math.round(totalQty) ? String(Math.round(totalQty)) : String(totalQty);
+  b.twoColumn('Total Qty', totalQtyLabel, charWidth);
+  b.twoColumn('Sub Total', rp(receiptData.subtotal ?? receiptData.lines.reduce((s, l) => s + l.subtotal, 0)), charWidth);
+  if (receiptData.discount > 0) b.twoColumn('Diskon', '-' + rp(receiptData.discount), charWidth);
+  if (receiptData.tax > 0) b.twoColumn(`Pajak${receiptData.taxInclusive ? ' (incl.)' : ''}`, (receiptData.taxInclusive ? '' : '+') + rp(receiptData.tax), charWidth);
+  if (receiptData.tax2 > 0) b.twoColumn(`Pajak #2${receiptData.tax2Inclusive ? ' (incl.)' : ''}`, (receiptData.tax2Inclusive ? '' : '+') + rp(receiptData.tax2), charWidth);
+  if (receiptData.shipping > 0) b.twoColumn('Ongkos Kirim', '+' + rp(receiptData.shipping), charWidth);
+  if (receiptData.other > 0) b.twoColumn(receiptData.otherLabel || 'Lain-lain', '+' + rp(receiptData.other), charWidth);
+  b.divider(charWidth);
+
   b.bold(true);
-  b.twoColumn('TOTAL', receiptData.total.toLocaleString('id-ID'), charWidth);
+  b.twoColumn('TOTAL', rp(receiptData.total), charWidth);
   b.bold(false);
-  b.twoColumn('BAYAR', receiptData.paid.toLocaleString('id-ID'), charWidth);
+  b.twoColumn('BAYAR', rp(receiptData.paid), charWidth);
   const remLabel = receiptData.remaining > 0 ? 'SISA' : 'KEMBALI';
-  b.twoColumn(remLabel, Math.abs(receiptData.remaining).toLocaleString('id-ID'), charWidth);
+  b.twoColumn(remLabel, rp(Math.abs(receiptData.remaining)), charWidth);
 
   if (receiptData.note) { b.feed(1); b.line('Catatan: ' + receiptData.note); }
 

@@ -40,12 +40,17 @@ async function draw(root, saleId) {
   ]);
 
   const footerResolved = resolveFooterNote(settings.footerNote, sale.updatedAt);
+  const addressPhoneLine = [sale.customerAddress, phoneDisplay].filter(Boolean).join(' • ');
 
   root.innerHTML = `
     ${sale.autoMarkedPaid ? `
       <div style="margin:16px 16px 0;padding:12px 14px;border-radius:12px;background:var(--primary-container);display:flex;align-items:center;gap:10px;">
         <div style="flex:1;font-size:12.5px;color:var(--ink-soft);">Ditandai <b>LUNAS otomatis</b> karena sudah &gt;2 hari dari tanggal pengambilan.</div>
         <button id="revertAutoBtn" style="background:none;border:1px solid var(--ink);border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;white-space:nowrap;">Batalkan</button>
+      </div>` : ''}
+    ${sale.autoCompleted ? `
+      <div style="margin:${sale.autoMarkedPaid ? '8px' : '16px'} 16px 0;padding:12px 14px;border-radius:12px;background:var(--surface-dim);">
+        <div style="font-size:12.5px;color:var(--ink-soft);">Ditandai <b>SELESAI otomatis</b> karena tanggal pengambilan sudah lewat. Ketuk "Tandai Belum Selesai" di bawah kalau ini keliru.</div>
       </div>` : ''}
     <div style="padding:16px;">
       <div class="receipt" id="receiptCapture" style="border:1px solid var(--outline);border-radius:16px;">
@@ -56,15 +61,19 @@ async function draw(root, saleId) {
           <span>${dateShort(sale.saleDate)}</span><span>${sale.saleTime}</span><span>${escapeHtml(sale.invoiceNumber)}</span>
         </div>
         <div class="receipt-customer">${escapeHtml(sale.customerName)}</div>
-        ${sale.customerAddress ? `<div class="row-meta">${escapeHtml(sale.customerAddress)}</div>` : ''}
-        ${phoneDisplay ? `<div class="row-meta">${escapeHtml(phoneDisplay)}</div>` : ''}
+        ${addressPhoneLine ? `<div class="row-meta">${escapeHtml(addressPhoneLine)}</div>` : ''}
         ${items.map((it) => `
           <div class="receipt-item">
             <div class="ri-top"><span>${escapeHtml(it.productName)}</span><span>${rupiah(it.subtotal)}</span></div>
             <div class="ri-bottom"><span>${itemLineLabel(it.qty, it.unit, it.price)}</span></div>
+            ${it.note ? `<div class="ri-bottom" style="font-style:italic;">${escapeHtml(it.note)}</div>` : ''}
           </div>`).join('')}
         <div class="receipt-totals">
           ${sale.discountAmount > 0 ? `<div class="tr"><span>Diskon</span><span>-${rupiah(sale.discountAmount)}</span></div>` : ''}
+          ${sale.taxAmount > 0 ? `<div class="tr"><span>Pajak${sale.adjustments?.tax?.inclusive ? ' (termasuk harga)' : ''}</span><span>${sale.adjustments?.tax?.inclusive ? '' : '+'}${rupiah(sale.taxAmount)}</span></div>` : ''}
+          ${sale.tax2Amount > 0 ? `<div class="tr"><span>Pajak #2${sale.adjustments?.tax2?.inclusive ? ' (termasuk harga)' : ''}</span><span>${sale.adjustments?.tax2?.inclusive ? '' : '+'}${rupiah(sale.tax2Amount)}</span></div>` : ''}
+          ${sale.shippingAmount > 0 ? `<div class="tr"><span>Ongkos Kirim</span><span>+${rupiah(sale.shippingAmount)}</span></div>` : ''}
+          ${sale.otherAmount > 0 ? `<div class="tr"><span>${escapeHtml(sale.otherLabel || 'Lain-lain')}</span><span>+${rupiah(sale.otherAmount)}</span></div>` : ''}
           <div class="tr grand"><span>TOTAL</span><span>${rupiah(sale.total)}</span></div>
           <div class="tr"><span>BAYAR</span><span>${rupiah(paidAmount)}</span></div>
           <div class="tr" style="color:${remaining > 0 ? 'var(--accent)' : 'var(--status-lunas)'};font-weight:700;">
@@ -95,12 +104,12 @@ async function draw(root, saleId) {
     <div style="padding:20px 16px;">
       <button id="toggleCompletedBtn" class="btn ${sale.completed ? 'secondary' : ''}" style="margin:0;">${sale.completed ? '↺ Tandai Belum Selesai' : '✓ Tandai Selesai'}</button>
       <button id="addPaymentBtn" class="btn secondary" style="margin-top:10px;">+ Tambah Pembayaran</button>
-      <button id="printBtn" class="btn secondary" style="margin-top:10px;">Cetak</button>
+      <button id="printBtn" class="btn secondary" style="margin-top:10px;">Bagikan Nota</button>
     </div>
   `;
 
   root.querySelector('#addPaymentBtn').onclick = () => handleAddPayment(root, saleId, remaining);
-  root.querySelector('#printBtn').onclick = () => printReceipt();
+  root.querySelector('#printBtn').onclick = () => showShareSheet(root, sale, items, settings, paidAmount, remaining);
   root.querySelector('#toggleCompletedBtn').onclick = async () => {
     await setCompleted(saleId, !sale.completed);
     toast(sale.completed ? 'Ditandai belum selesai' : 'Ditandai selesai');
@@ -286,8 +295,12 @@ async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining
     storeName: settings.storeName, storeAddress: settings.storeAddress, storePhone: settings.storePhone,
     invoiceNumber: sale.invoiceNumber, dateLabel: dateShort(sale.saleDate), timeLabel: sale.saleTime,
     customerName: sale.customerName, customerAddress: sale.customerAddress, customerPhoneDisplay: phoneDisplay,
-    lines: items.map((i) => ({ name: i.productName, qty: i.qty, unit: i.unit, price: i.price, subtotal: i.subtotal })),
-    discount: sale.discountAmount, total: sale.total, paid: paidAmount, remaining, note: sale.note,
+    lines: items.map((i) => ({ name: i.productName, qty: i.qty, unit: i.unit, price: i.price, subtotal: i.subtotal, note: i.note })),
+    subtotal: sale.subtotal, discount: sale.discountAmount,
+    tax: sale.taxAmount, taxInclusive: sale.adjustments?.tax?.inclusive,
+    tax2: sale.tax2Amount, tax2Inclusive: sale.adjustments?.tax2?.inclusive,
+    shipping: sale.shippingAmount, other: sale.otherAmount, otherLabel: sale.otherLabel,
+    total: sale.total, paid: paidAmount, remaining, note: sale.note,
     footerNote: resolveFooterNote(settings.footerNote, sale.updatedAt),
   };
 

@@ -183,14 +183,15 @@ function registerServiceWorker() {
 
 async function runBackgroundChecks() {
   try {
-    const { applyAutoLunasRule } = await import('./services/saleService.js');
-    const changed = await applyAutoLunasRule();
-    if (changed > 0) {
+    const { applyAutoLunasRule, applyAutoCompleteRule } = await import('./services/saleService.js');
+    const changed1 = await applyAutoLunasRule();
+    const changed2 = await applyAutoCompleteRule();
+    if (changed1 > 0 || changed2 > 0) {
       const { route } = parseHash();
       if (route === 'home') handleRouteChange(); // refresh list kalau lagi di Home
     }
   } catch (e) {
-    console.error('[runBackgroundChecks] auto-lunas', e);
+    console.error('[runBackgroundChecks] auto-lunas/auto-complete', e);
   }
 
   try {

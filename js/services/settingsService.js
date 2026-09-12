@@ -8,12 +8,12 @@ const DEFAULTS = {
   storeAddress: '',
   storePhone: '',
   footerNote: 'Terima kasih atas kunjungan Anda.',
-  invoicePrefix: 'INV-',
-  invoiceDigitCount: 5,
+  invoicePrefix: 'INV #',
+  invoiceDigitCount: 2,
   invoiceNextNumber: 1,
-  invoiceResetMode: 'NEVER', // NEVER | DAILY | MONTHLY
+  invoiceResetMode: 'NEVER', // NEVER | DAILY | MONTHLY (hanya dipakai mode SEQUENTIAL)
   invoiceLastResetDate: '',
-  invoiceNumberFormat: 'DATETIME', // 'DATETIME' (prefix+YYMMDDHH) | 'SEQUENTIAL' (prefix+nomor urut)
+  invoiceNumberFormat: 'DAILY_SEQUENCE', // 'DAILY_SEQUENCE' (prefix+YYMMDD+urutan harian) | 'SEQUENTIAL' (prefix+nomor urut biasa)
   paperSize: 'THERMAL_58MM', // THERMAL_58MM | THERMAL_80MM | PDF_A4
 
   // Printer Bluetooth (BLE)
@@ -39,6 +39,8 @@ const DEFAULTS = {
     lastBackupAt: '',       // ISO datetime backup terakhir berhasil
     lastCheckedDate: '',    // yyyy-MM-dd, dipakai supaya tidak backup berkali-kali di hari yang sama untuk jam yang sama
     lastCheckedSlots: [],   // daftar jam yang SUDAH dieksekusi hari ini, direset saat lastCheckedDate berganti
+    lastSyncPushAt: '',     // ISO datetime terakhir kali PUSH ke file sinkron antar perangkat
+    lastSyncPullAt: '',     // ISO datetime terakhir kali PULL dari file sinkron antar perangkat
   },
 };
 

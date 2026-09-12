@@ -72,6 +72,94 @@ menaikkan versi di dua tempat:
 background begitu mereka membuka aplikasi (ada notifikasi kecil, lalu reload
 otomatis). Tidak perlu proses publish/submit apa pun — beda dengan Play Store.
 
+## v1.4.0 — satu tampilan kasir, data pelanggan bisa dikoreksi, tambahan biaya
+
+### 🔗 Nota Baru & Ubah Nota kini SATU implementasi
+
+Sebelumnya kedua layar ini punya kode terpisah yang lama-lama tampil beda.
+Sekarang keduanya memakai satu modul bersama (`saleFormShared.js`) — apa pun
+yang ditambahkan/diperbaiki di alur input nota otomatis konsisten di
+keduanya, tidak akan pernah "diam-diam beda tampilan" lagi.
+
+### ✏️ Data pelanggan bisa dikoreksi langsung di form nota
+
+Nama, alamat, dan telepon pelanggan sekarang jadi kolom yang bisa diketik
+langsung di form nota (bukan cuma dipilih dari daftar) — cocok kalau data
+pelanggan kurang tepat pas transaksi berlangsung. Kalau pelanggan itu
+terhubung ke data pelanggan tersimpan, koreksinya otomatis ikut memperbarui
+data pelanggan itu juga (bukan cuma nota yang sedang dikerjakan).
+
+### 💰 Fitur "Tambahan": Diskon, Pajak, Ongkos Kirim, Lain-lain
+
+Tombol "Atur Tambahan" di form nota sekarang mendukung:
+- **Diskon** — nominal (Rp) atau persen (%).
+- **Pajak** dan **Pajak #2** — masing-masing dengan pilihan *inclusive*
+  (sudah termasuk di harga barang, cuma ditampilkan sebagai rincian) atau
+  ditambahkan ke total.
+- **Ongkos Kirim** — nominal tetap.
+- **Lain-lain** — label bebas + nominal (mis. biaya packing, biaya admin).
+
+Semua komponen ini independen (bisa aktif sendiri-sendiri) dan tampil
+sebagai rincian di struk (layar, cetak, Bluetooth, share).
+
+### ✏️ Item bisa diubah satuan & diberi catatan
+
+Ketuk item di daftar untuk mengubah nama, **satuan (bebas diketik, tidak
+terkunci ke "pcs")**, harga, dan catatan khusus item itu (mis. "pedas level
+2"). Sebelumnya satuan tidak bisa diubah setelah item ditambahkan.
+
+### 🧾 Nomor invoice: tanggal + urutan harian (mengganti skema jam)
+
+Setelah dipikir ulang, skema berbasis jam (`YYMMDDHH`) diganti karena dua
+nota di jam yang sama bisa bentrok nomornya. Skema baru: prefix + tanggal +
+nomor urut yang reset tiap hari — `INV #26091001`, `INV #26091002`, dst.
+Selalu unik berapa pun banyaknya nota dalam sehari. Prefix bawaan juga
+diubah jadi `INV #` (sebelumnya `INV-`) supaya sesuai konvensi yang lazim
+dipakai. Opsi nomor urut tanpa tanggal tetap tersedia di pengaturan.
+
+### ✅ Otomatis SELESAI begitu tanggal pengambilan lewat
+
+Terpisah dari aturan LUNAS otomatis (tetap butuh 2 hari), nota sekarang
+otomatis ditandai **SELESAI** begitu tanggal pengambilannya sudah terlewati
+— asumsinya pesanan itu praktis sudah beres dikerjakan. Bisa dibatalkan
+manual lewat tombol "Tandai Belum Selesai" di Detail Nota, dan begitu
+dibatalkan, nota itu tidak akan diotomatiskan lagi.
+
+Di Home: centang "Fokus yang belum selesai" diganti nama jadi **"Proses"**,
+dan dropdown urutan disederhanakan jadi **"Tgl Ambil"** / **"Tgl Dibuat"**.
+
+### 🖨️ Tombol Cetak di Detail Nota diganti jadi "Bagikan Nota"
+
+Supaya tidak ada dua jalur berbeda yang bisa saling tidak konsisten, tombol
+"Cetak" sekarang membuka sheet "Bagikan Nota" yang sama seperti ikon share
+di pojok atas — satu pintu untuk Chat WA / Bluetooth / Gambar / Teks / Cetak-PDF.
+
+### 🎨 Cetak Bluetooth dirapikan
+
+Struk Bluetooth sekarang menampilkan **Total Qty** dan **Sub Total** sebagai
+baris terpisah sebelum rincian Diskon/Pajak/Ongkir/Lain-lain dan TOTAL akhir
+— jadi jelas dari mana angka TOTAL berasal, bukan langsung loncat dari
+daftar item ke satu angka besar. Nama & alamat/telepon pelanggan digabung
+jadi satu baris (konsisten dengan tampilan layar).
+
+### ☁️ Backup Drive: pesan error lebih jelas + auto-retry
+
+Kalau backup ke Drive gagal, pesan error sekarang menampilkan **alasan asli
+dari Google** (bukan cuma "status 401"), dan kalau penyebabnya token yang
+kedaluwarsa, sistem otomatis mencoba sekali lagi dengan token baru sebelum
+benar-benar menyerah. Lihat `docs/DRIVE_SETUP.md` bagian Troubleshooting
+untuk panduan lengkap kalau masih gagal.
+
+### 🔄 Sinkronisasi Antar Perangkat (baru)
+
+Setting → Backup/Restore → Atur Backup Otomatis → bagian "Sinkronisasi Antar
+Perangkat": **Push** (kirim data perangkat ini ke Drive) dan **Pull** (tarik
+data dari Drive ke perangkat ini), supaya beberapa HP/laptop bisa memakai
+data yang sama. **Ini bukan sinkron otomatis dua-arah** — siapa yang push
+TERAKHIR itu yang berlaku, jadi biasakan Pull sebelum mulai kerja dan Push
+setelah selesai di tiap perangkat. Detail keterbatasannya ada di komentar
+`js/services/driveBackupService.js`.
+
 ## v1.3.0 — mode kasir, printer, dan nomor invoice
 
 ### 🐛 Perbaikan: TOTAL berantakan saat cetak Bluetooth

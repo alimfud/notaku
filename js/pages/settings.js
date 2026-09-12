@@ -94,8 +94,8 @@ async function renderInvoice(root) {
     <div class="field"><label>Awalan (Prefix)</label><input id="fPrefix" value="${escapeHtml(s.invoicePrefix)}"></div>
 
     <div class="section-title">Format Nomor</div>
-    <label class="field-radio"><input type="radio" name="numformat" value="DATETIME" ${s.invoiceNumberFormat === 'DATETIME' ? 'checked' : ''}><div><div class="radio-title">Berdasarkan Waktu Dibuat</div><div class="radio-sub">Format: Prefix + TahunBulanTanggalJam, contoh nota dibuat hari ini jam 21 -> tampil seperti pratinjau di bawah. Sederhana, tapi dua nota di jam yang sama bisa punya nomor sama.</div></div></label>
-    <label class="field-radio"><input type="radio" name="numformat" value="SEQUENTIAL" ${s.invoiceNumberFormat === 'SEQUENTIAL' ? 'checked' : ''}><div><div class="radio-title">Nomor Urut</div><div class="radio-sub">Prefix + angka urut yang selalu naik dan dijamin unik.</div></div></label>
+    <label class="field-radio"><input type="radio" name="numformat" value="DAILY_SEQUENCE" ${s.invoiceNumberFormat === 'DAILY_SEQUENCE' ? 'checked' : ''}><div><div class="radio-title">Tanggal + Urutan Harian</div><div class="radio-sub">Format: Prefix + TahunBulanTanggal + nomor urut (reset tiap hari baru). Contoh nota pertama & kedua hari ini: lihat pratinjau di bawah. Selalu unik walau banyak nota di jam yang sama.</div></div></label>
+    <label class="field-radio"><input type="radio" name="numformat" value="SEQUENTIAL" ${s.invoiceNumberFormat === 'SEQUENTIAL' ? 'checked' : ''}><div><div class="radio-title">Nomor Urut Saja</div><div class="radio-sub">Prefix + angka urut tanpa tanggal, dengan mode reset sendiri.</div></div></label>
 
     <div id="sequentialFields" style="${s.invoiceNumberFormat === 'SEQUENTIAL' ? '' : 'display:none;'}">
       <div class="field"><label>Jumlah Digit</label><input id="fDigit" type="number" value="${s.invoiceDigitCount}"></div>
@@ -104,6 +104,9 @@ async function renderInvoice(root) {
       <label class="field-radio"><input type="radio" name="reset" value="NEVER" ${s.invoiceResetMode === 'NEVER' ? 'checked' : ''}><div><div class="radio-title">Tidak Pernah</div><div class="radio-sub">Nomor terus naik, tidak pernah kembali ke awal</div></div></label>
       <label class="field-radio"><input type="radio" name="reset" value="DAILY" ${s.invoiceResetMode === 'DAILY' ? 'checked' : ''}><div><div class="radio-title">Harian</div><div class="radio-sub">Nomor kembali ke 1 setiap hari baru</div></div></label>
       <label class="field-radio"><input type="radio" name="reset" value="MONTHLY" ${s.invoiceResetMode === 'MONTHLY' ? 'checked' : ''}><div><div class="radio-title">Bulanan</div><div class="radio-sub">Nomor kembali ke 1 setiap bulan baru</div></div></label>
+    </div>
+    <div id="dailySeqFields" style="${s.invoiceNumberFormat === 'DAILY_SEQUENCE' ? '' : 'display:none;'}">
+      <div class="field"><label>Jumlah Digit Urutan Harian</label><input id="fDigitDaily" type="number" value="${s.invoiceDigitCount}"></div>
     </div>
 
     <div class="info-card" style="margin-top:14px;"><div class="info-text" id="preview"></div></div>
@@ -117,12 +120,12 @@ async function renderInvoice(root) {
   function updatePreview() {
     const prefix = root.querySelector('#fPrefix').value;
     const now = new Date();
-    if (currentFormat() === 'DATETIME') {
+    if (currentFormat() === 'DAILY_SEQUENCE') {
       const yy = String(now.getFullYear()).slice(-2);
       const mm = String(now.getMonth() + 1).padStart(2, '0');
       const dd = String(now.getDate()).padStart(2, '0');
-      const hh = String(now.getHours()).padStart(2, '0');
-      root.querySelector('#preview').textContent = `Contoh nomor (sekarang): ${prefix}${yy}${mm}${dd}${hh}`;
+      const digit = Number(root.querySelector('#fDigitDaily').value) || 2;
+      root.querySelector('#preview').textContent = `Contoh: nota ke-1 hari ini -> ${prefix}${yy}${mm}${dd}${'1'.padStart(digit, '0')}, nota ke-2 -> ${prefix}${yy}${mm}${dd}${'2'.padStart(digit, '0')}`;
     } else {
       const digit = Number(root.querySelector('#fDigit').value) || 5;
       const next = Number(root.querySelector('#fNext').value) || 1;
@@ -133,6 +136,7 @@ async function renderInvoice(root) {
   root.querySelectorAll('input[name="numformat"]').forEach((r) => {
     r.addEventListener('change', () => {
       root.querySelector('#sequentialFields').style.display = r.value === 'SEQUENTIAL' ? '' : 'none';
+      root.querySelector('#dailySeqFields').style.display = r.value === 'DAILY_SEQUENCE' ? '' : 'none';
       updatePreview();
     });
   });
@@ -146,6 +150,8 @@ async function renderInvoice(root) {
       patch.invoiceDigitCount = Number(root.querySelector('#fDigit').value) || 5;
       patch.invoiceNextNumber = Number(root.querySelector('#fNext').value) || 1;
       patch.invoiceResetMode = root.querySelector('input[name="reset"]:checked').value;
+    } else {
+      patch.invoiceDigitCount = Number(root.querySelector('#fDigitDaily').value) || 2;
     }
     await saveSettings(patch);
     toast('Pengaturan nomor nota disimpan');
@@ -417,8 +423,62 @@ async function renderAutoBackup(root) {
         <div class="info-title">Soal "otomatis"</div>
         <div class="info-text">Backup di jam yang dijadwalkan akan berjalan begitu aplikasi dibuka/kembali aktif SETELAH jam tersebut lewat — bukan persis di jam itu kalau aplikasi sedang tidak dibuka sama sekali (keterbatasan web app tanpa server, lihat docs/DRIVE_SETUP.md).</div>
       </div>
+
+      <div class="section-title" style="padding-left:0;margin-top:24px;">Sinkronisasi Antar Perangkat</div>
+      <div class="info-card" style="margin:0 0 14px;">
+        <div class="info-title">Satu database, banyak perangkat</div>
+        <div class="info-text">Dorong (push) data dari perangkat ini ke Drive, lalu tarik (pull) dari perangkat lain yang login akun Google sama supaya datanya ikut sama. <b>Bukan sinkron realtime</b> — siapa yang push TERAKHIR itu yang berlaku; kalau dua HP push beda perubahan bersamaan, yang belakangan menimpa yang duluan. Selalu Pull dulu sebelum mulai kerja di sebuah perangkat, Push setelah selesai.</div>
+      </div>
+      <div id="syncStatus" style="font-size:12px;color:var(--muted);margin-bottom:12px;">Memeriksa status...</div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn secondary" id="btnPush" style="margin:0;flex:1;">⬆ Push ke Cloud</button>
+        <button class="btn secondary" id="btnPull" style="margin:0;flex:1;">⬇ Tarik dari Cloud</button>
+      </div>
     </div>
   `;
+
+  refreshSyncStatus(root, drive);
+
+  root.querySelector('#btnPush').onclick = async () => {
+    if (!cfg.driveConnected) { toast('Hubungkan akun Google Drive dulu'); return; }
+    const confirmed = await confirmDialog({
+      title: 'Push ke Cloud?',
+      message: 'Data di Drive akan DITIMPA dengan data perangkat ini. Perangkat lain yang belum sempat push perubahannya sendiri akan kehilangan perubahan itu kalau nanti mereka pull. Lanjutkan?',
+      confirmLabel: 'Ya, Push',
+    });
+    if (!confirmed) return;
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+    try {
+      await drive.pushToCloud();
+      toast('Berhasil push ke Drive');
+      await refreshSyncStatus(root, drive);
+    } catch (e) {
+      await alertDialog({ title: 'Push Gagal', message: e.message || 'Terjadi kesalahan.' });
+    } finally {
+      document.getElementById('loadingOverlay').classList.add('hidden');
+    }
+  };
+
+  root.querySelector('#btnPull').onclick = async () => {
+    if (!cfg.driveConnected) { toast('Hubungkan akun Google Drive dulu'); return; }
+    const confirmed = await confirmDialog({
+      title: 'Tarik dari Cloud?',
+      message: 'SELURUH data di perangkat ini (nota, produk, pelanggan) akan DIGANTI dengan data dari Drive. Perubahan yang belum di-push dari perangkat ini akan HILANG. Lanjutkan?',
+      confirmLabel: 'Ya, Timpa & Tarik',
+      dangerous: true,
+    });
+    if (!confirmed) return;
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+    try {
+      await drive.pullFromCloud();
+      await alertDialog({ title: 'Berhasil', message: 'Data berhasil ditarik dari Drive.' });
+      navigate('home');
+    } catch (e) {
+      await alertDialog({ title: 'Pull Gagal', message: e.message || 'Terjadi kesalahan.' });
+    } finally {
+      document.getElementById('loadingOverlay').classList.add('hidden');
+    }
+  };
 
   root.querySelector('#btnDriveConnect').onclick = async () => {
     if (cfg.driveConnected) {
@@ -454,11 +514,26 @@ async function renderAutoBackup(root) {
       toast('Backup berhasil diunggah ke Drive');
       await renderAutoBackup(root);
     } catch (e) {
-      toast(e.message || 'Backup gagal.');
+      await alertDialog({ title: 'Backup Gagal', message: (e.message || 'Terjadi kesalahan.') + '\n\nLihat docs/DRIVE_SETUP.md bagian Troubleshooting untuk arti pesan ini.' });
     } finally {
       document.getElementById('loadingOverlay').classList.add('hidden');
     }
   };
+}
+
+async function refreshSyncStatus(root, drive) {
+  const el = root.querySelector('#syncStatus');
+  if (!el) return;
+  try {
+    const status = await drive.getCloudSyncStatus();
+    const parts = [];
+    parts.push(status.cloudExists ? `Data di cloud: ${new Date(status.cloudModifiedTime).toLocaleString('id-ID')}` : 'Belum ada data di cloud');
+    if (status.lastPushedAt) parts.push(`Terakhir push dari sini: ${new Date(status.lastPushedAt).toLocaleString('id-ID')}`);
+    if (status.lastPulledAt) parts.push(`Terakhir pull ke sini: ${new Date(status.lastPulledAt).toLocaleString('id-ID')}`);
+    el.innerHTML = parts.join('<br>');
+  } catch (e) {
+    el.textContent = 'Gagal memeriksa status cloud (' + (e.message || 'koneksi bermasalah') + ')';
+  }
 }
 
 async function saveAutoBackupForm(root) {

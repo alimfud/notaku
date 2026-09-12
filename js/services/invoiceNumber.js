@@ -2,18 +2,15 @@
 //
 // Dua mode (lihat Setting → Nomor Nota):
 //
-// 'DATETIME' (default): prefix + YYMMDDHH dari WAKTU NOTA DIBUAT, contoh
-// untuk nota dibuat 9 September 2026 jam 21:xx -> "INV-26090921". Sederhana
-// dan langsung menunjukkan kapan nota dibuat tanpa perlu simpan counter.
-// PERLU DIKETAHUI: karena hanya presisi sampai jam (bukan menit/detik), DUA
-// nota yang dibuat di jam yang sama pada hari yang sama akan mendapat nomor
-// yang SAMA PERSIS di skema ini — nomor invoice bisa saja tidak unik kalau
-// toko ramai. Ini pilihan desain sesuai permintaan (meniru format aplikasi
-// nota populer lain); ID internal tiap nota (dipakai untuk semua keperluan
-// teknis: cari, hapus, dsb) tetap selalu unik terlepas dari ini.
+// 'DAILY_SEQUENCE' (default): prefix + YYMMDD + nomor urut yang RESET SETIAP
+// HARI, contoh nota pertama hari ini -> "INV #26091001", nota kedua hari yang
+// sama -> "INV #26091002", besok mulai dari 01 lagi -> "INV #26091101". Ini
+// menghindari tabrakan nomor yang bisa terjadi kalau presisi cuma sampai jam
+// (skema lama) — setiap nota di hari yang sama pasti dapat nomor berbeda.
 //
-// 'SEQUENTIAL': prefix + nomor urut dengan reset mode (NEVER/DAILY/MONTHLY) —
-// skema yang sudah ada sebelumnya, dijamin unik.
+// 'SEQUENTIAL': prefix + nomor urut TANPA tanggal, dengan mode reset sendiri
+// (NEVER/DAILY/MONTHLY) — skema alternatif untuk yang tidak ingin tanggal
+// ikut tercetak di nomor nota.
 
 import { getSettings, saveSettings } from './settingsService.js';
 import { dbDate } from '../format.js';
@@ -24,15 +21,29 @@ export async function generateAndAdvance(saleDate = new Date()) {
   if (settings.invoiceNumberFormat === 'SEQUENTIAL') {
     return generateSequential(settings, saleDate);
   }
-  return generateDateTime(settings, saleDate);
+  return generateDailySequence(settings, saleDate);
 }
 
-function generateDateTime(settings, saleDate) {
+async function generateDailySequence(settings, saleDate) {
+  const todayKey = dbDate(saleDate);
   const yy = String(saleDate.getFullYear()).slice(-2);
   const mm = String(saleDate.getMonth() + 1).padStart(2, '0');
   const dd = String(saleDate.getDate()).padStart(2, '0');
-  const hh = String(saleDate.getHours()).padStart(2, '0');
-  return Promise.resolve(`${settings.invoicePrefix}${yy}${mm}${dd}${hh}`);
+
+  // Counter SELALU reset tiap hari baru untuk mode ini (beda dengan mode
+  // SEQUENTIAL yang resetnya bisa diatur NEVER/DAILY/MONTHLY).
+  const shouldReset = settings.invoiceLastResetDate !== todayKey;
+  const nextNumber = shouldReset ? 1 : settings.invoiceNextNumber;
+
+  const counterPart = String(nextNumber).padStart(settings.invoiceDigitCount || 2, '0');
+  const invoiceNumber = `${settings.invoicePrefix}${yy}${mm}${dd}${counterPart}`;
+
+  await saveSettings({
+    invoiceNextNumber: nextNumber + 1,
+    invoiceLastResetDate: todayKey,
+  });
+
+  return invoiceNumber;
 }
 
 async function generateSequential(settings, saleDate) {
