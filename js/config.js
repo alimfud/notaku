@@ -10,4 +10,4 @@
  *
  * Cara mendapatkannya: lihat docs/DRIVE_SETUP.md (gratis, sekali setup).
  */
-export const GOOGLE_CLIENT_ID = 'ISI_DENGAN_CLIENT_ID_GOOGLE_CLOUD_MU';
+export const GOOGLE_CLIENT_ID = '329437953527-qd9l3k29qa4dfpjn3v8jh35nbgnpejqb.apps.googleusercontent.com';
