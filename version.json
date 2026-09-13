@@ -1,4 +1,4 @@
 {
-  "version": "1.4.0",
-  "notes": "Nota Baru & Ubah Nota kini pakai UI yang sama persis (mode kasir mini market disatukan). Data pelanggan (nama/alamat/telepon) bisa diedit langsung di form nota. Fitur Tambahan: Diskon (Rp/%), Pajak, Pajak #2 (inclusive/exclusive), Ongkos Kirim, Lain-lain. Item bisa diubah satuan & diberi catatan. Nomor invoice baru: prefix+tanggal+urutan harian (INV #26091001, tidak lagi bentrok di jam yang sama). Nota otomatis ditandai SELESAI begitu tanggal pengambilan lewat (terpisah dari LUNAS otomatis). Tombol Cetak di Detail Nota diganti jadi Bagikan Nota (satu pintu, lebih konsisten). Cetak Bluetooth dirapikan (Sub Total, Total Qty, rincian pajak/ongkir/lain-lain). Backup ke Drive: pesan error sekarang menampilkan alasan asli dari Google, otomatis retry sekali kalau token basi. Fitur baru: Sinkronisasi Antar Perangkat (push/pull manual lewat Google Drive)."
+  "version": "1.4.1",
+  "notes": "Item bebas (nama produk yang belum ada di daftar) sekarang otomatis tersimpan sebagai produk baru saat ditambahkan ke nota — lewat jalur mana pun (cari/scan atau item bebas), produk baru langsung tersimpan dan bisa dicari lagi lain kali. Nama yang sudah ada (tidak peka huruf besar/kecil) tidak membuat duplikat, dan harga khusus yang diketik untuk transaksi itu tetap dihormati tanpa menimpa harga produk tersimpan."
 }

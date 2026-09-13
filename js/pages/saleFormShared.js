@@ -7,7 +7,7 @@
 // karena di mode edit pembayaran diatur terpisah lewat riwayat pembayaran).
 
 import { getAllCustomers, cashCustomer, saveCustomer } from '../services/customerService.js';
-import { getAllProducts } from '../services/productService.js';
+import { getAllProducts, saveProduct } from '../services/productService.js';
 import { calculateSubtotal, computeAdjustments, defaultAdjustments } from '../services/saleCalculation.js';
 import { rupiah, escapeHtml, qtyLabel } from '../format.js';
 import { openSheet } from '../ui/dialog.js';
@@ -198,19 +198,52 @@ async function addManualItem(root, mode, state, onSave) {
     body.innerHTML = `
       <div class="sheet-title">Item Bebas</div>
       <div class="field"><label>Nama item</label><input id="mName" autofocus></div>
-      <div class="field"><label>Jumlah</label><input id="mQty" type="number" inputmode="decimal" value="${state.stepperQty}"></div>
+      <div style="display:flex;gap:8px;">
+        <div class="field" style="flex:1;"><label>Satuan</label><input id="mUnit" placeholder="pcs, kg, box, ..." value="pcs"></div>
+        <div class="field" style="flex:1;"><label>Jumlah</label><input id="mQty" type="number" inputmode="decimal" value="${state.stepperQty}"></div>
+      </div>
       <div class="field"><label>Harga satuan</label><input id="mPrice" type="number" inputmode="numeric"></div>
+      <div style="font-size:11px;color:var(--muted);padding:0 20px 8px;">Kalau nama ini belum ada di daftar produk, otomatis disimpan sebagai produk baru supaya bisa dicari/dipakai lagi lain kali.</div>
       <button class="btn" id="mAdd">Tambahkan</button>
     `;
     body.querySelector('#mAdd').onclick = () => {
       const name = body.querySelector('#mName').value.trim();
       if (!name) return;
+      const unit = body.querySelector('#mUnit').value.trim() || 'pcs';
       const qty = Number(body.querySelector('#mQty').value) || 1;
       const price = Number(body.querySelector('#mPrice').value) || 0;
-      close({ productId: null, name, unit: '', qty, price });
+      close({ productId: null, name, unit, qty, price });
     };
   });
-  if (line) { state.lines.push(line); state.stepperQty = 1; draw(root, mode, state, onSave); }
+  if (!line) return;
+
+  // Kalau namanya sudah ada di daftar produk (tidak peka huruf besar/kecil),
+  // pakai produk itu (id-nya) — jangan bikin produk duplikat. Kalau belum
+  // ada, simpan sebagai produk baru supaya lain kali bisa dicari/di-scan,
+  // TIDAK peduli item ditambahkan lewat "item bebas" atau jalur mana pun.
+  const existing = state.products.find((p) => p.name.toLowerCase() === name_lower(line.name));
+  if (existing) {
+    line.productId = existing.id;
+  } else {
+    try {
+      const created = await saveProduct({ name: line.name, unit: line.unit, price: line.price, category: '', cost: 0, stock: 0 });
+      line.productId = created.id;
+      state.products.push(created); // supaya langsung bisa dicari di sesi yang sama tanpa reload
+      toast(`"${created.name}" disimpan sebagai produk baru`);
+    } catch (e) {
+      console.error('[addManualItem] gagal menyimpan produk baru', e);
+      // Tetap lanjut menambahkan ke nota walau gagal disimpan sebagai produk —
+      // jangan sampai kegagalan simpan produk menghalangi transaksi berjalan.
+    }
+  }
+
+  state.lines.push(line);
+  state.stepperQty = 1;
+  draw(root, mode, state, onSave);
+}
+
+function name_lower(s) {
+  return (s || '').trim().toLowerCase();
 }
 
 function drawLines(root, state) {

@@ -72,6 +72,29 @@ menaikkan versi di dua tempat:
 background begitu mereka membuka aplikasi (ada notifikasi kecil, lalu reload
 otomatis). Tidak perlu proses publish/submit apa pun — beda dengan Play Store.
 
+## v1.4.1 — item bebas otomatis jadi produk
+
+Sebelumnya, item yang ditambahkan lewat "+ item bebas" (nama yang belum ada
+di daftar produk) cuma tersimpan di nota itu saja — kalau nama yang sama
+mau dipakai lagi lain kali, harus diketik ulang manual dari nol, tidak akan
+muncul di pencarian.
+
+Sekarang: begitu nama item bebas itu diketik dan belum ada di daftar
+produk, **otomatis tersimpan sebagai produk baru** — jadi lain kali tinggal
+cari/ketik namanya, langsung muncul di saran pencarian. Berlaku dari jalur
+mana pun (cari & pilih, scan barcode, atau item bebas) — sama-sama berujung
+ke satu daftar produk yang sama, tidak ada lagi jalur yang "kurang lengkap".
+
+Detail yang sudah diuji:
+- Nama yang **sama tapi beda huruf besar/kecil** (mis. "Es Kelapa Muda" vs
+  "es kelapa muda") dikenali sebagai produk YANG SAMA — tidak membuat
+  duplikat di daftar produk.
+- Kalau di transaksi itu kamu mengetik **harga berbeda** dari harga produk
+  tersimpan (mis. harga promo hari itu), harga khusus itu tetap dipakai
+  untuk nota yang sedang dibuat — tidak menimpa harga produk yang tersimpan.
+- Produk baru langsung bisa dicari di sesi yang sama tanpa perlu memuat
+  ulang halaman.
+
 ## v1.4.0 — satu tampilan kasir, data pelanggan bisa dikoreksi, tambahan biaya
 
 ### 🔗 Nota Baru & Ubah Nota kini SATU implementasi
