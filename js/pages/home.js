@@ -30,7 +30,7 @@ export async function render(root) {
         Proses
       </label>
       <select id="sortSelect" style="font-size:12.5px;border:1px solid var(--outline);border-radius:8px;padding:6px 8px;background:var(--surface-dim);color:var(--ink);">
-        <option value="pickup" ${_sortBy === 'pickup' ? 'selected' : ''}>Tgl Ambil</option>
+        <option value="pickup" ${_sortBy === 'pickup' ? 'selected' : ''}>Tgl Pickup</option>
         <option value="created" ${_sortBy === 'created' ? 'selected' : ''}>Tgl Dibuat</option>
       </select>
     </div>
