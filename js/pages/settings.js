@@ -151,7 +151,7 @@ async function renderInvoice(root) {
       patch.invoiceNextNumber = Number(root.querySelector('#fNext').value) || 1;
       patch.invoiceResetMode = root.querySelector('input[name="reset"]:checked').value;
     } else {
-      patch.invoiceDigitCount = Number(root.querySelector('#fDigitDaily').value) || 2;
+      patch.invoiceDigitCount = Number(root.querySelector('#fDigitDaily').value) || 1;
     }
     await saveSettings(patch);
     toast('Pengaturan nomor nota disimpan');
