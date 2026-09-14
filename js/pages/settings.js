@@ -124,7 +124,7 @@ async function renderInvoice(root) {
       const yy = String(now.getFullYear()).slice(-2);
       const mm = String(now.getMonth() + 1).padStart(2, '0');
       const dd = String(now.getDate()).padStart(2, '0');
-      const digit = Number(root.querySelector('#fDigitDaily').value) || 1;
+      const digit = Number(root.querySelector('#fDigitDaily').value) || 2;
       root.querySelector('#preview').textContent = `Contoh: nota ke-1 hari ini -> ${prefix}${yy}${mm}${dd}${'1'.padStart(digit, '0')}, nota ke-2 -> ${prefix}${yy}${mm}${dd}${'2'.padStart(digit, '0')}`;
     } else {
       const digit = Number(root.querySelector('#fDigit').value) || 5;
