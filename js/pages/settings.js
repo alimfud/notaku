@@ -162,7 +162,6 @@ async function renderInvoice(root) {
     toast('Pengaturan nomor nota disimpan');
   };
 }
-}
 
 async function renderPrinter(root) {
   setPageTitle('Printer');
