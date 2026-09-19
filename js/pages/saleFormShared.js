@@ -54,10 +54,10 @@ function draw(root, mode, state, onSave) {
         <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;">Kepada Yth</div>
         <button id="pickCustomerBtn" style="background:none;border:none;color:var(--ink);font-size:12.5px;text-decoration:underline;">Pilih dari daftar</button>
       </div>
-      <div class="field" style="border:1px solid var(--outline);border-radius:10px;margin-bottom:8px;"><label>Nama</label><input id="custName" value="${escapeHtml(c.name)}" placeholder="Nama pelanggan"></div>
-      <div style="display:flex;gap:8px;">
-        <div class="field" style="flex:1;border:1px solid var(--outline);border-radius:10px;"><label>Alamat</label><input id="custAddress" value="${escapeHtml(c.address)}" placeholder="(opsional)"></div>
-        <div class="field" style="flex:1;border:1px solid var(--outline);border-radius:10px;"><label>Telepon</label><input id="custPhone" value="${escapeHtml(c.phone)}" placeholder="(opsional)"></div>
+      <div class="cust-grid">
+        <div class="cust-cell cust-cell--name"><label>Nama</label><input id="custName" value="${escapeHtml(c.name)}" placeholder="Nama pelanggan"></div>
+        <div class="cust-cell"><label>Alamat</label><input id="custAddress" value="${escapeHtml(c.address)}" placeholder="(opsional)"></div>
+        <div class="cust-cell"><label>Telepon</label><input id="custPhone" type="tel" value="${escapeHtml(c.phone)}" placeholder="(opsional)"></div>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:4px;">Data di atas bisa diedit langsung kalau kurang tepat — perubahan ikut memperbarui data pelanggan tersimpan.</div>
     </div>
@@ -362,30 +362,12 @@ async function editAdjustments(root, mode, state, onSave) {
         <span style="font-weight:700;font-size:14px;">Diskon</span>
         <input type="checkbox" id="tDiscOn" ${a.discount.enabled ? 'checked' : ''}>
       </label>
-      <div class="field" style="display:flex;gap:8px;align-items:center;">
-        <select id="tDiscMode" style="border:none;font-size:14px;background:transparent;">
+      <div class="adj-row">
+        <select id="tDiscMode" class="adj-mode">
           <option value="amount" ${a.discount.mode === 'amount' ? 'selected' : ''}>Rp</option>
           <option value="percent" ${a.discount.mode === 'percent' ? 'selected' : ''}>%</option>
         </select>
-        <input id="tDiscValue" type="number" inputmode="numeric" value="${a.discount.value || ''}" placeholder="0" style="flex:1;">
-      </div>
-
-      <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 0;">
-        <span style="font-weight:700;font-size:14px;">Pajak</span>
-        <input type="checkbox" id="tTaxOn" ${a.tax.enabled ? 'checked' : ''}>
-      </label>
-      <div class="field" style="display:flex;gap:10px;align-items:center;">
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;"><input type="checkbox" id="tTaxIncl" ${a.tax.inclusive ? 'checked' : ''}> Inclusive</label>
-        <input id="tTaxPercent" type="number" inputmode="numeric" value="${a.tax.percent || ''}" placeholder="0" style="flex:1;"> <span>%</span>
-      </div>
-
-      <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 0;">
-        <span style="font-weight:700;font-size:14px;">Pajak #2</span>
-        <input type="checkbox" id="tTax2On" ${a.tax2.enabled ? 'checked' : ''}>
-      </label>
-      <div class="field" style="display:flex;gap:10px;align-items:center;">
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;"><input type="checkbox" id="tTax2Incl" ${a.tax2.inclusive ? 'checked' : ''}> Inclusive</label>
-        <input id="tTax2Percent" type="number" inputmode="numeric" value="${a.tax2.percent || ''}" placeholder="0" style="flex:1;"> <span>%</span>
+        <input id="tDiscValue" class="adj-input" type="number" inputmode="numeric" value="${a.discount.value || ''}" placeholder="0">
       </div>
 
       <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 0;">
@@ -399,8 +381,8 @@ async function editAdjustments(root, mode, state, onSave) {
         <input type="checkbox" id="tOtherOn" ${a.other.enabled ? 'checked' : ''}>
       </label>
       <div class="field" style="display:flex;gap:8px;">
-        <input id="tOtherLabel" value="${escapeHtml(a.other.label || '')}" placeholder="Label" style="flex:1;">
-        <input id="tOtherAmount" type="number" inputmode="numeric" value="${a.other.amount || ''}" placeholder="0" style="flex:1;">
+        <input id="tOtherLabel" value="${escapeHtml(a.other.label || '')}" placeholder="Label" style="flex:1;min-width:0;">
+        <input id="tOtherAmount" type="number" inputmode="numeric" value="${a.other.amount || ''}" placeholder="0" style="flex:1;min-width:0;">
       </div>
 
       ${mode === 'create' ? `
@@ -412,10 +394,18 @@ async function editAdjustments(root, mode, state, onSave) {
       <button class="btn" id="tApply">Terapkan</button>
     `;
     body.querySelector('#tApply').onclick = () => {
+      // Nominal diskon dibaca dari input teks/number; kalau kosong -> 0 (aman,
+      // tidak menggangu perhitungan). Pajak dihapus/dinonaktifkan (tidak
+      // diperlukan lagi) — tetap diisi objek {enabled:false} supaya skema data
+      // lama tetap kompatibel.
       state.adjustments = {
-        discount: { enabled: body.querySelector('#tDiscOn').checked, mode: body.querySelector('#tDiscMode').value, value: Number(body.querySelector('#tDiscValue').value) || 0 },
-        tax: { enabled: body.querySelector('#tTaxOn').checked, inclusive: body.querySelector('#tTaxIncl').checked, percent: Number(body.querySelector('#tTaxPercent').value) || 0 },
-        tax2: { enabled: body.querySelector('#tTax2On').checked, inclusive: body.querySelector('#tTax2Incl').checked, percent: Number(body.querySelector('#tTax2Percent').value) || 0 },
+        discount: {
+          enabled: body.querySelector('#tDiscOn').checked,
+          mode: body.querySelector('#tDiscMode').value,
+          value: Number(body.querySelector('#tDiscValue').value) || 0,
+        },
+        tax: { enabled: false, inclusive: false, percent: 0 },
+        tax2: { enabled: false, inclusive: false, percent: 0 },
         shipping: { enabled: body.querySelector('#tShipOn').checked, amount: Number(body.querySelector('#tShipAmount').value) || 0 },
         other: { enabled: body.querySelector('#tOtherOn').checked, label: body.querySelector('#tOtherLabel').value.trim(), amount: Number(body.querySelector('#tOtherAmount').value) || 0 },
       };
