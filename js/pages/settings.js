@@ -114,7 +114,12 @@ async function renderInvoice(root) {
   `;
 
   function currentFormat() {
-    return root.querySelector('input[name="numformat"]:checked').value;
+    const checked = root.querySelector('input[name="numformat"]:checked');
+    return checked ? checked.value : 'DAILY_SEQUENCE';
+  }
+  function currentResetMode() {
+    const checked = root.querySelector('input[name="reset"]:checked');
+    return checked ? checked.value : 'NEVER';
   }
 
   function updatePreview() {
@@ -149,13 +154,14 @@ async function renderInvoice(root) {
     if (format === 'SEQUENTIAL') {
       patch.invoiceDigitCount = Number(root.querySelector('#fDigit').value) || 5;
       patch.invoiceNextNumber = Number(root.querySelector('#fNext').value) || 1;
-      patch.invoiceResetMode = root.querySelector('input[name="reset"]:checked').value;
+      patch.invoiceResetMode = currentResetMode();
     } else {
       patch.invoiceDigitCount = Number(root.querySelector('#fDigitDaily').value) || 1;
     }
     await saveSettings(patch);
     toast('Pengaturan nomor nota disimpan');
   };
+}
 }
 
 async function renderPrinter(root) {
@@ -448,15 +454,19 @@ async function renderAutoBackup(root) {
     });
     if (!confirmed) return;
     document.getElementById('loadingOverlay').classList.remove('hidden');
+    let errorMsg = null;
     try {
       await drive.pushToCloud();
       toast('Berhasil push ke Drive');
       await refreshSyncStatus(root, drive);
     } catch (e) {
-      await alertDialog({ title: 'Push Gagal', message: e.message || 'Terjadi kesalahan.' });
+      errorMsg = e.message || 'Terjadi kesalahan.';
     } finally {
+      // SELALU hentikan loading DULU — dialog/alert tidak akan bisa ditekan
+      // kalau overlay loading (z-index lebih tinggi) masih menutupinya.
       document.getElementById('loadingOverlay').classList.add('hidden');
     }
+    if (errorMsg) await alertDialog({ title: 'Push Gagal', message: errorMsg });
   };
 
   root.querySelector('#btnPull').onclick = async () => {
@@ -469,14 +479,21 @@ async function renderAutoBackup(root) {
     });
     if (!confirmed) return;
     document.getElementById('loadingOverlay').classList.remove('hidden');
+    let errorMsg = null;
     try {
       await drive.pullFromCloud();
+    } catch (e) {
+      errorMsg = e.message || 'Terjadi kesalahan.';
+    } finally {
+      // Loading dihentikan SEBELUM dialog muncul — ini akar masalah UI yang
+      // terus berputar walau proses sebenarnya sudah berhasil/gagal.
+      document.getElementById('loadingOverlay').classList.add('hidden');
+    }
+    if (errorMsg) {
+      await alertDialog({ title: 'Pull Gagal', message: errorMsg });
+    } else {
       await alertDialog({ title: 'Berhasil', message: 'Data berhasil ditarik dari Drive.' });
       navigate('home');
-    } catch (e) {
-      await alertDialog({ title: 'Pull Gagal', message: e.message || 'Terjadi kesalahan.' });
-    } finally {
-      document.getElementById('loadingOverlay').classList.add('hidden');
     }
   };
 
