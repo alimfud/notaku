@@ -155,12 +155,6 @@ export async function printReceiptViaBluetooth(receiptData, { charWidth = 32 } =
   const rp = (n) => Math.round(n || 0).toLocaleString('id-ID');
   const b = new EscPosBuilder();
 
-  // Dynamic printable width: pakai lebar karakter yang benar-benar sesuai
-  // ukuran printer (58mm=32, 80mm=48). Semua baris kolom (twoColumn/threeColumn
-  // di escpos.js) mengikuti angka ini, jadi tidak ada spasi manual yang bisa
-  // membuat teks wrap ke baris berikutnya.
-  const w = charWidth;
-
   // ---------- Kop toko ----------
   b.align('center');
   b.bold(true);
@@ -168,16 +162,13 @@ export async function printReceiptViaBluetooth(receiptData, { charWidth = 32 } =
   b.bold(false);
   if (receiptData.storeAddress) b.line(receiptData.storeAddress);
   if (receiptData.storePhone) b.line(receiptData.storePhone);
-  b.divider(w);
+  b.divider(charWidth);
 
-  // ---------- Tanggal, jam, no. nota — TIGA kolom dalam SATU baris ----------
-  // Dulu tanggal & jam dicetak dengan twoColumn lalu nomor invoice di baris
-  // terpisah, dan kalau kebetulan terlalu panjang nomor invoice bisa "turun"
-  // ke baris berikutnya. Sekarang ketiganya dipaksa sebaris (threeColumn)
-  // sehingga Tanggal • Jam • No. Nota SELALU sejajar.
+  // ---------- Tanggal, jam, no. nota ----------
   b.align('left');
-  b.threeColumn(receiptData.dateLabel, receiptData.timeLabel, receiptData.invoiceNumber, w);
-  b.divider(w);
+  b.twoColumn(receiptData.dateLabel, receiptData.timeLabel, charWidth);
+  b.line(receiptData.invoiceNumber);
+  b.divider(charWidth);
 
   // ---------- Pelanggan (nama tebal, alamat+telepon satu baris — konsisten
   // dengan tampilan layar, supaya tidak menumpuk banyak baris) ----------
@@ -187,27 +178,35 @@ export async function printReceiptViaBluetooth(receiptData, { charWidth = 32 } =
   b.feed(1);
 
   // ---------- Daftar item ----------
-  // Sesuai permintaan: cukup item dan TOTAL. QTY & SUBTOTAL per baris tidak
-  // dicetak lagi supaya struk lebih ringkas & rapi.
+  let totalQty = 0;
   receiptData.lines.forEach((line, i) => {
+    totalQty += line.qty || 0;
     b.bold(true).line(`${i + 1}. ${line.name}`).bold(false);
-    if (line.note) b.line(`   (${line.note})`);
+    const qty = `${line.qty} ${line.unit || ''}`.trim();
+    b.twoColumn(`  ${qty} x @ ${rp(line.price)},-`, rp(line.subtotal), charWidth);
+    if (line.note) b.line(`  (${line.note})`);
   });
-  b.divider(w);
+  b.divider(charWidth);
 
-  // ---------- Rincian tambahan opsional (Diskon/Ongkir/Lain-lain) — hanya
-  // dicetak kalau memang ada isinya. Kalau kosong, tidak mengganggu struk. ----------
-  if (receiptData.discount > 0) b.twoColumn('Diskon', '-' + rp(receiptData.discount), w);
-  if (receiptData.shipping > 0) b.twoColumn('Ongkos Kirim', '+' + rp(receiptData.shipping), w);
-  if (receiptData.other > 0) b.twoColumn(receiptData.otherLabel || 'Lain-lain', '+' + rp(receiptData.other), w);
+  // ---------- Ringkasan qty & rincian biaya (Sub Total dulu, baru komponen
+  // tambahan, baru TOTAL — supaya jelas dari mana angka TOTAL berasal, tidak
+  // langsung lompat dari daftar item ke satu angka besar) ----------
+  const totalQtyLabel = totalQty === Math.round(totalQty) ? String(Math.round(totalQty)) : String(totalQty);
+  b.twoColumn('Total Qty', totalQtyLabel, charWidth);
+  b.twoColumn('Sub Total', rp(receiptData.subtotal ?? receiptData.lines.reduce((s, l) => s + l.subtotal, 0)), charWidth);
+  if (receiptData.discount > 0) b.twoColumn('Diskon', '-' + rp(receiptData.discount), charWidth);
+  if (receiptData.tax > 0) b.twoColumn(`Pajak${receiptData.taxInclusive ? ' (incl.)' : ''}`, (receiptData.taxInclusive ? '' : '+') + rp(receiptData.tax), charWidth);
+  if (receiptData.tax2 > 0) b.twoColumn(`Pajak #2${receiptData.tax2Inclusive ? ' (incl.)' : ''}`, (receiptData.tax2Inclusive ? '' : '+') + rp(receiptData.tax2), charWidth);
+  if (receiptData.shipping > 0) b.twoColumn('Ongkos Kirim', '+' + rp(receiptData.shipping), charWidth);
+  if (receiptData.other > 0) b.twoColumn(receiptData.otherLabel || 'Lain-lain', '+' + rp(receiptData.other), charWidth);
+  b.divider(charWidth);
 
-  // ---------- TOTAL: label kiri, nominal kanan, lebih jelas (bold) ----------
   b.bold(true);
-  b.twoColumn('TOTAL', rp(receiptData.total), w);
+  b.twoColumn('TOTAL', rp(receiptData.total), charWidth);
   b.bold(false);
-  b.twoColumn('BAYAR', rp(receiptData.paid), w);
+  b.twoColumn('BAYAR', rp(receiptData.paid), charWidth);
   const remLabel = receiptData.remaining > 0 ? 'SISA' : 'KEMBALI';
-  b.twoColumn(remLabel, rp(Math.abs(receiptData.remaining)), w);
+  b.twoColumn(remLabel, rp(Math.abs(receiptData.remaining)), charWidth);
 
   if (receiptData.note) { b.feed(1); b.line('Catatan: ' + receiptData.note); }
 

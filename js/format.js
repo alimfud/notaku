@@ -99,27 +99,12 @@ export function toWhatsAppNumber(phone) {
 }
 
 /**
- * Siapkan catatan kaki struk:
- * 1. Kalau ada token [printed_datetime] yang diketik manual, token itu diganti
- *    dengan tanggal & jam TERAKHIR NOTA DIPERBARUI (bukan waktu mencetak) —
- *    begitu ada penambahan pembayaran atau nota diedit, tanggal/jam ini ikut
- *    ter-update, TAPI nomor invoice tetap seperti semula.
- * 2. Sesuai permintaan, tanggal/jam cetak/update sekarang ditampilkan
- *    OTOMATIS & PERMANEN — user tidak perlu lagi mengetik token apa pun.
- *    Jadi kalau catatan kaki belum memuat token tersebut, baris tanggal/jam
- *    otomatis ditambahkan di bawahnya. Ini tetap aman untuk catatan kaki yang
- *    sudah pakai token manual (tidak dobel).
+ * Ganti token [printed_datetime] pada catatan kaki struk dengan tanggal & jam
+ * TERAKHIR NOTA DIPERBARUI (bukan waktu mencetak) — begitu ada penambahan
+ * pembayaran atau nota diedit, tanggal/jam ini ikut ter-update, TAPI nomor
+ * invoice tetap seperti semula (tidak pernah berubah setelah dibuat).
  */
 export function resolveFooterNote(footerNote, updatedAtIso) {
-  const stamp = fullDateTimeLabel(updatedAtIso);
-  const base = (footerNote || '').trim();
-  const hasToken = /\[printed_datetime\]/i.test(base);
-
-  let resolved = base.replace(/\[printed_datetime\]/gi, stamp);
-
-  // Token manual tidak ada (atau jadi kosong) → tambahkan stempel otomatis.
-  if (!hasToken && stamp) {
-    resolved = resolved ? `${resolved}\n${stamp}` : stamp;
-  }
-  return resolved;
+  if (!footerNote) return '';
+  return footerNote.replace(/\[printed_datetime\]/gi, fullDateTimeLabel(updatedAtIso));
 }

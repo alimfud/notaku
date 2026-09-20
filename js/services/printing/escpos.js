@@ -12,41 +12,6 @@
 const ESC = 0x1b;
 const GS = 0x1d;
 
-function repeatChar(ch, n) {
-  return n > 0 ? ch.repeat(n) : '';
-}
-
-/**
- * Susun satu baris teks dari beberapa kolom supaya TOTAL panjangnya selalu
- * <= charWidth (lebar kolom printer yang sebenarnya). Ini inti perbaikan
- * "dynamic printable width": tidak ada lagi spasi manual yang bisa membuat
- * teks melebihi lebar kertas lalu wrap ke baris berikutnya.
- *
- * cols diurutkan berdasarkan PRIORITAS potong: kolom BELAKANG (kanan) paling
- * dipertahankan, kolom depan dipotong lebih dulu kalau ruang tidak cukup.
- * Pemisah antar kolom memakai satu spasi.
- */
-function composeRow(cols, charWidth) {
-  const total = Math.max(8, charWidth | 0);
-  const items = cols.map((c) => ({ text: String(c.text ?? '') }));
-  // Ruang untuk teks + pemisah 1 spasi antar kolom.
-  let available = total - (items.length - 1);
-  if (available < 1) available = 1;
-
-  // Potong dari kolom paling depan (prioritas paling rendah) sampai muat.
-  for (let i = 0; i < items.length; i++) {
-    const need = items.reduce((s, it) => s + it.text.length, 0);
-    if (need <= available) break;
-    const cut = need - available;
-    const t = items[i].text;
-    items[i].text = t.slice(0, Math.max(0, t.length - cut));
-  }
-
-  let line = items.map((it) => it.text).join(' ').trimEnd();
-  if (line.length > total) line = line.slice(0, total);
-  return line;
-}
-
 export class EscPosBuilder {
   constructor() {
     this.bytes = [];
@@ -97,28 +62,13 @@ export class EscPosBuilder {
   }
 
   divider(charWidth = 32, ch = '-') {
-    return this.line(ch.repeat(Math.max(8, charWidth)));
+    return this.line(ch.repeat(charWidth));
   }
 
-  /**
-   * Kolom kiri-kanan (dipakai untuk baris "Label ..... Nilai").
-   * Lebar mengikuti `charWidth` yang sebenarnya (dynamic printable width):
-   * 32 utk 58mm, 48 utk 80mm, dst — BUKAN spasi manual yang ditebak-tebak.
-   * Kalau isi terlalu panjang, teks dipotong agar TIDAK PERNAH turun ke baris
-   * berikutnya secara tidak semestinya (kolom kanan dipertahankan).
-   */
+  /** Kolom kiri-kanan sederhana (dipakai untuk baris "Label ..... Nilai"). */
   twoColumn(left, right, charWidth = 32) {
-    return this.line(composeRow([{ text: left }, { text: right }], charWidth));
-  }
-
-  /**
-   * Tiga kolom sebaris: kiri (mis. tanggal), tengah (mis. jam), kanan (mis.
-   * nomor invoice). Dipakai supaya Tanggal • Jam • No. Nota SELALU sejajar di
-   * satu baris dan tidak ada yang bergeser/drop ke baris bawah. Kolom kanan
-   * (nomor invoice) paling diprioritaskan, disusul kiri, lalu tengah.
-   */
-  threeColumn(left, center, right, charWidth = 32) {
-    return this.line(composeRow([{ text: left }, { text: center }, { text: right }], charWidth));
+    const space = Math.max(1, charWidth - left.length - right.length);
+    return this.line(left + ' '.repeat(space) + right);
   }
 
   cut() {

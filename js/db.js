@@ -171,24 +171,10 @@ export async function dumpAll() {
   return out;
 }
 
-/**
- * Timpa seluruh database dari hasil dumpAll() sebelumnya (dipakai restore).
- * PENTING: clear + tulis dijalankan dalam SATU transaction (all-or-nothing),
- * supaya kalau proses terputus di tengah, data lama tidak berakhir terhapus
- * setengah jalan — restore gagal = database tetap seperti semula.
- */
+/** Timpa seluruh database dari hasil dumpAll() sebelumnya (dipakai restore). */
 export async function restoreAll(dump) {
-  const stores = ['products', 'customers', 'sales', 'saleItems', 'payments', 'settings'];
-  const t = await tx(stores, 'readwrite');
-  return new Promise((resolve, reject) => {
-    for (const store of stores) {
-      const os = t.objectStore(store);
-      os.clear();
-      const values = Array.isArray(dump?.[store]) ? dump[store] : [];
-      for (const v of values) os.put(v);
-    }
-    t.oncomplete = () => resolve();
-    t.onerror = () => reject(t.error);
-    t.onabort = () => reject(t.error || new Error('Restore dibatalkan oleh storage.'));
-  });
+  await clearAll();
+  const storeToValues = {};
+  for (const key of Object.keys(dump)) storeToValues[key] = dump[key];
+  await bulkPutMulti(storeToValues);
 }

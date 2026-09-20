@@ -1,20 +1,25 @@
-// sw.js — ONLINE-FIRST + OFFLINE FALLBACK.
+// sw.js — cache-first untuk app shell, supaya:
+// 1. Kunjungan kedua dst SANGAT cepat (semua file JS/CSS diambil dari cache lokal, bukan jaringan)
+// 2. APLIKASI TETAP BISA DIBUKA & DIPAKAI PENUH SAAT OFFLINE, asalkan sudah
+//    pernah dibuka sekali sebelumnya dalam keadaan online (mis. setelah
+//    di-install). Ini prioritas penting: kalau koneksi internet toko
+//    bermasalah, aplikasi nota TETAP JALAN karena semua kode (JS/CSS) dan
+//    data (IndexedDB, di luar service worker) ada di HP, bukan di server.
+// 3. Auto-update: begitu file di GitHub berubah dan CACHE_VERSION dinaikkan,
+//    versi baru diunduh di background lalu dipakai saat aplikasi dibuka ulang.
 //
-// Prinsip (sesuai permintaan):
-//   - Saat ONLINE  : Server → ambil versi terbaru → simpan ke cache → pakai
-//                    versi terbaru. Jadi user SELALU otomatis ikut kode
-//                    terbaru dari server, tanpa perlu Clear Cache/Storage
-//                    manual setelah ada perubahan kode.
-//   - Saat OFFLINE : pakai cache terakhir → aplikasi tetap berjalan penuh.
+// SEMUA file inti (setiap halaman, setiap service, bukan cuma app.js) sengaja
+// di-precache di sini (bukan dibiarkan ke-cache "nanti kalau pernah dibuka"),
+// supaya offline pertama kali pun semua menu (Nota/Produk/Pelanggan/Laporan/
+// Setting) langsung bisa dibuka, bukan cuma halaman yang kebetulan pernah
+// dikunjungi.
 //
-// Kenapa dulu bermasalah: strategi lama murni CACHE-FIRST, sehingga file yang
-// sudah ter-cache tidak pernah diganti selama versi cache belum dinaikkan —
-// user harus Clear Cache manual. Sekarang aset inti memakai NETWORK-FIRST.
-//
-// Semua file inti (setiap halaman & service) sengaja di-precache supaya
-// offline pertama kali pun semua menu langsung bisa dibuka.
+// Yang TIDAK bisa dipakai offline (butuh koneksi karena filenya besar & dari
+// CDN eksternal): impor database lama (perlu sql.js) dan bagikan-sebagai-
+// gambar (perlu html2canvas). Fitur inti (lihat/buat/ubah nota, produk,
+// pelanggan, laporan, cetak, backup lokal) semuanya tetap jalan offline.
 
-const CACHE_VERSION = 'notaku-web-v1.5.0'; // naikkan setiap rilis
+const CACHE_VERSION = 'notaku-web-v1.4.1'; // naikkan setiap rilis
 
 const CORE_ASSETS = [
   './',
@@ -62,7 +67,8 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION).then((cache) =>
       // addAll gagal semua kalau SATU URL gagal — pakai per-file supaya satu
-      // aset yang gagal tidak menggagalkan seluruh precache.
+      // aset yang gagal (mis. karena path relatif beda saat dev lokal) tidak
+      // menggagalkan seluruh precache.
       Promise.allSettled(CORE_ASSETS.map((url) => cache.add(url)))
     )
   );
@@ -75,28 +81,6 @@ self.addEventListener('activate', (event) => {
   );
   self.clients.claim();
 });
-
-/** Ambil dari jaringan dulu; kalau berhasil, perbarui cache; kalau gagal, pakai cache. */
-async function networkFirst(request) {
-  try {
-    const res = await fetch(request);
-    if (res && res.ok) {
-      const copy = res.clone();
-      caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy)).catch(() => {});
-    }
-    return res;
-  } catch (e) {
-    const cached = await caches.match(request);
-    if (cached) return cached;
-    // Fallback khusus navigasi: sajikan index.html dari cache supaya SPA tetap
-    // terbuka saat offline.
-    if (request.mode === 'navigate') {
-      const shell = await caches.match('./index.html');
-      if (shell) return shell;
-    }
-    return new Response('', { status: 504, statusText: 'Offline dan belum pernah di-cache' });
-  }
-}
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
@@ -115,11 +99,20 @@ self.addEventListener('fetch', (event) => {
 
   // version.json HARUS SELALU diambil langsung dari jaringan — tujuannya
   // memang mengecek versi TERBARU, jadi tidak boleh pernah dilayani dari
-  // cache. Selalu mengembalikan Response valid (walau offline).
+  // cache (baik cache SW maupun cache HTTP browser). Sebelumnya file ini
+  // dilayani lewat jalur cache-first umum di bawah, dan karena URL-nya
+  // diberi query string pembeda (?t=...) supaya tidak kena cache, itu
+  // JUSTRU membuat servicenya SELALU cache-miss di sini — begitu fetch
+  // jaringannya gagal karena sebab apa pun (walau cuma hiccup sesaat),
+  // .catch() jatuh ke `cached` yang undefined, dan respondWith(undefined)
+  // dianggap error KERAS oleh browser ("Failed to fetch") walau internet
+  // sebenarnya menyala. Ini bug yang sudah diperbaiki di sini: sekarang
+  // request ke version.json ditangani terpisah, tidak lewat cache lookup
+  // sama sekali, dan SELALU mengembalikan Response yang valid.
   if (url.pathname.endsWith('version.json')) {
     event.respondWith(
       fetch(event.request, { cache: 'no-store' })
-        .catch(() => caches.match('./version.json'))
+        .catch(() => caches.match('./version.json')) // fallback offline: versi lama yang sempat ter-precache
         .then((res) => res || new Response(JSON.stringify({ error: 'offline' }), {
           status: 503,
           headers: { 'Content-Type': 'application/json' },
@@ -128,8 +121,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Aset inti (HTML/CSS/JS/dll): NETWORK-FIRST + fallback cache.
-  // Ini kunci "user tidak perlu Clear Cache manual" — begitu kode di server
-  // berubah, kunjungan berikutnya otomatis memakai versi terbaru.
-  event.respondWith(networkFirst(event.request));
+  // Aset lain: cache-first (kecepatan transisi), lalu perbarui cache di
+  // background kalau memang perlu ambil dari jaringan. PENTING: jalur ini
+  // sekarang dijamin SELALU mengembalikan sebuah Response yang valid —
+  // tidak pernah `undefined` — supaya tidak mengulang bug yang sama.
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(event.request)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, copy));
+          return res;
+        })
+        .catch(() => new Response('', { status: 504, statusText: 'Offline dan belum pernah di-cache' }));
+    })
+  );
 });

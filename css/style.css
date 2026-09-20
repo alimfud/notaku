@@ -169,23 +169,6 @@ body{
 }
 .field input:focus,.field textarea:focus,.field select:focus{outline:none;}
 .field textarea{resize:vertical;min-height:44px;}
-/* Compact customer form (Nama / Alamat / Telepon) — satu grid responsive,
-   hemat ruang: nama lebar penuh, alamat & telepon berdampingan (turun jadi
-   satu kolom di layar sangat sempit). */
-.cust-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.cust-cell{border:1px solid var(--outline);border-radius:10px;padding:8px 10px;}
-.cust-cell--name{grid-column:1 / -1;}
-.cust-cell label{display:block;font-size:10.5px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:.03em;}
-.cust-cell input{width:100%;border:none;font-size:15px;padding:2px 0;font-family:inherit;color:var(--ink);background:transparent;}
-.cust-cell input:focus{outline:none;}
-@media (max-width:340px){.cust-grid{grid-template-columns:1fr;}}
-
-/* Baris input tambahan (Diskon) — mode Rp/% + nominal, tidak saling menimpa. */
-.adj-row{padding:10px 16px;display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--outline);}
-.adj-row .adj-mode{flex:0 0 auto;width:auto;min-width:64px;border:1.4px solid var(--outline);border-radius:8px;background:var(--surface-dim);font-size:14px;padding:8px 6px;font-family:inherit;color:var(--ink);}
-.adj-row .adj-input{flex:1 1 auto;min-width:0;border:1.4px solid var(--outline);border-radius:8px;padding:8px 10px;font-size:15px;font-family:inherit;color:var(--ink);background:transparent;}
-.adj-row .adj-input:focus{outline:none;border-color:var(--ink);}
-
 .field-radio{padding:10px 16px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;}
 .field-radio input{width:auto;flex-shrink:0;margin-top:3px;}
 .field-radio .radio-title{font-size:14.5px;font-weight:600;}
