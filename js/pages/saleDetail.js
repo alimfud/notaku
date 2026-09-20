@@ -60,8 +60,10 @@ async function draw(root, saleId) {
         <div class="receipt-meta">
           <span>${dateShort(sale.saleDate)}</span><span>${sale.saleTime}</span><span>${escapeHtml(sale.invoiceNumber)}</span>
         </div>
-        <div class="receipt-customer">${escapeHtml(sale.customerName)}</div>
-        ${addressPhoneLine ? `<div class="row-meta">${escapeHtml(addressPhoneLine)}</div>` : ''}
+        <div class="receipt-customer" style="
+    text-align: center;">${escapeHtml(sale.customerName)}</div>
+        ${addressPhoneLine ? `<div class="row-meta" style="
+    text-align: center;">${escapeHtml(addressPhoneLine)}</div>` : ''}
         ${items.map((it) => `
           <div class="receipt-item">
             <div class="ri-top"><span>${escapeHtml(it.productName)}</span><span>${rupiah(it.subtotal)}</span></div>
@@ -102,7 +104,7 @@ async function draw(root, saleId) {
           </button>`).join('')}
       </div>` : ''}
     <div style="padding:20px 16px;">
-      <button id="toggleCompletedBtn" class="btn ${sale.completed ? 'secondary' : ''}" style="margin:0;">${sale.completed ? '↺ Tandai Belum Selesai' : '✓ Tandai Selesai'}</button>
+      <button id="toggleCompletedBtn" class="btn ${sale.completed ? 'secondary' : ''}" style="margin:0; justify-self: center;">${sale.completed ? '↺ Tandai Belum Selesai' : '✓ Tandai Selesai'}</button>
       <button id="addPaymentBtn" class="btn secondary" style="margin-top:10px;">+ Tambah Pembayaran</button>
       <button id="printBtn" class="btn secondary" style="margin-top:10px;">Bagikan Nota</button>
     </div>
