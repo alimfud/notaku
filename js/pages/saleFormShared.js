@@ -64,8 +64,8 @@ function draw(root, mode, state, onSave) {
 
     ${mode === 'edit' ? `
     <div class="field" style="padding:12px 16px 0;display:flex;gap:12px;">
-      <div style="flex:1;"><label>Tanggal Pengambilan</label><input id="fDate" type="date" value="${state.saleDate}"></div>
-      <div style="flex:1;"><label>Jam Pengambilan</label><input id="fTime" type="time" value="${state.saleTime}"></div>
+      <div style="flex:1;"><label>Tanggal Transaksi</label><input id="fDate" type="date" value="${state.saleDate}"></div>
+      <div style="flex:1;"><label>Jam</label><input id="fTime" type="time" value="${state.saleTime}"></div>
     </div>` : ''}
 
     <div style="padding:14px 16px 0;display:flex;gap:8px;align-items:stretch;">
