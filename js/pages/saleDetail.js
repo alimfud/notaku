@@ -49,7 +49,7 @@ async function draw(root, saleId) {
       </div>` : ''}
     <div style="padding:16px;">
       <div class="receipt" id="receiptCapture" style="border:1px solid var(--outline);border-radius:16px;">
-        ${settings.storeLogoData ? `<div style="text-align:center;"><img src="${settings.storeLogoData}" alt="Logo toko" style="max-width:120px;max-height:72px;object-fit:contain;"></div>` : ''}
+        ${settings.storeLogoData ? `<div style="text-align:center;"><img src="${settings.storeLogoData}" alt="Logo toko" style="max-width:100%;max-height:100%;object-fit:contain;"></div>` : ''}
         <div class="receipt-shop">${escapeHtml(settings.storeName)}</div>
         ${settings.storeAddress ? `<div class="receipt-addr">${escapeHtml(settings.storeAddress)}</div>` : ''}
         ${settings.storePhone ? `<div class="receipt-addr">${escapeHtml(settings.storePhone)}</div>` : ''}
