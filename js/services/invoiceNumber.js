@@ -35,8 +35,8 @@ async function generateDailySequence(settings, saleDate) {
   const shouldReset = settings.invoiceLastResetDate !== todayKey;
   const nextNumber = shouldReset ? 1 : settings.invoiceNextNumber;
 
-  const counterPart = String(nextNumber).padStart(settings.invoiceDigitCount || 2, '0');
-  const invoiceNumber = `${settings.invoicePrefix}${yy}${mm}${dd}${counterPart}`;
+  const counterPart = String(nextNumber).padStart(settings.invoiceDigitCount || 1, '0');
+  const invoiceNumber = `${settings.invoicePrefix}${yy}${mm}${counterPart}`;
 
   await saveSettings({
     invoiceNextNumber: nextNumber + 1,
