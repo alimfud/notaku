@@ -15,11 +15,6 @@ export async function render(root, params) {
   await draw(root, saleId);
 }
 
-function itemLineLabel(qty, unit, price) {
-  // Format sesuai permintaan: "1 pcs x @ Rp10.000,-" (bukan "1 x Rp10.000").
-  return `${qtyLabel(qty)} ${unit || ''} x @ ${rupiah(price)},-`.replace(/\s+x/, ' x');
-}
-
 async function draw(root, saleId) {
   const summary = await getSaleSummary(saleId);
   if (!summary) {
@@ -31,7 +26,7 @@ async function draw(root, saleId) {
   const settings = await getSettings();
   const { sale, paidAmount, remaining, payments, displayStatus } = summary;
   const showQris = settings.qrisEnabled && settings.qrisImageData && displayStatus !== 'PAID' && displayStatus !== 'OVERPAID';
-  const phoneDisplay = sale.customerPhone ? (settings.maskCustomerPhone ? maskPhone(sale.customerPhone) : sale.customerPhone) : '';
+  const phoneDisplay = displayPhone(sale.customerPhone, settings);
 
   setTopbarActions([
     { icon: 'edit', title: 'Ubah Nota', onClick: () => navigate(`sale/${saleId}/edit`) },
@@ -39,7 +34,7 @@ async function draw(root, saleId) {
     { icon: 'delete', title: 'Hapus', onClick: () => handleDelete(root, saleId) },
   ]);
 
-  const footerResolved = resolveFooterNote(settings.footerNote, sale.updatedAt);
+  const footerResolved = resolveFooterNote(settings.footerNote);
   const addressPhoneLine = [sale.customerAddress, phoneDisplay].filter(Boolean).join(' • ');
 
   root.innerHTML = `
@@ -54,6 +49,7 @@ async function draw(root, saleId) {
       </div>` : ''}
     <div style="padding:16px;">
       <div class="receipt" id="receiptCapture" style="border:1px solid var(--outline);border-radius:16px;">
+        ${settings.storeLogoData ? `<div style="text-align:center;"><img src="${settings.storeLogoData}" alt="Logo toko" style="max-width:120px;max-height:72px;object-fit:contain;"></div>` : ''}
         <div class="receipt-shop">${escapeHtml(settings.storeName)}</div>
         ${settings.storeAddress ? `<div class="receipt-addr">${escapeHtml(settings.storeAddress)}</div>` : ''}
         ${settings.storePhone ? `<div class="receipt-addr">${escapeHtml(settings.storePhone)}</div>` : ''}
@@ -65,13 +61,11 @@ async function draw(root, saleId) {
         ${items.map((it) => `
           <div class="receipt-item">
             <div class="ri-top"><span>${escapeHtml(it.productName)}</span><span>${rupiah(it.subtotal)}</span></div>
-            <div class="ri-bottom"><span>${itemLineLabel(it.qty, it.unit, it.price)}</span></div>
+            <div class="ri-bottom"><span class="ri-qty">${qtyLabel(it.qty)} ${escapeHtml(it.unit || '')} x</span><span class="ri-price">@ ${rupiah(it.price)},-</span></div>
             ${it.note ? `<div class="ri-bottom" style="font-style:italic;">${escapeHtml(it.note)}</div>` : ''}
           </div>`).join('')}
         <div class="receipt-totals">
           ${sale.discountAmount > 0 ? `<div class="tr"><span>Diskon</span><span>-${rupiah(sale.discountAmount)}</span></div>` : ''}
-          ${sale.taxAmount > 0 ? `<div class="tr"><span>Pajak${sale.adjustments?.tax?.inclusive ? ' (termasuk harga)' : ''}</span><span>${sale.adjustments?.tax?.inclusive ? '' : '+'}${rupiah(sale.taxAmount)}</span></div>` : ''}
-          ${sale.tax2Amount > 0 ? `<div class="tr"><span>Pajak #2${sale.adjustments?.tax2?.inclusive ? ' (termasuk harga)' : ''}</span><span>${sale.adjustments?.tax2?.inclusive ? '' : '+'}${rupiah(sale.tax2Amount)}</span></div>` : ''}
           ${sale.shippingAmount > 0 ? `<div class="tr"><span>Ongkos Kirim</span><span>+${rupiah(sale.shippingAmount)}</span></div>` : ''}
           ${sale.otherAmount > 0 ? `<div class="tr"><span>${escapeHtml(sale.otherLabel || 'Lain-lain')}</span><span>+${rupiah(sale.otherAmount)}</span></div>` : ''}
           <div class="tr grand"><span>TOTAL</span><span>${rupiah(sale.total)}</span></div>
@@ -102,7 +96,7 @@ async function draw(root, saleId) {
           </button>`).join('')}
       </div>` : ''}
     <div style="padding:20px 16px;">
-      <button id="toggleCompletedBtn" class="btn ${sale.completed ? 'secondary' : ''}" style="margin:0;">${sale.completed ? '↺ Tandai Belum Selesai' : '✓ Tandai Selesai'}</button>
+      <button id="toggleCompletedBtn" class="btn ${sale.completed ? 'secondary' : ''}" style="margin:0; justify-self: center;">${sale.completed ? '↺ Tandai Belum Selesai' : '✓ Tandai Selesai'}</button>
       <button id="addPaymentBtn" class="btn secondary" style="margin-top:10px;">+ Tambah Pembayaran</button>
       <button id="printBtn" class="btn secondary" style="margin-top:10px;">Bagikan Nota</button>
     </div>
@@ -234,7 +228,7 @@ function buildReceiptDataForShare(sale, items, settings, paidAmount, remaining) 
     total: sale.total,
     paid: paidAmount,
     remaining,
-    footerNote: resolveFooterNote(settings.footerNote, sale.updatedAt),
+    footerNote: resolveFooterNote(settings.footerNote),
   };
 }
 
@@ -261,7 +255,10 @@ async function showShareSheet(root, sale, items, settings, paidAmount, remaining
     body.querySelector('#doPrint').onclick = () => close('print');
   });
 
-  if (result === 'print') { printReceipt(); return; }
+  if (result === 'print') {
+    if (!settings.printPreview || await showPrintPreview(settings.paperSize)) printReceipt();
+    return;
+  }
   if (result === 'bluetooth') { await handleBluetoothPrint(sale, items, settings, paidAmount, remaining); return; }
 
   if (result === 'chatwa') {
@@ -288,20 +285,33 @@ async function showShareSheet(root, sale, items, settings, paidAmount, remaining
   }
 }
 
+/** Pratinjau sebelum cetak memakai salinan struk yang sama persis dengan nota. */
+async function showPrintPreview(paperSize) {
+  const labels = { THERMAL_58MM: 'Thermal 58mm', THERMAL_80MM: 'Thermal 80mm', PDF_A4: 'A4' };
+  const result = await openSheet((body, close) => {
+    body.innerHTML = `<div class="sheet-title">Preview Cetak</div><div class="print-preview-label">${labels[paperSize] || 'Thermal 58mm'}</div><div class="print-preview-wrap"></div><div style="display:flex;gap:10px;padding:16px;"><button class="btn secondary" id="cancelPreview" style="margin:0;flex:1;">Kembali</button><button class="btn" id="confirmPrint" style="margin:0;flex:1;">Cetak</button></div>`;
+    const receipt = document.getElementById('receiptCapture').cloneNode(true);
+    receipt.removeAttribute('id');
+    receipt.classList.add('print-preview-receipt', `paper-${paperSize}`);
+    body.querySelector('.print-preview-wrap').appendChild(receipt);
+    body.querySelector('#cancelPreview').onclick = () => close(false);
+    body.querySelector('#confirmPrint').onclick = () => close(true);
+  });
+  return result === true;
+}
+
 async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining) {
   const bt = await import('../services/printing/bluetoothPrinter.js');
-  const phoneDisplay = sale.customerPhone ? (settings.maskCustomerPhone ? maskPhone(sale.customerPhone) : sale.customerPhone) : '';
+  const phoneDisplay = displayPhone(sale.customerPhone, settings);
   const receiptData = {
-    storeName: settings.storeName, storeAddress: settings.storeAddress, storePhone: settings.storePhone,
+    storeName: settings.storeName, storeAddress: settings.storeAddress, storePhone: settings.storePhone, logoData: settings.storeLogoData,
     invoiceNumber: sale.invoiceNumber, dateLabel: dateShort(sale.saleDate), timeLabel: sale.saleTime,
     customerName: sale.customerName, customerAddress: sale.customerAddress, customerPhoneDisplay: phoneDisplay,
     lines: items.map((i) => ({ name: i.productName, qty: i.qty, unit: i.unit, price: i.price, subtotal: i.subtotal, note: i.note })),
     subtotal: sale.subtotal, discount: sale.discountAmount,
-    tax: sale.taxAmount, taxInclusive: sale.adjustments?.tax?.inclusive,
-    tax2: sale.tax2Amount, tax2Inclusive: sale.adjustments?.tax2?.inclusive,
     shipping: sale.shippingAmount, other: sale.otherAmount, otherLabel: sale.otherLabel,
     total: sale.total, paid: paidAmount, remaining, note: sale.note,
-    footerNote: resolveFooterNote(settings.footerNote, sale.updatedAt),
+    footerNote: resolveFooterNote(settings.footerNote),
   };
 
   document.getElementById('loadingOverlay').classList.remove('hidden');
@@ -328,4 +338,10 @@ async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining
   } finally {
     document.getElementById('loadingOverlay').classList.add('hidden');
   }
+}
+
+function displayPhone(phone, settings) {
+  if (!phone || settings.customerPhoneDisplay === 'HIDDEN') return '';
+  if (settings.customerPhoneDisplay === 'FULL' || (!settings.customerPhoneDisplay && !settings.maskCustomerPhone)) return phone;
+  return maskPhone(phone);
 }

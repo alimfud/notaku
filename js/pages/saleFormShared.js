@@ -89,7 +89,7 @@ function draw(root, mode, state, onSave) {
     </div>
     <div id="linesList"></div>
     <div style="padding:14px 16px;">
-      <button id="adjustmentsBtn" class="btn secondary" style="margin:0;">Atur Tambahan (Diskon, Pajak, Ongkir, dll)</button>
+      <button id="adjustmentsBtn" class="btn secondary" style="margin:0;">Atur Tambahan (Diskon, Ongkir, Lain-lain)</button>
     </div>
     <div style="height:230px;"></div>
 
@@ -359,33 +359,15 @@ async function editAdjustments(root, mode, state, onSave) {
       <div class="sheet-title">Tambahan</div>
 
       <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 0;">
-        <span style="font-weight:700;font-size:14px;">Diskon</span>
+        <span style="font-weight:700;font-size:14px;">Diskon (opsional)</span>
         <input type="checkbox" id="tDiscOn" ${a.discount.enabled ? 'checked' : ''}>
       </label>
       <div class="field" style="display:flex;gap:8px;align-items:center;">
-        <select id="tDiscMode" style="border:none;font-size:14px;background:transparent;">
+        <select id="tDiscMode" style="width:54px;flex:0 0 54px;border:none;font-size:14px;background:transparent;">
           <option value="amount" ${a.discount.mode === 'amount' ? 'selected' : ''}>Rp</option>
           <option value="percent" ${a.discount.mode === 'percent' ? 'selected' : ''}>%</option>
         </select>
-        <input id="tDiscValue" type="number" inputmode="numeric" value="${a.discount.value || ''}" placeholder="0" style="flex:1;">
-      </div>
-
-      <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 0;">
-        <span style="font-weight:700;font-size:14px;">Pajak</span>
-        <input type="checkbox" id="tTaxOn" ${a.tax.enabled ? 'checked' : ''}>
-      </label>
-      <div class="field" style="display:flex;gap:10px;align-items:center;">
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;"><input type="checkbox" id="tTaxIncl" ${a.tax.inclusive ? 'checked' : ''}> Inclusive</label>
-        <input id="tTaxPercent" type="number" inputmode="numeric" value="${a.tax.percent || ''}" placeholder="0" style="flex:1;"> <span>%</span>
-      </div>
-
-      <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 0;">
-        <span style="font-weight:700;font-size:14px;">Pajak #2</span>
-        <input type="checkbox" id="tTax2On" ${a.tax2.enabled ? 'checked' : ''}>
-      </label>
-      <div class="field" style="display:flex;gap:10px;align-items:center;">
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;"><input type="checkbox" id="tTax2Incl" ${a.tax2.inclusive ? 'checked' : ''}> Inclusive</label>
-        <input id="tTax2Percent" type="number" inputmode="numeric" value="${a.tax2.percent || ''}" placeholder="0" style="flex:1;"> <span>%</span>
+        <input id="tDiscValue" type="tel" inputmode="numeric" value="${a.discount.value || ''}" placeholder="Masukkan nominal diskon" style="width:auto;min-width:0;flex:1;">
       </div>
 
       <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 0;">
@@ -411,11 +393,29 @@ async function editAdjustments(root, mode, state, onSave) {
 
       <button class="btn" id="tApply">Terapkan</button>
     `;
+    const discValue = body.querySelector('#tDiscValue');
+    const discOn = body.querySelector('#tDiscOn');
+    const discMode = body.querySelector('#tDiscMode');
+    // Terima input kasir yang lazim: 10000, 10.000, Rp 10.000, atau 10,000.
+    // Ketika nominal diisi, aktifkan checkbox agar nilai tidak terabaikan.
+    const parseDiscount = () => {
+      if (discMode.value === 'percent') return Number(discValue.value.replace(',', '.')) || 0;
+      return Number(discValue.value.replace(/[^0-9]/g, '')) || 0;
+    };
+    discValue.oninput = () => { if (parseDiscount() > 0) discOn.checked = true; };
+    discValue.onblur = () => {
+      const value = parseDiscount();
+      if (discMode.value === 'amount' && value > 0) discValue.value = value.toLocaleString('id-ID');
+    };
+    discMode.onchange = () => {
+      const value = parseDiscount();
+      discValue.value = value || '';
+      discValue.placeholder = discMode.value === 'amount' ? 'Nominal diskon' : 'Persentase diskon';
+    };
     body.querySelector('#tApply').onclick = () => {
+      const discountValue = parseDiscount();
       state.adjustments = {
-        discount: { enabled: body.querySelector('#tDiscOn').checked, mode: body.querySelector('#tDiscMode').value, value: Number(body.querySelector('#tDiscValue').value) || 0 },
-        tax: { enabled: body.querySelector('#tTaxOn').checked, inclusive: body.querySelector('#tTaxIncl').checked, percent: Number(body.querySelector('#tTaxPercent').value) || 0 },
-        tax2: { enabled: body.querySelector('#tTax2On').checked, inclusive: body.querySelector('#tTax2Incl').checked, percent: Number(body.querySelector('#tTax2Percent').value) || 0 },
+        discount: { enabled: discOn.checked, mode: discMode.value, value: discountValue },
         shipping: { enabled: body.querySelector('#tShipOn').checked, amount: Number(body.querySelector('#tShipAmount').value) || 0 },
         other: { enabled: body.querySelector('#tOtherOn').checked, label: body.querySelector('#tOtherLabel').value.trim(), amount: Number(body.querySelector('#tOtherAmount').value) || 0 },
       };

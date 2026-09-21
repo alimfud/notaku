@@ -8,6 +8,7 @@ const DEFAULTS = {
   storeAddress: '',
   storePhone: '',
   footerNote: 'Terima kasih atas kunjungan Anda.',
+  storeLogoData: '',
   invoicePrefix: 'INV #',
   invoiceDigitCount: 2,
   invoiceNextNumber: 1,
@@ -15,6 +16,7 @@ const DEFAULTS = {
   invoiceLastResetDate: '',
   invoiceNumberFormat: 'DAILY_SEQUENCE', // 'DAILY_SEQUENCE' (prefix+YYMMDD+urutan harian) | 'SEQUENTIAL' (prefix+nomor urut biasa)
   paperSize: 'THERMAL_58MM', // THERMAL_58MM | THERMAL_80MM | PDF_A4
+  printPreview: false,       // tampilkan pratinjau aplikasi sebelum window.print()
 
   // Printer Bluetooth (BLE)
   btPrinterId: '',          // id perangkat Web Bluetooth yang terakhir tersambung (untuk sambung ulang otomatis)
@@ -27,6 +29,7 @@ const DEFAULTS = {
 
   // Privasi data pelanggan di struk
   maskCustomerPhone: true,  // kalau true, nomor HP pelanggan di struk cuma tampil 3 digit terakhir
+  customerPhoneDisplay: 'LAST3', // FULL | LAST3 | HIDDEN
 
   // Auto backup ke Google Drive
   autoBackup: {

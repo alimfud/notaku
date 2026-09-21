@@ -119,7 +119,7 @@ body{
 }
 .row-body{flex:1;min-width:0;}
 .row-title{font-size:15.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.row-meta{font-size:12.5px;color:var(--muted);margin-top:2px;}
+.row-meta{font-size:12.5px;color:var(--muted);margin-top:2px; text-align: center;}
 .row-trailing{text-align:right;flex-shrink:0;}
 .row-money{font-size:15px;font-weight:700;color:var(--ink);}
 .row-status{font-size:10.5px;font-weight:700;margin-top:2px;letter-spacing:.02em;}
@@ -200,10 +200,14 @@ body{
 .receipt-shop{text-align:center;font-size:18px;font-weight:800;}
 .receipt-addr{text-align:center;font-size:12.5px;color:var(--ink-soft);margin-top:3px;line-height:1.4;}
 .receipt-meta{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);padding:12px 0;border-top:1px dashed var(--outline);border-bottom:1px dashed var(--outline);margin-top:14px;}
-.receipt-customer{font-size:15.5px;font-weight:700;padding:12px 0 4px;}
+.receipt-customer{font-size:15.5px;font-weight:700;padding:12px 0 4px; text-align: center;}
 .receipt-item{padding:8px 0;border-bottom:1px solid var(--outline);}
 .ri-top{display:flex;justify-content:space-between;font-size:14.5px;font-weight:600;}
-.ri-bottom{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-soft);margin-top:2px;}
+.ri-bottom{display:flex;justify-content:center;position:relative;font-size:13px;color:var(--ink-soft);margin-top:2px;min-height:18px;}
+.ri-bottom .ri-qty{position:absolute;left:0;}
+/* Kolom @ harga berada di tengah, tetapi isi angka rata kanan pada lebar
+   tetap. Karena itu seluruh "@ Rp...,-" berakhir sejajar antar-item. */
+.ri-bottom .ri-price{position:absolute;left:35%;transform:translateX(-50%);width:min(170px,65%);text-align:right;white-space:nowrap;}
 .receipt-totals{margin-top:6px;}
 .receipt-totals .tr{display:flex;justify-content:space-between;font-size:14px;padding:3px 0;}
 .receipt-totals .tr.grand{font-size:21px;font-weight:800;padding:7px 0;}
@@ -220,6 +224,12 @@ body{
 .sheet-handle{width:40px;height:4px;background:var(--outline);border-radius:4px;margin:12px auto;}
 .sheet-title{padding:0 20px 4px;font-size:18px;font-weight:800;}
 .sheet-body{padding:4px 0 20px;}
+.print-preview-label{text-align:center;font-size:12px;color:var(--muted);padding:4px 16px 12px;}
+.print-preview-wrap{padding:0 16px;max-height:55vh;overflow:auto;background:var(--surface-dim);}
+.print-preview-receipt{margin:0 auto;border:1px solid var(--outline);border-radius:0;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.print-preview-receipt.paper-THERMAL_58MM{width:58mm;max-width:100%;}
+.print-preview-receipt.paper-THERMAL_80MM{width:80mm;max-width:100%;}
+.print-preview-receipt.paper-PDF_A4{width:210mm;max-width:100%;}
 
 /* Dialog */
 .dialog-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:70;display:flex;align-items:center;justify-content:center;padding:24px;}

@@ -104,7 +104,10 @@ export function toWhatsAppNumber(phone) {
  * pembayaran atau nota diedit, tanggal/jam ini ikut ter-update, TAPI nomor
  * invoice tetap seperti semula (tidak pernah berubah setelah dibuat).
  */
-export function resolveFooterNote(footerNote, updatedAtIso) {
-  if (!footerNote) return '';
-  return footerNote.replace(/\[printed_datetime\]/gi, fullDateTimeLabel(updatedAtIso));
+export function resolveFooterNote(footerNote, printedAtIso = new Date().toISOString()) {
+  const stamp = fullDateTimeLabel(printedAtIso);
+  // Token lama tetap didukung; token yang benar sesuai dokumentasi adalah
+  // [print_datetime]. Bila token tidak ditulis, cap cetak tetap permanen ada.
+  const base = (footerNote || '').replace(/\[(?:printed_datetime|print_datetime)\]/gi, stamp).trim();
+  return base.includes(stamp) ? base : [base, stamp].filter(Boolean).join('\n');
 }

@@ -65,10 +65,20 @@ export class EscPosBuilder {
     return this.line(ch.repeat(charWidth));
   }
 
-  /** Kolom kiri-kanan sederhana (dipakai untuk baris "Label ..... Nilai"). */
+  /**
+   * Kolom kiri-kanan dengan posisi ESC/POS absolut, bukan padding spasi.
+   * Lebar ikut charWidth (32 untuk 58mm, 48 untuk 80mm), sehingga angka
+   * rata-kanan tetap benar pada font/printer yang berbeda.
+   */
   twoColumn(left, right, charWidth = 32) {
-    const space = Math.max(1, charWidth - left.length - right.length);
-    return this.line(left + ' '.repeat(space) + right);
+    const dotsPerChar = 12;
+    const printableDots = charWidth * dotsPerChar;
+    const rightDots = Math.min(printableDots - dotsPerChar, Math.max(0, String(right).length * dotsPerChar));
+    const x = Math.max(0, printableDots - rightDots);
+    this._append(this._text(String(left)));
+    this._append([ESC, 0x24, x & 0xff, (x >> 8) & 0xff]); // ESC $ nL nH
+    this._append(this._text(String(right)));
+    return this._append([0x0a]);
   }
 
   cut() {

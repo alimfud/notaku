@@ -7,6 +7,7 @@
 
 import * as db from '../db.js';
 import { APP_VERSION } from '../version.js';
+import { invalidateCache as invalidateSettingsCache } from './settingsService.js';
 
 export async function createBackupBlob() {
   const dump = await db.dumpAll();
@@ -48,5 +49,8 @@ export async function restoreFromFile(file) {
     throw new Error('File ini bukan file cadangan NotaKu yang valid.');
   }
   await db.restoreAll(payload.data);
+  // Settings dibaca dan di-cache oleh UI. Tanpa ini, Pull dari cloud dapat
+  // memakai konfigurasi lama lalu menimpanya lagi ketika status sync disimpan.
+  invalidateSettingsCache();
   return payload;
 }

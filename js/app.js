@@ -20,13 +20,14 @@ const bottomnav = document.getElementById('bottomnav');
 const drawer = document.getElementById('drawer');
 const drawerOverlay = document.getElementById('drawerOverlay');
 
-const TOP_LEVEL_ROUTES = ['home', 'products', 'customers', 'reports', 'settings'];
+const TOP_LEVEL_ROUTES = ['home', 'products', 'customers', 'expenses', 'reports', 'settings'];
 
 const PAGE_LOADERS = {
   home: () => import('./pages/home.js'),
   sale: () => import('./pages/createSaleOrDetail.js'),
   products: () => import('./pages/products.js'),
   customers: () => import('./pages/customers.js'),
+  expenses: () => import('./pages/expenses.js'),
   reports: () => import('./pages/reports.js'),
   settings: () => import('./pages/settings.js'),
 };

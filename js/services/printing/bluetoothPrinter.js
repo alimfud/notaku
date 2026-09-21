@@ -17,7 +17,7 @@
 // TIDAK didukung Safari/iOS sama sekali (kebijakan Apple).
 // ===============================================================================
 
-import { EscPosBuilder } from './escpos.js';
+import { EscPosBuilder, imageToMonochromeBits } from './escpos.js';
 
 // UUID service/characteristic yang umum dipakai modul BLE UART pada printer
 // thermal murah (banyak printer generic Cina memakai salah satu dari ini).
@@ -157,6 +157,14 @@ export async function printReceiptViaBluetooth(receiptData, { charWidth = 32 } =
 
   // ---------- Kop toko ----------
   b.align('center');
+  if (receiptData.logoData) {
+    try {
+      const canvas = await dataUrlToCanvas(receiptData.logoData);
+      const maxPx = charWidth >= 48 ? 384 : 256;
+      const mono = imageToMonochromeBits(canvas, maxPx);
+      b.rasterImage(mono.widthPx, mono.heightPx, mono.bits);
+    } catch (e) { /* logo tidak boleh menggagalkan cetak struk */ }
+  }
   b.bold(true);
   b.line(receiptData.storeName);
   b.bold(false);
@@ -188,15 +196,8 @@ export async function printReceiptViaBluetooth(receiptData, { charWidth = 32 } =
   });
   b.divider(charWidth);
 
-  // ---------- Ringkasan qty & rincian biaya (Sub Total dulu, baru komponen
-  // tambahan, baru TOTAL — supaya jelas dari mana angka TOTAL berasal, tidak
-  // langsung lompat dari daftar item ke satu angka besar) ----------
-  const totalQtyLabel = totalQty === Math.round(totalQty) ? String(Math.round(totalQty)) : String(totalQty);
-  b.twoColumn('Total Qty', totalQtyLabel, charWidth);
-  b.twoColumn('Sub Total', rp(receiptData.subtotal ?? receiptData.lines.reduce((s, l) => s + l.subtotal, 0)), charWidth);
+  // Rincian tambahan lalu total. Tidak ada QTY/SUBTOTAL agar struk ringkas.
   if (receiptData.discount > 0) b.twoColumn('Diskon', '-' + rp(receiptData.discount), charWidth);
-  if (receiptData.tax > 0) b.twoColumn(`Pajak${receiptData.taxInclusive ? ' (incl.)' : ''}`, (receiptData.taxInclusive ? '' : '+') + rp(receiptData.tax), charWidth);
-  if (receiptData.tax2 > 0) b.twoColumn(`Pajak #2${receiptData.tax2Inclusive ? ' (incl.)' : ''}`, (receiptData.tax2Inclusive ? '' : '+') + rp(receiptData.tax2), charWidth);
   if (receiptData.shipping > 0) b.twoColumn('Ongkos Kirim', '+' + rp(receiptData.shipping), charWidth);
   if (receiptData.other > 0) b.twoColumn(receiptData.otherLabel || 'Lain-lain', '+' + rp(receiptData.other), charWidth);
   b.divider(charWidth);
@@ -219,4 +220,14 @@ export async function printReceiptViaBluetooth(receiptData, { charWidth = 32 } =
   b.cut();
 
   await writeBytes(b.toBytes());
+}
+
+async function dataUrlToCanvas(src) {
+  const image = new Image();
+  image.src = src;
+  await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; });
+  const canvas = document.createElement('canvas');
+  canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+  canvas.getContext('2d').drawImage(image, 0, 0);
+  return canvas;
 }

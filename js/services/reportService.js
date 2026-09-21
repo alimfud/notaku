@@ -25,7 +25,10 @@ export async function generateReport(period) {
   }
 
   const sales = (await db.getAll('sales')).filter((s) => !s.isDeleted && s.saleDate >= start && s.saleDate <= end);
+  const expenses = await db.getAll('expenses');
+  const periodExpenses = expenses.filter((e) => e.expenseDate >= start && e.expenseDate <= end);
   const revenue = sales.reduce((sum, s) => sum + s.total, 0);
+  const expenseTotal = periodExpenses.reduce((sum, e) => sum + e.amount, 0);
   const transactionCount = sales.length;
 
   const allSales = (await db.getAll('sales')).filter((s) => !s.isDeleted);
@@ -53,7 +56,7 @@ export async function generateReport(period) {
   }
   const topProducts = [...productAgg.values()].sort((a, b) => b.qty - a.qty).slice(0, 10);
 
-  return { periodLabel: label, revenue, transactionCount, totalReceivables, topProducts };
+  return { periodLabel: label, revenue, expenseTotal, netIncome: revenue - expenseTotal, expenseCount: periodExpenses.length, transactionCount, totalReceivables, topProducts };
 }
 
 const MONTH_LABELS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -69,6 +72,8 @@ export async function generateAllTimeSummary() {
   for (const p of allPayments) paidBySale.set(p.saleId, (paidBySale.get(p.saleId) || 0) + p.amount);
 
   const totalRevenue = sales.reduce((sum, s) => sum + s.total, 0);
+  const expenses = await db.getAll('expenses');
+  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
   const totalTransactions = sales.length;
   const totalPaidCollected = [...paidBySale.values()].reduce((s, v) => s + v, 0);
 
@@ -106,6 +111,9 @@ export async function generateAllTimeSummary() {
 
   return {
     totalRevenue,
+    totalExpenses,
+    netIncome: totalRevenue - totalExpenses,
+    totalExpenseCount: expenses.length,
     totalTransactions,
     totalPaidCollected,
     totalReceivables,

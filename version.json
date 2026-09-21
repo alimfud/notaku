@@ -1,4 +1,4 @@
 {
-  "version": "1.4.1",
-  "notes": "Item bebas (nama produk yang belum ada di daftar) sekarang otomatis tersimpan sebagai produk baru saat ditambahkan ke nota — lewat jalur mana pun (cari/scan atau item bebas), produk baru langsung tersimpan dan bisa dicari lagi lain kali. Nama yang sudah ada (tidak peka huruf besar/kecil) tidak membuat duplikat, dan harga khusus yang diketik untuk transaksi itu tetap dihormati tanpa menimpa harga produk tersimpan."
+  "version": "1.5.3",
+  "notes": "Preview sebelum cetak tersedia untuk lebar 58mm, 80mm, dan A4."
 }

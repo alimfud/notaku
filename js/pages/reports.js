@@ -43,6 +43,10 @@ async function drawReport(root) {
         <div style="font-size:20px;font-weight:800;margin-top:6px;">${data.transactionCount}</div>
       </div>
     </div>
+    <div style="display:flex;gap:12px;margin-bottom:12px;">
+      <div style="flex:1;padding:16px;border-radius:14px;background:var(--surface-dim);"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Pengeluaran</div><div style="font-size:20px;font-weight:800;margin-top:6px;color:var(--accent);">${rupiah(data.expenseTotal)}</div><div class="row-meta">${data.expenseCount} catatan</div></div>
+      <div style="flex:1;padding:16px;border-radius:14px;background:var(--surface-dim);"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Sisa Omzet</div><div style="font-size:20px;font-weight:800;margin-top:6px;">${rupiah(data.netIncome)}</div></div>
+    </div>
     <div style="padding:16px;border-radius:14px;background:var(--surface-dim);margin-bottom:20px;">
       <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Total Piutang (Belum Lunas)</div>
       <div style="font-size:20px;font-weight:800;margin-top:6px;color:var(--accent);">${rupiah(data.totalReceivables)}</div>
@@ -87,6 +91,7 @@ async function drawAllTime(root) {
         <div style="font-size:17px;font-weight:800;margin-top:5px;color:var(--accent);">${rupiah(data.totalReceivables)}</div>
       </div>
     </div>
+    <div style="display:flex;gap:12px;margin-bottom:16px;"><div style="flex:1;padding:14px;border-radius:12px;background:var(--surface-dim);"><div style="font-size:10.5px;color:var(--muted);text-transform:uppercase;">Total Pengeluaran</div><div style="font-size:17px;font-weight:800;margin-top:5px;color:var(--accent);">${rupiah(data.totalExpenses)}</div><div class="row-meta">${data.totalExpenseCount} catatan</div></div><div style="flex:1;padding:14px;border-radius:12px;background:var(--surface-dim);"><div style="font-size:10.5px;color:var(--muted);text-transform:uppercase;">Sisa Omzet</div><div style="font-size:17px;font-weight:800;margin-top:5px;">${rupiah(data.netIncome)}</div></div></div>
 
     <div style="font-size:14.5px;font-weight:700;margin-bottom:8px;">Rincian per Status Pembayaran</div>
     <div style="margin-bottom:20px;">

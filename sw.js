@@ -19,7 +19,7 @@
 // gambar (perlu html2canvas). Fitur inti (lihat/buat/ubah nota, produk,
 // pelanggan, laporan, cetak, backup lokal) semuanya tetap jalan offline.
 
-const CACHE_VERSION = 'notaku-web-v1.4.1'; // naikkan setiap rilis
+const CACHE_VERSION = 'notaku-web-v1.5.3'; // naikkan setiap rilis
 
 const CORE_ASSETS = [
   './',
@@ -38,6 +38,7 @@ const CORE_ASSETS = [
   './js/pages/createSale.js',
   './js/pages/createSaleOrDetail.js',
   './js/pages/customers.js',
+  './js/pages/expenses.js',
   './js/pages/home.js',
   './js/pages/products.js',
   './js/pages/reports.js',
@@ -47,6 +48,7 @@ const CORE_ASSETS = [
   './js/pages/settings.js',
   './js/services/backupService.js',
   './js/services/customerService.js',
+  './js/services/expenseService.js',
   './js/services/driveBackupService.js',
   './js/services/invoiceNumber.js',
   './js/services/legacyImportService.js',
@@ -121,20 +123,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Aset lain: cache-first (kecepatan transisi), lalu perbarui cache di
-  // background kalau memang perlu ambil dari jaringan. PENTING: jalur ini
-  // sekarang dijamin SELALU mengembalikan sebuah Response yang valid —
-  // tidak pernah `undefined` — supaya tidak mengulang bug yang sama.
+  // Online-first: selama jaringan tersedia selalu ambil kode terbaru dan
+  // perbarui cache. Saat offline/ada gangguan, gunakan versi terakhir yang
+  // tersimpan tanpa meminta pengguna menghapus cache atau storage manual.
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request)
-        .then((res) => {
+    fetch(event.request, { cache: 'no-store' })
+      .then((res) => {
+        if (res.ok) {
           const copy = res.clone();
           caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, copy));
-          return res;
-        })
-        .catch(() => new Response('', { status: 504, statusText: 'Offline dan belum pernah di-cache' }));
-    })
+        }
+        return res;
+      })
+      .catch(() => caches.match(event.request).then((cached) => cached || new Response('', { status: 504, statusText: 'Offline dan belum pernah di-cache' })))
   );
 });

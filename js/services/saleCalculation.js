@@ -22,7 +22,7 @@ export function calculateRemaining(total, paidAmount) {
 }
 
 /**
- * Kalkulasi "Tambahan" (Diskon, Pajak, Pajak #2, Ongkos Kirim, Lain-lain) di
+ * Kalkulasi "Tambahan" (Diskon, Ongkos Kirim, Lain-lain) di
  * atas subtotal. Setiap komponen independen dan opsional (enabled: false
  * berarti tidak dihitung sama sekali, bukan cuma nilai 0).
  *
@@ -42,8 +42,6 @@ export function calculateRemaining(total, paidAmount) {
  */
 export function computeAdjustments(subtotal, adjustments = {}) {
   const d = adjustments.discount || { enabled: false };
-  const t1 = adjustments.tax || { enabled: false };
-  const t2 = adjustments.tax2 || { enabled: false };
   const ship = adjustments.shipping || { enabled: false };
   const other = adjustments.other || { enabled: false };
 
@@ -55,19 +53,14 @@ export function computeAdjustments(subtotal, adjustments = {}) {
 
   const afterDiscount = subtotal - discountAmount;
 
-  const taxAmount = t1.enabled ? afterDiscount * (Number(t1.percent) || 0) / 100 : 0;
-  const tax2Amount = t2.enabled ? afterDiscount * (Number(t2.percent) || 0) / 100 : 0;
   const shippingAmount = ship.enabled ? (Number(ship.amount) || 0) : 0;
   const otherAmount = other.enabled ? (Number(other.amount) || 0) : 0;
 
-  const taxAddToTotal = t1.enabled && !t1.inclusive ? taxAmount : 0;
-  const tax2AddToTotal = t2.enabled && !t2.inclusive ? tax2Amount : 0;
-
-  const total = Math.max(0, afterDiscount + taxAddToTotal + tax2AddToTotal + shippingAmount + otherAmount);
+  const total = Math.max(0, afterDiscount + shippingAmount + otherAmount);
 
   return {
     subtotal, discountAmount, afterDiscount,
-    taxAmount, tax2Amount, taxAddToTotal, tax2AddToTotal,
+    taxAmount: 0, tax2Amount: 0, taxAddToTotal: 0, tax2AddToTotal: 0,
     shippingAmount, otherAmount, total,
   };
 }
@@ -75,8 +68,6 @@ export function computeAdjustments(subtotal, adjustments = {}) {
 export function defaultAdjustments() {
   return {
     discount: { enabled: false, mode: 'amount', value: 0 },
-    tax: { enabled: false, percent: 0, inclusive: false },
-    tax2: { enabled: false, percent: 0, inclusive: false },
     shipping: { enabled: false, amount: 0 },
     other: { enabled: false, label: '', amount: 0 },
   };

@@ -60,19 +60,20 @@ async function renderStore(root) {
     <div class="field"><label>Nama Toko</label><input id="fName" value="${escapeHtml(s.storeName)}"></div>
     <div class="field"><label>Alamat</label><textarea id="fAddress" rows="2">${escapeHtml(s.storeAddress)}</textarea></div>
     <div class="field"><label>Telepon</label><input id="fPhone" value="${escapeHtml(s.storePhone)}"></div>
-    <div class="field"><label>Catatan Kaki Struk</label><textarea id="fFooter" rows="3">${escapeHtml(s.footerNote)}</textarea></div>
+    <div class="field"><label>Catatan Kaki Struk</label><textarea id="fFooter" rows="3">${escapeHtml(s.footerNote)}</textarea><div class="row-meta">Tanggal/jam cetak selalu ditambahkan. Gunakan [print_datetime] bila ingin menaruhnya di posisi tertentu.</div></div>
+    <div class="field"><label>Logo Toko (opsional)</label><input id="fLogo" type="file" accept="image/*"><div class="row-meta">Logo tampil pada struk layar dan Bluetooth.</div>${s.storeLogoData ? '<button class="btn small ghost" id="removeLogo" style="margin-top:8px;">Hapus Logo</button>' : ''}</div>
     <div class="section-title">Privasi Data Pelanggan</div>
     <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;">
       <div>
-        <div style="font-size:14px;font-weight:600;">Sembunyikan nomor HP pelanggan di struk</div>
-        <div class="row-meta">Kalau aktif, struk cuma menampilkan 3 digit terakhir (mis. *********771)</div>
+        <div style="font-size:14px;font-weight:600;">Tampilan nomor HP pelanggan di struk</div>
+        <div class="row-meta">Pilih tampil penuh, 3 digit terakhir, atau sembunyikan.</div>
       </div>
-      <input type="checkbox" id="maskPhoneToggle" ${s.maskCustomerPhone ? 'checked' : ''} style="width:44px;height:24px;flex-shrink:0;margin-left:12px;">
+      <select id="phoneDisplay" style="width:auto;"><option value="FULL" ${(s.customerPhoneDisplay === 'FULL' || (!s.customerPhoneDisplay && !s.maskCustomerPhone)) ? 'selected' : ''}>Full</option><option value="LAST3" ${(s.customerPhoneDisplay === 'LAST3' || (!s.customerPhoneDisplay && s.maskCustomerPhone)) ? 'selected' : ''}>3 digit</option><option value="HIDDEN" ${s.customerPhoneDisplay === 'HIDDEN' ? 'selected' : ''}>Hidden</option></select>
     </label>
     <button class="btn" id="fSave">Simpan</button>
   `;
-  root.querySelector('#maskPhoneToggle').onchange = async (e) => {
-    await saveSettings({ maskCustomerPhone: e.target.checked });
+  root.querySelector('#phoneDisplay').onchange = async (e) => {
+    await saveSettings({ customerPhoneDisplay: e.target.value, maskCustomerPhone: e.target.value !== 'FULL' });
     toast('Pengaturan privasi disimpan');
   };
   root.querySelector('#fSave').onclick = async () => {
@@ -84,6 +85,12 @@ async function renderStore(root) {
     });
     toast('Pengaturan toko disimpan');
   };
+  root.querySelector('#fLogo').onchange = (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader(); reader.onload = async () => { await saveSettings({ storeLogoData: reader.result }); toast('Logo toko disimpan'); }; reader.readAsDataURL(file);
+  };
+  const removeLogo = root.querySelector('#removeLogo');
+  if (removeLogo) removeLogo.onclick = async () => { await saveSettings({ storeLogoData: '' }); await renderStore(root); };
 }
 
 async function renderInvoice(root) {
@@ -191,6 +198,10 @@ async function renderPrinter(root) {
     <label class="field-radio"><input type="radio" name="paper" value="THERMAL_58MM" ${s.paperSize === 'THERMAL_58MM' ? 'checked' : ''}><div><div class="radio-title">Thermal 58mm</div><div class="radio-sub">Printer struk kecil (kasir portabel)</div></div></label>
     <label class="field-radio"><input type="radio" name="paper" value="THERMAL_80MM" ${s.paperSize === 'THERMAL_80MM' ? 'checked' : ''}><div><div class="radio-title">Thermal 80mm</div><div class="radio-sub">Printer struk standar toko</div></div></label>
     <label class="field-radio"><input type="radio" name="paper" value="PDF_A4" ${s.paperSize === 'PDF_A4' ? 'checked' : ''}><div><div class="radio-title">A4 (dokumen biasa)</div><div class="radio-sub">Untuk dicetak di printer biasa</div></div></label>
+    <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-top:1px solid var(--outline);">
+      <div><div style="font-size:14px;font-weight:600;">Preview sebelum cetak</div><div class="row-meta">Tampilkan hasil sesuai ukuran kertas sebelum dialog cetak dibuka.</div></div>
+      <input id="printPreviewToggle" type="checkbox" ${s.printPreview ? 'checked' : ''} style="width:44px;height:24px;flex-shrink:0;margin-left:12px;">
+    </label>
     <div class="info-card">
       <div class="info-text">"Cetak / Simpan PDF" memakai fitur cetak bawaan browser — cocok untuk printer apa pun yang sudah terpasang sebagai printer sistem HP/laptop, atau kalau printer Bluetooth-mu tidak didukung cetak langsung.</div>
     </div>
@@ -202,6 +213,10 @@ async function renderPrinter(root) {
   root.querySelectorAll('input[name="charwidth"]').forEach((r) => {
     r.onchange = async () => { await saveSettings({ btCharWidth: Number(r.value) }); toast('Lebar kertas Bluetooth disimpan'); };
   });
+  root.querySelector('#printPreviewToggle').onchange = async (e) => {
+    await saveSettings({ printPreview: e.target.checked });
+    toast(e.target.checked ? 'Preview cetak diaktifkan' : 'Preview cetak dinonaktifkan');
+  };
 
   root.querySelector('#btnBtConnect').onclick = async () => {
     try {
