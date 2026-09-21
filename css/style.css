@@ -162,7 +162,7 @@ body{
 .drawer-sep{height:1px;background:var(--outline);margin:8px 0;}
 
 /* Forms */
-.field{padding:12px 16px;border-bottom:1px solid var(--outline);}
+.field{padding-block:initial;border-bottom:1px solid var(--outline);text-align-last:center;}
 .field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em;}
 .field input,.field textarea,.field select{
   width:100%;border:none;font-size:16px;padding:2px 0;font-family:inherit;color:var(--ink);background:transparent;
