@@ -76,13 +76,13 @@ function draw(root, mode, state, onSave) {
         <button id="qtyPlus" style="width:38px;height:42px;border:none;background:var(--surface-dim);font-size:18px;font-weight:700;">+</button>
       </div>
       <div style="position:relative;flex:1;">
-        <input id="scanInput" placeholder="Cari nama produk / scan barcode" autocomplete="off"
+        <input id="scanInput" placeholder="Cari nama produk" autocomplete="off"
           style="width:100%;height:42px;border:1px solid var(--outline);border-radius:10px;padding:0 12px;font-size:14.5px;box-sizing:border-box;">
         <div id="suggestList" style="position:absolute;top:46px;left:0;right:0;background:#fff;border:1px solid var(--outline);border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.12);max-height:260px;overflow-y:auto;z-index:30;display:none;"></div>
       </div>
     </div>
     <div style="padding:6px 16px 0;text-align:right;">
-      <button id="manualItemBtn" style="background:none;border:none;color:var(--ink-soft);font-size:12px;text-decoration:underline;">+ item bebas (bukan dari daftar produk)</button>
+      <button id="manualItemBtn" style="background:none;border:none;color:var(--ink-soft);font-size:12px;text-decoration:underline;">+ Produk Baru(jika pencarian belum ada)</button>
     </div>
 
     <div style="display:flex;align-items:center;padding:14px 16px 0;">
