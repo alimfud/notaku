@@ -48,7 +48,7 @@ async function draw(root, saleId) {
         <div style="font-size:12.5px;color:var(--ink-soft);">Ditandai <b>SELESAI otomatis</b> karena tanggal pengambilan sudah lewat. Ketuk "Tandai Belum Selesai" di bawah kalau ini keliru.</div>
       </div>` : ''}
     <div style="padding:16px;">
-      <div class="receipt" id="receiptCapture" style="border:1px solid var(--outline);border-radius:16px;">
+      <div class="receipt" id="receiptCapture" style=" /* border:1px solid var(--outline);border-radius:16px; */">
         ${settings.storeLogoData ? `<div style="text-align:center;"><img src="${settings.storeLogoData}" alt="Logo toko" style="max-width:100%;max-height:100%;object-fit:contain;"></div>` : ''}
         <div class="receipt-shop">${escapeHtml(settings.storeName)}</div>
         ${settings.storeAddress ? `<div class="receipt-addr">${escapeHtml(settings.storeAddress)}</div>` : ''}
