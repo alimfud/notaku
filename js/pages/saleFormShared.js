@@ -82,7 +82,7 @@ function draw(root, mode, state, onSave) {
       </div>
     </div>
     <div style="padding:6px 16px 0;text-align:right;">
-      <button id="manualItemBtn" style="background:none;border:none;color:var(--ink-soft);font-size:12px;text-decoration:underline;">+ Produk Baru(jika pencarian belum ada)</button>
+      <button id="manualItemBtn" style="background:none;border:none;color:var(--ink-soft);font-size:12px;text-decoration:underline;">+ Produk Baru  (jika pencarian belum ada)</button>
     </div>
 
     <div style="display:flex;align-items:center;padding:14px 16px 0;">
