@@ -57,7 +57,7 @@ function draw(root, mode, state, onSave) {
       
       <div style="display:flex;gap:8px;">
 		<div class="field" style="flex:1; border-bottom:outset; border-radius:10px;"><label>Nama</label><input id="custName" value="${escapeHtml(c.name)}" placeholder="Nama pelanggan"></div>
-		<div class="field" style="flex:1; border-bottom:outset; border-radius:10px;"><label>Telepon</label><input id="custPhone" value="${escapeHtml(c.phone)}" placeholder="(opsional)"></div>
+		<div class="field" style="flex:1; border-bottom:outset; border-radius:10px;"><label>No. WhatsApp</label><input id="custPhone" value="${escapeHtml(c.phone)}" placeholder="(opsional)"></div>
       </div>
 	  <div class="field" style="margin-top:10px; border-bottom:outset; border-radius:10px;"><label>Alamat</label><input id="custAddress" value="${escapeHtml(c.address)}" placeholder="(opsional)"></div>
       <div style="font-size:11px;color:var(--muted);margin-top:4px;text-align:center;">Data pelanggan diperbarui otomatis dari daftar setelah disave.</div>
@@ -65,7 +65,7 @@ function draw(root, mode, state, onSave) {
 
     ${mode === 'edit' ? `
     <div class="field" style="padding:12px 16px 0;display:flex;gap:12px;">
-      <div style="flex:1;"><label>Tanggal Transaksi</label><input id="fDate" type="date" value="${state.saleDate}"></div>
+      <div style="flex:1;"><label>Tanggal Pengambilan</label><input id="fDate" type="date" value="${state.saleDate}"></div>
       <div style="flex:1;"><label>Jam</label><input id="fTime" type="time" value="${state.saleTime}"></div>
     </div>` : ''}
 
