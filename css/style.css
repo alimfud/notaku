@@ -196,7 +196,7 @@ body{
 .total-row.grand{font-size:20px;font-weight:800;border-top:1px solid var(--outline);margin-top:6px;padding-top:10px;}
 
 /* Receipt */
-.receipt{background:#fff;padding:22px 20px 30px;}
+/*.receipt{background:#fff;padding:22px 20px 30px;} */
 .receipt-shop{text-align:center;font-size:18px;font-weight:800;}
 .receipt-addr{text-align:center;font-size:12.5px;color:var(--ink-soft);margin-top:3px;line-height:1.4;}
 .receipt-meta{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);padding:12px 0;border-top:1px dashed var(--outline);border-bottom:1px dashed var(--outline);margin-top:14px;}
