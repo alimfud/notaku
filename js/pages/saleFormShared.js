@@ -54,10 +54,11 @@ function draw(root, mode, state, onSave) {
         <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;">Kepada Yth</div>
         <button id="pickCustomerBtn" style="background:none;border:none;color:var(--ink);font-size:12.5px;text-decoration:underline;">Pilih dari daftar</button>
       </div>
-      <div class="field" style="border:1px solid var(--outline);border-radius:10px;margin-bottom:8px;"><label>Nama</label><input id="custName" value="${escapeHtml(c.name)}" placeholder="Nama pelanggan"></div>
+      
       <div style="display:flex;gap:8px;">
+		<div class="field" style="flex:1;border:1px solid var(--outline);border-radius:10px;"><label>Nama</label><input id="custName" value="${escapeHtml(c.name)}" placeholder="Nama pelanggan"></div>
+		<div class="field" style="flex:1;border:1px solid var(--outline);border-radius:10px;"><label>Telepon</label><input id="custPhone" value="${escapeHtml(c.phone)}" placeholder="(opsional)"></div>
         <div class="field" style="flex:1;border:1px solid var(--outline);border-radius:10px;"><label>Alamat</label><input id="custAddress" value="${escapeHtml(c.address)}" placeholder="(opsional)"></div>
-        <div class="field" style="flex:1;border:1px solid var(--outline);border-radius:10px;"><label>Telepon</label><input id="custPhone" value="${escapeHtml(c.phone)}" placeholder="(opsional)"></div>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:4px;text-align:center;">Data pelanggan diperbarui otomatis dari daftar setelah disave.</div>
     </div>
