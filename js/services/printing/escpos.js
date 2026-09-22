@@ -81,6 +81,20 @@ export class EscPosBuilder {
     return this._append([0x0a]);
   }
 
+  /** Tiga kolom dengan posisi absolut: kiri, tengah, dan kanan. */
+  threeColumn(left, center, right, charWidth = 32) {
+    const dotsPerChar = 12;
+    const printableDots = charWidth * dotsPerChar;
+    const centerDots = Math.max(0, Math.floor((printableDots - String(center).length * dotsPerChar) / 2));
+    const rightDots = Math.max(0, printableDots - String(right).length * dotsPerChar);
+    this._append(this._text(String(left)));
+    this._append([ESC, 0x24, centerDots & 0xff, (centerDots >> 8) & 0xff]);
+    this._append(this._text(String(center)));
+    this._append([ESC, 0x24, rightDots & 0xff, (rightDots >> 8) & 0xff]);
+    this._append(this._text(String(right)));
+    return this._append([0x0a]);
+  }
+
   cut() {
     return this._append([GS, 0x56, 0x00]);
   }

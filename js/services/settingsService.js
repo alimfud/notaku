@@ -9,12 +9,13 @@ const DEFAULTS = {
   storePhone: '',
   footerNote: 'Terima kasih atas kunjungan Anda.',
   storeLogoData: '',
-  invoicePrefix: 'INV #',
+  storeLogoMaxWidth: 100,
+  invoicePrefix: 'INV-',
   invoiceDigitCount: 2,
   invoiceNextNumber: 1,
-  invoiceResetMode: 'NEVER', // NEVER | DAILY | MONTHLY (hanya dipakai mode SEQUENTIAL)
+  invoiceResetMode: 'MONTHLY', // NEVER | DAILY | MONTHLY (hanya dipakai mode SEQUENTIAL)
   invoiceLastResetDate: '',
-  invoiceNumberFormat: 'DAILY_SEQUENCE', // 'DAILY_SEQUENCE' (prefix+YYMMDD+urutan harian) | 'SEQUENTIAL' (prefix+nomor urut biasa)
+  invoiceNumberFormat: 'DAILY_SEQUENCE', // prefix+YYMM+urutan bulanan | 'SEQUENTIAL' (prefix+nomor urut biasa)
   paperSize: 'THERMAL_58MM', // THERMAL_58MM | THERMAL_80MM | PDF_A4
   printPreview: false,       // tampilkan pratinjau aplikasi sebelum window.print()
 

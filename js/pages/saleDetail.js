@@ -39,17 +39,17 @@ async function draw(root, saleId) {
 
   root.innerHTML = `
     ${sale.autoMarkedPaid ? `
-      <div style="margin:16px 16px 0;padding:12px 14px;border-radius:12px;background:var(--primary-container);display:flex;align-items:center;gap:10px;">
-        <div style="flex:1;font-size:12.5px;color:var(--ink-soft);">Ditandai <b>LUNAS otomatis</b> karena sudah &gt;2 hari dari tanggal pengambilan.</div>
-        <button id="revertAutoBtn" style="background:none;border:1px solid var(--ink);border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;white-space:nowrap;">Batalkan</button>
+      <div class="receipt-alert">
+        <div class="receipt-alert-text">Ditandai <b>LUNAS otomatis</b> karena sudah &gt;2 hari dari tanggal pengambilan.</div>
+        <button id="revertAutoBtn" class="receipt-alert-action">Batalkan</button>
       </div>` : ''}
     ${sale.autoCompleted ? `
-      <div style="margin:${sale.autoMarkedPaid ? '8px' : '16px'} 16px 0;padding:12px 14px;border-radius:12px;background:var(--surface-dim);">
-        <div style="font-size:12.5px;color:var(--ink-soft);">Ditandai <b>SELESAI otomatis</b> karena tanggal pengambilan sudah lewat. Ketuk "Tandai Belum Selesai" di bawah kalau ini keliru.</div>
+      <div class="receipt-alert receipt-alert--completed">
+        <div class="receipt-alert-text">Ditandai <b>SELESAI otomatis</b> karena tanggal pengambilan sudah lewat. Ketuk "Tandai Belum Selesai" di bawah kalau ini keliru.</div>
       </div>` : ''}
     <div style="padding:16px;">
-      <div class="receipt" id="receiptCapture" style=" /* border:1px solid var(--outline);border-radius:16px; */">
-        ${settings.storeLogoData ? `<div style="text-align:center;"><img src="${settings.storeLogoData}" alt="Logo toko" style="max-width:100%;max-height:100%;object-fit:contain;"></div>` : ''}
+      <div class="receipt" id="receiptCapture">
+        ${receiptLogoMarkup(settings)}
         <div class="receipt-shop">${escapeHtml(settings.storeName)}</div>
         ${settings.storeAddress ? `<div class="receipt-addr">${escapeHtml(settings.storeAddress)}</div>` : ''}
         ${settings.storePhone ? `<div class="receipt-addr">${escapeHtml(settings.storePhone)}</div>` : ''}
@@ -62,7 +62,7 @@ async function draw(root, saleId) {
           <div class="receipt-item">
             <div class="ri-top"><span>${escapeHtml(it.productName)}</span><span>${rupiah(it.subtotal)}</span></div>
             <div class="ri-bottom"><span class="ri-qty">${qtyLabel(it.qty)} ${escapeHtml(it.unit || '')} x</span><span class="ri-price">@ ${rupiah(it.price)},-</span></div>
-            ${it.note ? `<div class="ri-bottom" style="font-style:italic;">${escapeHtml(it.note)}</div>` : ''}
+            ${it.note ? `<div class="ri-bottom receipt-note">${escapeHtml(it.note)}</div>` : ''}
           </div>`).join('')}
         <div class="receipt-totals">
           ${sale.discountAmount > 0 ? `<div class="tr"><span>Diskon</span><span>-${rupiah(sale.discountAmount)}</span></div>` : ''}
@@ -74,11 +74,11 @@ async function draw(root, saleId) {
             <span>${remaining > 0 ? 'SISA' : 'KEMBALI'}</span><span>${rupiah(Math.abs(remaining))}</span>
           </div>
         </div>
-        ${sale.note ? `<div class="row-meta" style="margin-top:8px;">Catatan: ${escapeHtml(sale.note)}</div>` : ''}
+        ${sale.note ? `<div class="row-meta receipt-note">Catatan: ${escapeHtml(sale.note)}</div>` : ''}
         ${showQris ? `
-          <div style="text-align:center;margin-top:14px;">
-            <div style="font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Scan QRIS untuk bayar</div>
-            <img src="${settings.qrisImageData}" alt="QRIS" style="width:160px;height:160px;object-fit:contain;">
+          <div class="receipt-qris">
+            <div class="receipt-qris-label">Scan QRIS untuk bayar</div>
+            <img src="${settings.qrisImageData}" alt="QRIS" class="receipt-qris-image">
           </div>` : ''}
         ${footerResolved ? `<div class="receipt-footer">${escapeHtml(footerResolved)}</div>` : ''}
       </div>
@@ -232,6 +232,15 @@ function buildReceiptDataForShare(sale, items, settings, paidAmount, remaining) 
   };
 }
 
+function getReceiptLogo(settings) {
+  return settings.storeLogoData || 'docs/logo.webp';
+}
+
+function receiptLogoMarkup(settings) {
+  const width = Math.min(100, Math.max(10, Number(settings.storeLogoMaxWidth) || 100));
+  return `<div class="receipt-logo-wrap"><img src="${getReceiptLogo(settings)}" alt="Logo toko" class="receipt-logo" style="--receipt-logo-max-width:${width}%;"></div>`;
+}
+
 async function showShareSheet(root, sale, items, settings, paidAmount, remaining) {
   const { isConnected, currentDeviceInfo } = await import('../services/printing/bluetoothPrinter.js');
   const btConnected = isConnected ? isConnected() : false;
@@ -245,7 +254,7 @@ async function showShareSheet(root, sale, items, settings, paidAmount, remaining
       <button class="settings-tile" id="btPrint"><div class="icon-box">🔵</div><div class="settings-body"><div class="settings-title">Cetak via Bluetooth</div><div class="settings-sub">${btConnected ? 'Tersambung: ' + escapeHtml(btInfo.name) : (settings.btPrinterId ? 'Tersimpan — akan coba sambung ulang' : 'Belum ada printer tersambung')}</div></div></button>
       <button class="settings-tile" id="shareImage"><div class="icon-box">🖼️</div><div class="settings-body"><div class="settings-title">Bagikan sebagai Gambar</div></div></button>
       <button class="settings-tile" id="shareText"><div class="icon-box">💬</div><div class="settings-body"><div class="settings-title">Bagikan sebagai Teks</div></div></button>
-      <button class="settings-tile" id="doPrint"><div class="icon-box">🖨️</div><div class="settings-body"><div class="settings-title">Cetak / Simpan PDF</div></div></button>
+      <button class="settings-tile" id="doPrint"><div class="icon-box">🖨️</div><div class="settings-body"><div class="settings-title">Simpan PDF</div></div></button>
     `;
     const chatBtn = body.querySelector('#chatWa');
     if (chatBtn) chatBtn.onclick = () => close('chatwa');
@@ -264,14 +273,19 @@ async function showShareSheet(root, sale, items, settings, paidAmount, remaining
   if (result === 'chatwa') {
     const waNumber = toWhatsAppNumber(sale.customerPhone);
     if (!waNumber) { toast('Nomor WA pelanggan tidak valid.'); return; }
-    const text = buildShareText(buildReceiptDataForShare(sale, items, settings, paidAmount, remaining));
-    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(text)}`, '_blank');
+    window.open(`https://wa.me/${waNumber}`, '_blank');
     return;
   }
 
   if (result === 'text') {
     try {
-      const status = await shareAsText(buildReceiptDataForShare(sale, items, settings, paidAmount, remaining));
+      const shareData = buildReceiptDataForShare(sale, items, settings, paidAmount, remaining);
+      const waNumber = toWhatsAppNumber(sale.customerPhone);
+      if (waNumber) {
+        window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(buildShareText(shareData))}`, '_blank');
+        return;
+      }
+      const status = await shareAsText(shareData);
       if (status === 'copied') toast('Teks nota disalin ke clipboard');
     } catch (e) { toast('Gagal membagikan nota.'); }
     return;
@@ -289,7 +303,7 @@ async function showShareSheet(root, sale, items, settings, paidAmount, remaining
 async function showPrintPreview(paperSize) {
   const labels = { THERMAL_58MM: 'Thermal 58mm', THERMAL_80MM: 'Thermal 80mm', PDF_A4: 'A4' };
   const result = await openSheet((body, close) => {
-    body.innerHTML = `<div class="sheet-title">Preview Cetak</div><div class="print-preview-label">${labels[paperSize] || 'Thermal 58mm'}</div><div class="print-preview-wrap"></div><div style="display:flex;gap:10px;padding:16px;"><button class="btn secondary" id="cancelPreview" style="margin:0;flex:1;">Kembali</button><button class="btn" id="confirmPrint" style="margin:0;flex:1;">Cetak</button></div>`;
+    body.innerHTML = `<div class="sheet-title">Preview Cetak</div><div class="print-preview-label">${labels[paperSize] || 'Thermal 58mm'}</div><div class="print-preview-wrap"></div><div class="sheet-actions"><button class="btn secondary" id="cancelPreview">Kembali</button><button class="btn" id="confirmPrint">Cetak</button></div>`;
     const receipt = document.getElementById('receiptCapture').cloneNode(true);
     receipt.removeAttribute('id');
     receipt.classList.add('print-preview-receipt', `paper-${paperSize}`);
@@ -304,7 +318,7 @@ async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining
   const bt = await import('../services/printing/bluetoothPrinter.js');
   const phoneDisplay = displayPhone(sale.customerPhone, settings);
   const receiptData = {
-    storeName: settings.storeName, storeAddress: settings.storeAddress, storePhone: settings.storePhone, logoData: settings.storeLogoData,
+    storeName: settings.storeName, storeAddress: settings.storeAddress, storePhone: settings.storePhone, logoData: getReceiptLogo(settings), logoMaxWidth: settings.storeLogoMaxWidth,
     invoiceNumber: sale.invoiceNumber, dateLabel: dateShort(sale.saleDate), timeLabel: sale.saleTime,
     customerName: sale.customerName, customerAddress: sale.customerAddress, customerPhoneDisplay: phoneDisplay,
     lines: items.map((i) => ({ name: i.productName, qty: i.qty, unit: i.unit, price: i.price, subtotal: i.subtotal, note: i.note })),
@@ -314,6 +328,8 @@ async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining
     footerNote: resolveFooterNote(settings.footerNote),
   };
 
+  const previewed = await showBluetoothPreview(settings.btCharWidth || 32);
+  if (!previewed) return;
   document.getElementById('loadingOverlay').classList.remove('hidden');
   try {
     if (!bt.isConnected()) {
@@ -338,6 +354,22 @@ async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining
   } finally {
     document.getElementById('loadingOverlay').classList.add('hidden');
   }
+}
+
+/** Preview Bluetooth memakai salinan elemen nota yang sama, bukan preview PDF. */
+async function showBluetoothPreview(charWidth) {
+  const paperLabel = charWidth >= 48 ? 'Bluetooth 80mm' : 'Bluetooth 58mm';
+  const result = await openSheet((body, close) => {
+    body.innerHTML = `<div class="sheet-title">Preview Bluetooth</div><div class="print-preview-label">${paperLabel}</div><div class="print-preview-wrap"></div><div class="sheet-actions"><button class="btn secondary" id="cancelPreview">Kembali</button><button class="btn" id="confirmPrint">Cetak Bluetooth</button></div>`;
+    const receipt = document.getElementById('receiptCapture').cloneNode(true);
+    receipt.removeAttribute('id');
+    receipt.classList.add('print-preview-receipt', 'bluetooth-preview-receipt');
+    if (charWidth >= 48) receipt.classList.add('bluetooth-80mm');
+    body.querySelector('.print-preview-wrap').appendChild(receipt);
+    body.querySelector('#cancelPreview').onclick = () => close(false);
+    body.querySelector('#confirmPrint').onclick = () => close(true);
+  });
+  return result === true;
 }
 
 function displayPhone(phone, settings) {

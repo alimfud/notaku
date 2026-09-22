@@ -160,7 +160,8 @@ export async function printReceiptViaBluetooth(receiptData, { charWidth = 32 } =
   if (receiptData.logoData) {
     try {
       const canvas = await dataUrlToCanvas(receiptData.logoData);
-      const maxPx = charWidth >= 48 ? 384 : 256;
+      const paperPx = charWidth >= 48 ? 384 : 256;
+      const maxPx = Math.round(paperPx * Math.min(100, Math.max(10, Number(receiptData.logoMaxWidth) || 100)) / 100);
       const mono = imageToMonochromeBits(canvas, maxPx);
       b.rasterImage(mono.widthPx, mono.heightPx, mono.bits);
     } catch (e) { /* logo tidak boleh menggagalkan cetak struk */ }
@@ -170,29 +171,24 @@ export async function printReceiptViaBluetooth(receiptData, { charWidth = 32 } =
   b.bold(false);
   if (receiptData.storeAddress) b.line(receiptData.storeAddress);
   if (receiptData.storePhone) b.line(receiptData.storePhone);
-  b.divider(charWidth);
-
   // ---------- Tanggal, jam, no. nota ----------
   b.align('left');
-  b.twoColumn(receiptData.dateLabel, receiptData.timeLabel, charWidth);
-  b.line(receiptData.invoiceNumber);
+  b.threeColumn(receiptData.dateLabel, receiptData.timeLabel, receiptData.invoiceNumber, charWidth);
   b.divider(charWidth);
 
-  // ---------- Pelanggan (nama tebal, alamat+telepon satu baris — konsisten
-  // dengan tampilan layar, supaya tidak menumpuk banyak baris) ----------
-  b.bold(true).line(receiptData.customerName).bold(false);
-  const addressPhoneLine = [receiptData.customerAddress, receiptData.customerPhoneDisplay].filter(Boolean).join(' - ');
+  // ---------- Pelanggan ----------
+  b.align('center').bold(true).line(receiptData.customerName).bold(false);
+  const addressPhoneLine = [receiptData.customerAddress, receiptData.customerPhoneDisplay].filter(Boolean).join(' • ');
   if (addressPhoneLine) b.line(addressPhoneLine);
+  b.align('left');
   b.feed(1);
 
   // ---------- Daftar item ----------
-  let totalQty = 0;
-  receiptData.lines.forEach((line, i) => {
-    totalQty += line.qty || 0;
-    b.bold(true).line(`${i + 1}. ${line.name}`).bold(false);
+  receiptData.lines.forEach((line) => {
+    b.bold(true).twoColumn(line.name, rp(line.subtotal), charWidth).bold(false);
     const qty = `${line.qty} ${line.unit || ''}`.trim();
-    b.twoColumn(`  ${qty} x @ ${rp(line.price)},-`, rp(line.subtotal), charWidth);
-    if (line.note) b.line(`  (${line.note})`);
+    b.twoColumn(`${qty} x`, `@ ${rp(line.price)},-`, charWidth);
+    if (line.note) b.line(line.note);
   });
   b.divider(charWidth);
 

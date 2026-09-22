@@ -2,11 +2,9 @@
 //
 // Dua mode (lihat Setting → Nomor Nota):
 //
-// 'DAILY_SEQUENCE' (default): prefix + YYMMDD + nomor urut yang RESET SETIAP
-// HARI, contoh nota pertama hari ini -> "INV #26091001", nota kedua hari yang
-// sama -> "INV #26091002", besok mulai dari 01 lagi -> "INV #26091101". Ini
-// menghindari tabrakan nomor yang bisa terjadi kalau presisi cuma sampai jam
-// (skema lama) — setiap nota di hari yang sama pasti dapat nomor berbeda.
+// 'DAILY_SEQUENCE' (nama lama yang tetap didukung): prefix + YYMM + nomor urut
+// yang RESET SETIAP BULAN, contoh "INV-260901". Nama setting dipertahankan
+// agar data pengguna lama tidak rusak.
 //
 // 'SEQUENTIAL': prefix + nomor urut TANPA tanggal, dengan mode reset sendiri
 // (NEVER/DAILY/MONTHLY) — skema alternatif untuk yang tidak ingin tanggal
@@ -21,21 +19,19 @@ export async function generateAndAdvance(saleDate = new Date()) {
   if (settings.invoiceNumberFormat === 'SEQUENTIAL') {
     return generateSequential(settings, saleDate);
   }
-  return generateDailySequence(settings, saleDate);
+  return generateMonthlySequence(settings, saleDate);
 }
 
-async function generateDailySequence(settings, saleDate) {
+async function generateMonthlySequence(settings, saleDate) {
   const todayKey = dbDate(saleDate);
   const yy = String(saleDate.getFullYear()).slice(-2);
   const mm = String(saleDate.getMonth() + 1).padStart(2, '0');
-  const dd = String(saleDate.getDate()).padStart(2, '0');
-
-  // Counter SELALU reset tiap hari baru untuk mode ini (beda dengan mode
-  // SEQUENTIAL yang resetnya bisa diatur NEVER/DAILY/MONTHLY).
-  const shouldReset = settings.invoiceLastResetDate !== todayKey;
+  const currentMonthKey = todayKey.substring(0, 7);
+  const lastMonthKey = (settings.invoiceLastResetDate || '').substring(0, 7);
+  const shouldReset = lastMonthKey !== currentMonthKey;
   const nextNumber = shouldReset ? 1 : settings.invoiceNextNumber;
 
-  const counterPart = String(nextNumber).padStart(settings.invoiceDigitCount || 1, '0');
+  const counterPart = String(nextNumber).padStart(settings.invoiceDigitCount || 2, '0');
   const invoiceNumber = `${settings.invoicePrefix}${yy}${mm}${counterPart}`;
 
   await saveSettings({

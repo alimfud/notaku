@@ -61,7 +61,8 @@ async function renderStore(root) {
     <div class="field"><label>Alamat</label><textarea id="fAddress" rows="2">${escapeHtml(s.storeAddress)}</textarea></div>
     <div class="field"><label>Telepon</label><input id="fPhone" value="${escapeHtml(s.storePhone)}"></div>
     <div class="field"><label>Catatan Kaki Struk</label><textarea id="fFooter" rows="3">${escapeHtml(s.footerNote)}</textarea><div class="row-meta">Tanggal/jam cetak selalu ditambahkan. Gunakan [print_datetime] bila ingin menaruhnya di posisi tertentu.</div></div>
-    <div class="field"><label>Logo Toko (opsional)</label><input id="fLogo" type="file" accept="image/*"><div class="row-meta">Logo tampil pada struk layar dan Bluetooth.</div>${s.storeLogoData ? '<button class="btn small ghost" id="removeLogo" style="margin-top:8px;">Hapus Logo</button>' : ''}</div>
+    <div class="field"><label>Logo Toko (opsional)</label><input id="fLogo" type="file" accept="image/*"><div class="row-meta">Jika kosong, NotaKu memakai logo bawaan. Ukuran berlaku sama pada nota dan Bluetooth.</div>${s.storeLogoData ? '<button class="btn small ghost" id="removeLogo" style="margin-top:8px;">Hapus Logo</button>' : ''}</div>
+    <div class="field logo-size-field"><label>Lebar Maksimum Logo <output id="logoWidthValue">${s.storeLogoMaxWidth}%</output></label><input id="logoMaxWidth" type="range" min="10" max="100" value="${s.storeLogoMaxWidth}"></div>
     <div class="section-title">Privasi Data Pelanggan</div>
     <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;">
       <div>
@@ -89,6 +90,9 @@ async function renderStore(root) {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader(); reader.onload = async () => { await saveSettings({ storeLogoData: reader.result }); toast('Logo toko disimpan'); }; reader.readAsDataURL(file);
   };
+  const logoWidth = root.querySelector('#logoMaxWidth');
+  logoWidth.oninput = () => { root.querySelector('#logoWidthValue').value = `${logoWidth.value}%`; };
+  logoWidth.onchange = async () => { await saveSettings({ storeLogoMaxWidth: Number(logoWidth.value) }); toast('Ukuran logo disimpan'); };
   const removeLogo = root.querySelector('#removeLogo');
   if (removeLogo) removeLogo.onclick = async () => { await saveSettings({ storeLogoData: '' }); await renderStore(root); };
 }
@@ -101,7 +105,7 @@ async function renderInvoice(root) {
     <div class="field"><label>Awalan (Prefix)</label><input id="fPrefix" value="${escapeHtml(s.invoicePrefix)}"></div>
 
     <div class="section-title">Format Nomor</div>
-    <label class="field-radio"><input type="radio" name="numformat" value="DAILY_SEQUENCE" ${s.invoiceNumberFormat === 'DAILY_SEQUENCE' ? 'checked' : ''}><div><div class="radio-title">Tanggal + Urutan Harian</div><div class="radio-sub">Format: Prefix + TahunBulanTanggal + nomor urut (reset tiap hari baru). Contoh nota pertama & kedua hari ini: lihat pratinjau di bawah. Selalu unik walau banyak nota di jam yang sama.</div></div></label>
+    <label class="field-radio"><input type="radio" name="numformat" value="DAILY_SEQUENCE" ${s.invoiceNumberFormat === 'DAILY_SEQUENCE' ? 'checked' : ''}><div><div class="radio-title">Tahun Bulan + Urutan</div><div class="radio-sub">Format: Prefix + TahunBulan + nomor urut dua digit, reset setiap bulan. Contoh: INV-260901.</div></div></label>
     <label class="field-radio"><input type="radio" name="numformat" value="SEQUENTIAL" ${s.invoiceNumberFormat === 'SEQUENTIAL' ? 'checked' : ''}><div><div class="radio-title">Nomor Urut Saja</div><div class="radio-sub">Prefix + angka urut tanpa tanggal, dengan mode reset sendiri.</div></div></label>
 
     <div id="sequentialFields" style="${s.invoiceNumberFormat === 'SEQUENTIAL' ? '' : 'display:none;'}">
@@ -113,7 +117,7 @@ async function renderInvoice(root) {
       <label class="field-radio"><input type="radio" name="reset" value="MONTHLY" ${s.invoiceResetMode === 'MONTHLY' ? 'checked' : ''}><div><div class="radio-title">Bulanan</div><div class="radio-sub">Nomor kembali ke 1 setiap bulan baru</div></div></label>
     </div>
     <div id="dailySeqFields" style="${s.invoiceNumberFormat === 'DAILY_SEQUENCE' ? '' : 'display:none;'}">
-      <div class="field"><label>Jumlah Digit Urutan Harian</label><input id="fDigitDaily" type="number" value="${s.invoiceDigitCount}"></div>
+      <div class="field"><label>Jumlah Digit Urutan Bulanan</label><input id="fDigitDaily" type="number" min="2" value="${s.invoiceDigitCount}"></div>
     </div>
 
     <div class="info-card" style="margin-top:14px;"><div class="info-text" id="preview"></div></div>
@@ -130,9 +134,8 @@ async function renderInvoice(root) {
     if (currentFormat() === 'DAILY_SEQUENCE') {
       const yy = String(now.getFullYear()).slice(-2);
       const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
       const digit = Number(root.querySelector('#fDigitDaily').value) || 2;
-      root.querySelector('#preview').textContent = `Contoh: nota ke-1 hari ini -> ${prefix}${yy}${mm}${dd}${'1'.padStart(digit, '0')}, nota ke-2 -> ${prefix}${yy}${mm}${dd}${'2'.padStart(digit, '0')}`;
+      root.querySelector('#preview').textContent = `Contoh bulan ini: nota ke-1 -> ${prefix}${yy}${mm}${'1'.padStart(digit, '0')}, nota ke-2 -> ${prefix}${yy}${mm}${'2'.padStart(digit, '0')}`;
     } else {
       const digit = Number(root.querySelector('#fDigit').value) || 5;
       const next = Number(root.querySelector('#fNext').value) || 1;
