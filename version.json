@@ -1,4 +1,4 @@
 {
-  "version": "1.5.7",
-  "notes": "Baris jumlah dan harga satuan Bluetooth dicetak sebagai bitmap kecil agar ukurannya lebih kecil di thermal 58mm."
+  "version": "1.5.8",
+  "notes": "Cetak Bluetooth dibuat lebih hemat kertas; ukuran jumlah dan harga satuan berada sedikit di bawah ukuran item."
 }

@@ -53,7 +53,7 @@
 .bluetooth-native-pair{display:flex;justify-content:space-between;gap:8px;padding:1px 0;}
 .bluetooth-native-pair span:first-child{min-width:0;overflow-wrap:anywhere;}
 .bluetooth-native-pair span:last-child{flex:none;text-align:right;white-space:nowrap;}
-.bluetooth-native-quantity{display:flex;align-items:baseline;gap:1.4em;font-size:.68em;}
+.bluetooth-native-quantity{display:flex;align-items:baseline;gap:1.4em;font-size:.85em;}
 .bluetooth-native-quantity span{white-space:nowrap;}
 .bluetooth-native-bold{font-weight:700;}
 .bluetooth-native-total{font-size:1.35em;font-weight:800;}

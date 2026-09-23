@@ -148,11 +148,11 @@ export async function buildReceiptBytes(data, charWidth = 32) {
   b.align('center');
   if (data.logoData) {
     try {
-      const logo = await imageToCanvas(data.logoData);
+      const logo = await imageToCanvas(data.logoData, true);
       const percent = Math.min(100, Math.max(10, Number(data.logoMaxWidth) || 100));
       const target = Math.max(8, Math.floor(paperDots * percent / 100 / 8) * 8);
       const raster = imageToMonochromeBits(logo, target, 190);
-      b.rasterImage(raster.widthPx, raster.heightPx, raster.bits).feed(1);
+      b.rasterImage(raster.widthPx, raster.heightPx, raster.bits);
     } catch { /* logo must not stop text printing */ }
   }
   b.bold(true);
@@ -170,7 +170,7 @@ export async function buildReceiptBytes(data, charWidth = 32) {
   b.bold(false);
   const customerInfo = [data.customerAddress, data.customerPhoneDisplay].filter(Boolean).join(' - ');
   if (customerInfo) centeredLines(b, customerInfo, width);
-  b.align('left').feed(1);
+  b.align('left');
 
   for (const item of data.lines || []) {
     b.bold(true);
@@ -179,7 +179,6 @@ export async function buildReceiptBytes(data, charWidth = 32) {
     const qty = `${item.qty} ${item.unit || ''}`.trim();
     compactQuantityLine(b, `${qty} x`, `@ ${rp(item.price)},-`, paperDots);
     if (item.note) wrappedLines(b, item.note, width);
-    b.divider(width, '.');
   }
 
   if (data.discount > 0) b.twoColumn('Diskon', '-' + rp(data.discount), width);
@@ -208,9 +207,9 @@ export async function buildReceiptBytes(data, charWidth = 32) {
     } catch { /* QRIS image is optional */ }
   }
 
-  b.feed(1).align('center');
+  b.align('center');
   for (const line of String(data.footerNote || '').split('\n')) centeredLines(b, line, width);
-  return b.size(0).bold(false).feed(3).cut().toBytes();
+  return b.size(0).bold(false).feed(1).cut().toBytes();
 }
 
 function normalizedText(value) {
@@ -253,20 +252,20 @@ function compactQuantityLine(builder, left, right, paperDots) {
   const rightText = normalizedText(right);
   const canvas = document.createElement('canvas');
   canvas.width = paperDots;
-  canvas.height = 22;
+  canvas.height = 28;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#000';
-  ctx.font = '16px Arial, sans-serif';
+  ctx.font = '20px Arial, sans-serif';
   ctx.textBaseline = 'middle';
-  ctx.fillText(leftText, 0, 11);
-  ctx.fillText(rightText, Math.ceil(ctx.measureText(leftText).width) + 14, 11);
+  ctx.fillText(leftText, 0, 14);
+  ctx.fillText(rightText, Math.ceil(ctx.measureText(leftText).width) + 16, 14);
   const raster = imageToMonochromeBits(canvas, paperDots, 150);
   builder.rasterImage(raster.widthPx, raster.heightPx, raster.bits);
 }
 
-async function imageToCanvas(src) {
+async function imageToCanvas(src, trimWhitespace = false) {
   const image = new Image();
   image.src = src;
   await new Promise((resolve, reject) => {
@@ -276,6 +275,31 @@ async function imageToCanvas(src) {
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
-  canvas.getContext('2d').drawImage(image, 0, 0);
-  return canvas;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(image, 0, 0);
+  return trimWhitespace ? trimWhiteEdges(canvas) : canvas;
+}
+
+function trimWhiteEdges(canvas) {
+  const { width, height } = canvas;
+  const pixels = canvas.getContext('2d').getImageData(0, 0, width, height).data;
+  let left = width, top = height, right = -1, bottom = -1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const index = (y * width + x) * 4;
+      const alpha = pixels[index + 3];
+      const light = (pixels[index] * 0.299) + (pixels[index + 1] * 0.587) + (pixels[index + 2] * 0.114);
+      if (alpha > 20 && light < 248) {
+        left = Math.min(left, x); right = Math.max(right, x);
+        top = Math.min(top, y); bottom = Math.max(bottom, y);
+      }
+    }
+  }
+  if (right < left || bottom < top) return canvas;
+  const padding = 2;
+  const cropped = document.createElement('canvas');
+  cropped.width = Math.min(width, (right - left + 1) + (padding * 2));
+  cropped.height = Math.min(height, (bottom - top + 1) + (padding * 2));
+  cropped.getContext('2d').drawImage(canvas, left - padding, top - padding, cropped.width, cropped.height, 0, 0, cropped.width, cropped.height);
+  return cropped;
 }
