@@ -177,7 +177,7 @@ export async function buildReceiptBytes(data, charWidth = 32) {
     twoColumnWrapped(b, item.name, rp(item.subtotal), width);
     b.bold(false);
     const qty = `${item.qty} ${item.unit || ''}`.trim();
-    compactQuantityLine(b, `${qty} x`, `@ ${rp(item.price)},-`);
+    compactQuantityLine(b, `${qty} x`, `@ ${rp(item.price)},-`, paperDots);
     if (item.note) wrappedLines(b, item.note, width);
     b.divider(width, '.');
   }
@@ -248,13 +248,22 @@ function twoColumnWrapped(builder, left, right, width) {
   for (const line of leftLines) builder.line(line);
 }
 
-function compactQuantityLine(builder, left, right) {
+function compactQuantityLine(builder, left, right, paperDots) {
   const leftText = normalizedText(left);
   const rightText = normalizedText(right);
-  const fontBDots = 9;
-  const gapDots = fontBDots * 2;
-  builder.font('B').text(leftText);
-  builder.position((leftText.length * fontBDots) + gapDots).line(rightText).font('A');
+  const canvas = document.createElement('canvas');
+  canvas.width = paperDots;
+  canvas.height = 22;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#000';
+  ctx.font = '11px Arial, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(leftText, 0, 11);
+  ctx.fillText(rightText, Math.ceil(ctx.measureText(leftText).width) + 14, 11);
+  const raster = imageToMonochromeBits(canvas, paperDots, 150);
+  builder.rasterImage(raster.widthPx, raster.heightPx, raster.bits);
 }
 
 async function imageToCanvas(src) {

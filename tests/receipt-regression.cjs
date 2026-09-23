@@ -95,7 +95,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         assert.match(result.ascii, /Produk dengan nama/);
         assert.match(result.ascii, /TOTAL/);
         assert.match(result.ascii, /Rp33\.500/);
-        assert.equal(result.rasterHeaders.length, 2);
+        assert.ok(result.rasterHeaders.length >= 3);
         assert.ok(result.length < 50000, 'native output must not rasterize the full receipt');
       }
       assert.equal(nativeResult[0].rasterHeaders[0].widthBytes, Math.floor(384 * width / 100 / 8));
@@ -197,7 +197,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     console.log('PASS upload/remove logo restores fallback without losing unsaved store fields');
 
     await page.evaluate(async () => { await navigator.serviceWorker.ready; });
-    await page.waitForFunction(async () => { const cache = await caches.open('notaku-web-v1.5.6'); return !!await cache.match('./js/vendor/jspdf.umd.min.js') && !!await cache.match('./js/vendor/html2canvas.min.js'); });
+    await page.waitForFunction(async () => { const cache = await caches.open('notaku-web-v1.5.7'); return !!await cache.match('./js/vendor/jspdf.umd.min.js') && !!await cache.match('./js/vendor/html2canvas.min.js'); });
     await context.setOffline(true);
     await page.reload(); await page.waitForSelector('#receiptCapture');
     await page.locator('#printBtn').click(); await page.locator('#btPrint').click();
