@@ -258,7 +258,7 @@ function compactQuantityLine(builder, left, right, paperDots) {
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#000';
-  ctx.font = '11px Arial, sans-serif';
+  ctx.font = '12px Arial, sans-serif';
   ctx.textBaseline = 'middle';
   ctx.fillText(leftText, 0, 11);
   ctx.fillText(rightText, Math.ceil(ctx.measureText(leftText).width) + 14, 11);
