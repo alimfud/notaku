@@ -1,6 +1,5 @@
 // One DOM capture for image, PDF, and Bluetooth output.
 import { rupiah } from '../format.js';
-import { imageToMonochromeBits } from './printing/escpos.js';
 
 export function buildShareText(data) {
   let text = `${data.storeName}\n${data.invoiceNumber} - ${data.dateLabel}\nKepada: ${data.customerName}\n\n`;
@@ -47,38 +46,14 @@ function loadScript(path, ready) {
   return loaders.get(path);
 }
 
-export async function captureReceipt(element, thermal = false) {
+export async function captureReceipt(element) {
   if (!element?.isConnected) throw new Error('Detail nota tidak tersedia.');
   await loadScript('../vendor/html2canvas.min.js', () => !!window.html2canvas);
   await document.fonts.ready;
   await Promise.all(Array.from(element.querySelectorAll('img')).map(async (img) => {
     try { await img.decode(); } catch { throw new Error('Logo atau QRIS gagal dimuat. Coba muat ulang nota.'); }
   }));
-  return window.html2canvas(element, {
-    scale: 2, backgroundColor: '#ffffff', logging: false,
-    onclone: (_document, receipt) => { if (thermal) receipt.classList.add('receipt-thermal'); },
-  });
-}
-
-export async function prepareBluetoothReceipt(element, charWidth = 32) {
-  const canvas = await captureReceipt(element, true);
-  const raster = imageToMonochromeBits(canvas, Number(charWidth) >= 48 ? 576 : 384);
-  const preview = document.createElement('canvas');
-  preview.width = raster.widthPx;
-  preview.height = raster.heightPx;
-  const ctx = preview.getContext('2d');
-  const pixels = ctx.createImageData(preview.width, preview.height);
-  const stride = Math.ceil(preview.width / 8);
-  for (let y = 0; y < preview.height; y++) {
-    for (let x = 0; x < preview.width; x++) {
-      const value = raster.bits[y * stride + (x >> 3)] & (0x80 >> (x % 8)) ? 0 : 255;
-      const i = (y * preview.width + x) * 4;
-      pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = value;
-      pixels.data[i + 3] = 255;
-    }
-  }
-  ctx.putImageData(pixels, 0, 0);
-  return { raster, preview };
+  return window.html2canvas(element, { scale: 2, backgroundColor: '#ffffff', logging: false });
 }
 
 function filename(invoiceNumber, extension) {

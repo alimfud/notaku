@@ -65,45 +65,53 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       await page.waitForSelector('#receiptCapture');
       const ratio = await page.locator('.receipt-logo').evaluate(img => img.getBoundingClientRect().width / img.parentElement.getBoundingClientRect().width);
       assert.ok(Math.abs(ratio - width / 100) < 0.005);
-      const rasterResult = await page.evaluate(async () => {
-        const { prepareBluetoothReceipt } = await import('./js/services/printerService.js');
+      const nativeResult = await page.evaluate(async logoWidth => {
         const { buildReceiptBytes } = await import('./js/services/printing/bluetoothPrinter.js');
+        const data = {
+          storeName: 'TOKO UJI', storeAddress: 'Jalan Contoh 12', storePhone: '08123456789',
+          logoData: new URL('docs/logo.webp', location.href).href, logoMaxWidth: logoWidth,
+          invoiceNumber: 'INV-260901', dateLabel: '23 Sep 2026', timeLabel: '11:44',
+          customerName: 'Pelanggan Uji', customerAddress: 'Alamat pelanggan', customerPhoneDisplay: '*******890',
+          lines: [{ name: 'Produk dengan nama panjang untuk memeriksa wrapping dan alignment', qty: 2.5, unit: 'meter', price: 12000, subtotal: 30000, note: 'Catatan barang' }],
+          discount: 1500, shipping: 5000, other: 0, total: 33500, paid: 10000, remaining: 23500,
+          note: 'Catatan nota', qrisImageData: new URL('icons/icon-192.png', location.href).href, footerNote: 'Terima kasih',
+        };
         const results = [];
         for (const charWidth of [32, 48]) {
-          const { raster, preview } = await prepareBluetoothReceipt(document.querySelector('#receiptCapture'), charWidth);
-          const bytes = buildReceiptBytes(raster);
-          let cursor = 5, decoded = [], totalRows = 0;
-          while (bytes[cursor] === 0x1d && bytes[cursor + 1] === 0x76) {
-            const stride = bytes[cursor + 4] + bytes[cursor + 5] * 256;
-            const rows = bytes[cursor + 6] + bytes[cursor + 7] * 256;
-            if (stride !== raster.widthPx / 8 || rows > 128) throw new Error('Invalid raster band');
-            decoded.push(...bytes.subarray(cursor + 8, cursor + 8 + stride * rows));
-            totalRows += rows;
-            cursor += 8 + stride * rows;
+          const bytes = await buildReceiptBytes(data, charWidth);
+          const ascii = String.fromCharCode(...bytes);
+          const rasterHeaders = [];
+          for (let i = 0; i < bytes.length - 7; i++) {
+            if (bytes[i] === 29 && bytes[i + 1] === 118 && bytes[i + 2] === 48) {
+              rasterHeaders.push({ widthBytes: bytes[i + 4] + bytes[i + 5] * 256, rows: bytes[i + 6] + bytes[i + 7] * 256 });
+            }
           }
-          if (decoded.length !== raster.bits.length || decoded.some((b, i) => b !== raster.bits[i]) || totalRows !== raster.heightPx) throw new Error('Print bytes differ from prepared raster');
-          const pixels = preview.getContext('2d').getImageData(0, 0, preview.width, preview.height).data;
-          for (let y = 0; y < preview.height; y++) for (let x = 0; x < preview.width; x++) {
-            const dark = raster.bits[y * (raster.widthPx / 8) + (x >> 3)] & (128 >> (x % 8));
-            if (pixels[(y * preview.width + x) * 4] !== (dark ? 0 : 255)) throw new Error('Preview pixel differs from Bluetooth payload');
-          }
-          results.push({ width: raster.widthPx, height: raster.heightPx, bytes: bytes.length });
+          results.push({ length: bytes.length, ascii, rasterHeaders });
         }
         return results;
-      });
-      assert.deepEqual(rasterResult.map(r => r.width), [384, 576]);
-      console.log(`PASS logo ${width}% and exact preview/payload pixels on 58/80mm`, rasterResult);
+      }, width);
+      for (const result of nativeResult) {
+        assert.match(result.ascii, /TOKO UJI/);
+        assert.match(result.ascii, /Produk dengan nama/);
+        assert.match(result.ascii, /TOTAL/);
+        assert.match(result.ascii, /Rp33\.500/);
+        assert.equal(result.rasterHeaders.length, 2);
+        assert.ok(result.length < 50000, 'native output must not rasterize the full receipt');
+      }
+      assert.equal(nativeResult[0].rasterHeaders[0].widthBytes, Math.floor(384 * width / 100 / 8));
+      assert.equal(nativeResult[1].rasterHeaders[0].widthBytes, Math.floor(576 * width / 100 / 8));
+      console.log(`PASS logo ${width}% with native ESC/POS text on 58/80mm`);
     }
     await page.locator('#printBtn').click();
     await page.locator('#btPrint').click();
-    await page.waitForSelector('.bluetooth-preview-image');
+    await page.waitForSelector('.bluetooth-native-preview');
     await page.locator('.sheet').screenshot({ path: path.join(output, 'bluetooth-preview.png') });
     await page.locator('#cancelPreview').click();
     assert.equal(await page.locator('.sheet').count(), 0);
     console.log('PASS Bluetooth preview and cancellation');
 
     await page.locator('#printBtn').click(); await page.locator('#btPrint').click();
-    await page.waitForSelector('.bluetooth-preview-image');
+    await page.waitForSelector('.bluetooth-native-preview');
     await page.locator('#confirmPrint').click(); await page.locator('#connectReceiptPrinter').click();
     await page.waitForFunction(() => document.querySelector('#toast').textContent.includes('Berhasil dikirim ke printer'));
     const ble = await page.evaluate(async () => {
@@ -113,14 +121,15 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       return { id: (await getSettings()).btPrinterId, length: bytes.length, maxChunk: Math.max(...chunks.map(c => c.length)), first: bytes.slice(0, 5), last: bytes.slice(-3) };
     });
     assert.equal(ble.id, 'test-ble'); assert.ok(ble.length > 1000); assert.ok(ble.maxChunk <= 180);
-    assert.deepEqual(ble.first, [27, 64, 27, 97, 0]); assert.deepEqual(ble.last, [29, 86, 0]);
-    console.log('PASS simulated BLE connection, persisted printer, chunked raster transmission');
+    assert.deepEqual(ble.first, [27, 64, 27, 77, 0]); assert.deepEqual(ble.last, [29, 86, 0]);
+    assert.ok(await page.evaluate(() => String.fromCharCode(...window.__bleChunks.flat()).includes('TOTAL')));
+    console.log('PASS simulated BLE connection, persisted printer, native text and chunked transmission');
 
     await page.evaluate(async () => (await import('./js/services/settingsService.js')).saveSettings({ printPreview: false }));
     await page.goto(base + '#/home'); await page.goto(base + '#/sale/' + saleId); await page.waitForSelector('#receiptCapture');
     await page.locator('#printBtn').click(); await page.locator('#btPrint').click();
     await page.waitForFunction(() => document.querySelector('#loadingOverlay').classList.contains('hidden'));
-    assert.equal(await page.locator('.bluetooth-preview-image').count(), 0);
+    assert.equal(await page.locator('.bluetooth-native-preview').count(), 0);
     await page.evaluate(async () => (await import('./js/services/settingsService.js')).saveSettings({ printPreview: true }));
     await page.goto(base + '#/home'); await page.goto(base + '#/sale/' + saleId); await page.waitForSelector('#receiptCapture');
     console.log('PASS preview setting controls Bluetooth only');
@@ -140,7 +149,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       await page.locator('#printBtn').click();
       await page.locator(type === 'image' ? '#shareImage' : '#doPrint').click();
       await page.waitForSelector('#fileWa');
-      assert.equal(await page.locator('.bluetooth-preview-image').count(), 0);
+      assert.equal(await page.locator('.bluetooth-native-preview').count(), 0);
       const download = page.waitForEvent('download');
       await page.locator('#fileWa').click();
       const file = await download;
@@ -188,11 +197,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     console.log('PASS upload/remove logo restores fallback without losing unsaved store fields');
 
     await page.evaluate(async () => { await navigator.serviceWorker.ready; });
-    await page.waitForFunction(async () => { const cache = await caches.open('notaku-web-v1.5.4'); return !!await cache.match('./js/vendor/jspdf.umd.min.js') && !!await cache.match('./js/vendor/html2canvas.min.js'); });
+    await page.waitForFunction(async () => { const cache = await caches.open('notaku-web-v1.5.6'); return !!await cache.match('./js/vendor/jspdf.umd.min.js') && !!await cache.match('./js/vendor/html2canvas.min.js'); });
     await context.setOffline(true);
     await page.reload(); await page.waitForSelector('#receiptCapture');
     await page.locator('#printBtn').click(); await page.locator('#btPrint').click();
-    await page.waitForSelector('.bluetooth-preview-image'); await page.locator('#cancelPreview').click();
+    await page.waitForSelector('.bluetooth-native-preview'); await page.locator('#cancelPreview').click();
     await page.locator('#printBtn').click(); await page.locator('#doPrint').click(); await page.waitForSelector('#fileSave');
     assert.deepEqual(errors, []);
     console.log('PASS offline logo, Bluetooth preview, PDF, and no browser errors');

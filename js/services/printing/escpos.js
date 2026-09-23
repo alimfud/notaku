@@ -45,6 +45,10 @@ export class EscPosBuilder {
     return this._append([ESC, 0x45, on ? 1 : 0]);
   }
 
+  font(name = 'A') {
+    return this._append([ESC, 0x4d, String(name).toUpperCase() === 'B' ? 1 : 0]);
+  }
+
   /** size 0 = normal, 1 = lebar 2x, 2 = tinggi 2x, 3 = lebar+tinggi 2x */
   size(mode) {
     const map = { 0: 0x00, 1: 0x10, 2: 0x01, 3: 0x11 };
@@ -54,6 +58,15 @@ export class EscPosBuilder {
   line(str = '') {
     this._append(this._text(str));
     return this._append([0x0a]);
+  }
+
+  text(str = '') {
+    return this._append(this._text(String(str)));
+  }
+
+  position(dot) {
+    const x = Math.max(0, Math.round(Number(dot) || 0));
+    return this._append([ESC, 0x24, x & 0xff, (x >> 8) & 0xff]);
   }
 
   feed(n = 1) {
@@ -76,7 +89,7 @@ export class EscPosBuilder {
     const rightDots = Math.min(printableDots - dotsPerChar, Math.max(0, String(right).length * dotsPerChar));
     const x = Math.max(0, printableDots - rightDots);
     this._append(this._text(String(left)));
-    this._append([ESC, 0x24, x & 0xff, (x >> 8) & 0xff]); // ESC $ nL nH
+    this.position(x);
     this._append(this._text(String(right)));
     return this._append([0x0a]);
   }
@@ -88,9 +101,9 @@ export class EscPosBuilder {
     const centerDots = Math.max(0, Math.floor((printableDots - String(center).length * dotsPerChar) / 2));
     const rightDots = Math.max(0, printableDots - String(right).length * dotsPerChar);
     this._append(this._text(String(left)));
-    this._append([ESC, 0x24, centerDots & 0xff, (centerDots >> 8) & 0xff]);
+    this.position(centerDots);
     this._append(this._text(String(center)));
-    this._append([ESC, 0x24, rightDots & 0xff, (rightDots >> 8) & 0xff]);
+    this.position(rightDots);
     this._append(this._text(String(right)));
     return this._append([0x0a]);
   }
@@ -124,7 +137,7 @@ export class EscPosBuilder {
  * Dithering sederhana (threshold) — cukup untuk QR code (kontras tinggi,
  * tidak butuh gradasi warna).
  */
-export function imageToMonochromeBits(canvas, targetWidthPx) {
+export function imageToMonochromeBits(canvas, targetWidthPx, threshold = 160) {
   const scale = targetWidthPx / canvas.width;
   const targetHeight = Math.round(canvas.height * scale);
   const off = document.createElement('canvas');
@@ -143,7 +156,7 @@ export function imageToMonochromeBits(canvas, targetWidthPx) {
       const idx = (y * targetWidthPx + x) * 4;
       const r = imgData.data[idx], g = imgData.data[idx + 1], b = imgData.data[idx + 2];
       const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-      const dark = lum < 160; // threshold
+      const dark = lum < threshold;
       if (dark) {
         const byteIndex = y * widthBytes + (x >> 3);
         bits[byteIndex] |= 0x80 >> (x % 8);

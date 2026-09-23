@@ -17,7 +17,7 @@
 // TIDAK didukung Safari/iOS sama sekali (kebijakan Apple).
 // ===============================================================================
 
-import { EscPosBuilder } from './escpos.js';
+import { EscPosBuilder, imageToMonochromeBits } from './escpos.js';
 
 // UUID service/characteristic yang umum dipakai modul BLE UART pada printer
 // thermal murah (banyak printer generic Cina memakai salah satu dari ini).
@@ -133,23 +133,140 @@ async function writeBytes(bytes) {
   }
 }
 
-/** Send the exact monochrome bitmap shown in the Bluetooth preview. */
-export async function printReceiptViaBluetooth(raster) {
+/** Print text with the printer's native font. Only logo/QRIS remain bitmaps. */
+export async function printReceiptViaBluetooth(receiptData, { charWidth = 32 } = {}) {
   if (!isConnected()) throw new Error('Printer belum tersambung. Sambungkan dulu lewat Setting → Printer.');
-  await writeBytes(buildReceiptBytes(raster));
+  await writeBytes(await buildReceiptBytes(receiptData, charWidth));
 }
 
-export function buildReceiptBytes({ widthPx, heightPx, bits }) {
-  if (![384, 576].includes(widthPx) || !Number.isInteger(heightPx) || heightPx < 1 ||
-      bits.length !== Math.ceil(widthPx / 8) * heightPx) {
-    throw new Error('Gambar nota Bluetooth tidak valid.');
+export async function buildReceiptBytes(data, charWidth = 32) {
+  const width = Number(charWidth) >= 48 ? 48 : 32;
+  const paperDots = width * 12;
+  const rp = (value) => 'Rp' + Math.round(Number(value) || 0).toLocaleString('id-ID');
+  const b = new EscPosBuilder().font('A').size(0);
+
+  b.align('center');
+  if (data.logoData) {
+    try {
+      const logo = await imageToCanvas(data.logoData);
+      const percent = Math.min(100, Math.max(10, Number(data.logoMaxWidth) || 100));
+      const target = Math.max(8, Math.floor(paperDots * percent / 100 / 8) * 8);
+      const raster = imageToMonochromeBits(logo, target, 190);
+      b.rasterImage(raster.widthPx, raster.heightPx, raster.bits).feed(1);
+    } catch { /* logo must not stop text printing */ }
   }
-  const b = new EscPosBuilder().align('left');
-  const stride = Math.ceil(widthPx / 8);
-  // Small raster bands avoid firmware image-height limits; no feeds between bands.
-  for (let y = 0; y < heightPx; y += 128) {
-    const rows = Math.min(128, heightPx - y);
-    b.rasterImage(widthPx, rows, bits.subarray(y * stride, (y + rows) * stride));
+  b.bold(true);
+  centeredLines(b, data.storeName, width);
+  b.bold(false);
+  if (data.storeAddress) centeredLines(b, data.storeAddress, width);
+  if (data.storePhone) centeredLines(b, data.storePhone, width);
+
+  b.align('left').divider(width);
+  b.threeColumn(data.dateLabel || '', data.timeLabel || '', data.invoiceNumber || '', width);
+  b.divider(width);
+
+  b.align('center').bold(true);
+  centeredLines(b, data.customerName, width);
+  b.bold(false);
+  const customerInfo = [data.customerAddress, data.customerPhoneDisplay].filter(Boolean).join(' - ');
+  if (customerInfo) centeredLines(b, customerInfo, width);
+  b.align('left').feed(1);
+
+  for (const item of data.lines || []) {
+    b.bold(true);
+    twoColumnWrapped(b, item.name, rp(item.subtotal), width);
+    b.bold(false);
+    const qty = `${item.qty} ${item.unit || ''}`.trim();
+    compactQuantityLine(b, `${qty} x`, `@ ${rp(item.price)},-`);
+    if (item.note) wrappedLines(b, item.note, width);
+    b.divider(width, '.');
   }
-  return b.feed(3).cut().toBytes();
+
+  if (data.discount > 0) b.twoColumn('Diskon', '-' + rp(data.discount), width);
+  if (data.shipping > 0) b.twoColumn('Ongkos Kirim', '+' + rp(data.shipping), width);
+  if (data.other > 0) twoColumnWrapped(b, data.otherLabel || 'Lain-lain', '+' + rp(data.other), width);
+  b.divider(width);
+
+  b.bold(true).size(2);
+  b.twoColumn('TOTAL', rp(data.total), width);
+  b.size(0).bold(false);
+  b.twoColumn('BAYAR', rp(data.paid), width);
+  b.bold(true).twoColumn(data.remaining > 0 ? 'SISA' : 'KEMBALI', rp(Math.abs(data.remaining)), width).bold(false);
+
+  if (data.note) {
+    b.feed(1).bold(true).line('Catatan:').bold(false);
+    wrappedLines(b, data.note, width);
+  }
+
+  if (data.qrisImageData) {
+    try {
+      const qris = await imageToCanvas(data.qrisImageData);
+      const qrisWidth = width >= 48 ? 240 : 192;
+      const raster = imageToMonochromeBits(qris, qrisWidth, 180);
+      b.feed(1).align('center').line('Scan QRIS untuk bayar');
+      b.rasterImage(raster.widthPx, raster.heightPx, raster.bits);
+    } catch { /* QRIS image is optional */ }
+  }
+
+  b.feed(1).align('center');
+  for (const line of String(data.footerNote || '').split('\n')) centeredLines(b, line, width);
+  return b.size(0).bold(false).feed(3).cut().toBytes();
+}
+
+function normalizedText(value) {
+  return String(value || '').replace(/[•–—]/g, '-').replace(/\s+/g, ' ').trim();
+}
+
+export function wrapText(value, maxChars) {
+  const text = normalizedText(value);
+  if (!text) return [];
+  const lines = [];
+  let remaining = text;
+  while (remaining.length > maxChars) {
+    let cut = remaining.lastIndexOf(' ', maxChars);
+    if (cut < Math.floor(maxChars / 2)) cut = maxChars;
+    lines.push(remaining.slice(0, cut).trim());
+    remaining = remaining.slice(cut).trim();
+  }
+  if (remaining) lines.push(remaining);
+  return lines;
+}
+
+function wrappedLines(builder, value, width) {
+  for (const line of wrapText(value, width)) builder.line(line);
+}
+
+function centeredLines(builder, value, width) {
+  for (const line of wrapText(value, width)) builder.line(line);
+}
+
+function twoColumnWrapped(builder, left, right, width) {
+  const rightText = normalizedText(right);
+  const maxLeft = Math.max(8, width - rightText.length - 1);
+  const leftLines = wrapText(left, maxLeft);
+  builder.twoColumn(leftLines.shift() || '', rightText, width);
+  for (const line of leftLines) builder.line(line);
+}
+
+function compactQuantityLine(builder, left, right) {
+  const leftText = normalizedText(left);
+  const rightText = normalizedText(right);
+  const fontBDots = 9;
+  const gapDots = fontBDots * 2;
+  builder.font('B').text(leftText);
+  builder.position((leftText.length * fontBDots) + gapDots).line(rightText).font('A');
+}
+
+async function imageToCanvas(src) {
+  const image = new Image();
+  image.src = src;
+  await new Promise((resolve, reject) => {
+    image.onload = resolve;
+    image.onerror = () => reject(new Error('Gambar tidak dapat dimuat.'));
+  });
+  const canvas = document.createElement('canvas');
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  canvas.getContext('2d').drawImage(image, 0, 0);
+  return canvas;
 }

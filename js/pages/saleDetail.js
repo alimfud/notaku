@@ -7,7 +7,7 @@ import { rupiah, dateShort, escapeHtml, qtyLabel, resolveFooterNote, maskPhone, 
 import { openSheet, confirmDialog } from '../ui/dialog.js';
 import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, navigateBack } from '../app.js';
-import { shareAsText, buildShareText, prepareBluetoothReceipt, createReceiptImage, createReceiptPdf, downloadReceiptFile, shareReceiptFile } from '../services/printerService.js';
+import { shareAsText, buildShareText, createReceiptImage, createReceiptPdf, downloadReceiptFile, shareReceiptFile } from '../services/printerService.js';
 import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
 
 export async function render(root, params) {
@@ -262,7 +262,7 @@ async function showShareSheet(root, sale, items, settings, paidAmount, remaining
     body.querySelector('#doPrint').onclick = () => close('print');
   });
 
-  if (result === 'bluetooth') { await handleBluetoothPrint(settings); return; }
+  if (result === 'bluetooth') { await handleBluetoothPrint(sale, items, settings, paidAmount, remaining); return; }
 
   if (result === 'chatwa') {
     const waNumber = toWhatsAppNumber(sale.customerPhone);
@@ -323,20 +323,49 @@ async function showFileShare(file, waNumber, isPdf) {
   });
 }
 
-async function handleBluetoothPrint(settings) {
+function buildBluetoothReceiptData(sale, items, settings, paidAmount, remaining) {
+  return {
+    storeName: settings.storeName,
+    storeAddress: settings.storeAddress,
+    storePhone: settings.storePhone,
+    logoData: receiptLogo(settings),
+    logoMaxWidth: logoWidth(settings),
+    invoiceNumber: sale.invoiceNumber,
+    dateLabel: dateShort(sale.saleDate),
+    timeLabel: sale.saleTime,
+    customerName: sale.customerName,
+    customerAddress: sale.customerAddress,
+    customerPhoneDisplay: displayPhone(sale.customerPhone, settings),
+    lines: items.map((item) => ({
+      name: item.productName, qty: item.qty, unit: item.unit,
+      price: item.price, subtotal: item.subtotal, note: item.note,
+    })),
+    discount: sale.discountAmount,
+    shipping: sale.shippingAmount,
+    other: sale.otherAmount,
+    otherLabel: sale.otherLabel,
+    total: sale.total,
+    paid: paidAmount,
+    remaining,
+    note: sale.note,
+    qrisImageData: settings.qrisEnabled && settings.qrisImageData && remaining > 0 ? settings.qrisImageData : '',
+    footerNote: resolveFooterNote(settings.footerNote),
+  };
+}
+
+async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining) {
   const bt = await import('../services/printing/bluetoothPrinter.js');
+  const receiptData = buildBluetoothReceiptData(sale, items, settings, paidAmount, remaining);
   const loading = document.getElementById('loadingOverlay');
   loading.classList.remove('hidden');
   try {
-    const prepared = await prepareBluetoothReceipt(document.getElementById('receiptCapture'), settings.btCharWidth);
     loading.classList.add('hidden');
-    if (settings.printPreview && !await showBluetoothPreview(prepared.preview, settings.btCharWidth)) return;
+    if (settings.printPreview && !await showBluetoothPreview(receiptData, settings.btCharWidth)) return;
     loading.classList.remove('hidden');
     if (!bt.isConnected()) {
       const reconnected = settings.btPrinterId ? await bt.reconnectSaved(settings.btPrinterId) : null;
       if (!reconnected) {
         loading.classList.add('hidden');
-        // Request the device directly inside the click handler (browser gesture requirement).
         const connected = await openSheet((body, close) => {
           body.innerHTML = '<div class="sheet-title">Printer Belum Tersambung</div><p class="receipt-share-help">Nyalakan printer dan Bluetooth perangkat, lalu pilih printer.</p><button class="btn" id="connectReceiptPrinter">Cari Printer</button>';
           body.querySelector('#connectReceiptPrinter').onclick = async (event) => {
@@ -356,7 +385,7 @@ async function handleBluetoothPrint(settings) {
         loading.classList.remove('hidden');
       }
     }
-    await bt.printReceiptViaBluetooth(prepared.raster);
+    await bt.printReceiptViaBluetooth(receiptData, { charWidth: settings.btCharWidth || 32 });
     toast('Berhasil dikirim ke printer');
   } catch (e) {
     toast(e.message || 'Gagal mencetak via Bluetooth.');
@@ -365,12 +394,29 @@ async function handleBluetoothPrint(settings) {
   }
 }
 
-/** Display the very same black/white pixels encoded in the ESC/POS payload. */
-async function showBluetoothPreview(preview, charWidth) {
+async function showBluetoothPreview(data, charWidth) {
+  const is80mm = Number(charWidth) >= 48;
+  const widthClass = is80mm ? 'bluetooth-native-preview--80' : 'bluetooth-native-preview--58';
   return await openSheet((body, close) => {
-    body.innerHTML = `<div class="sheet-title">Preview Bluetooth</div><div class="print-preview-label">Bluetooth ${Number(charWidth) >= 48 ? '80mm' : '58mm'}</div><div class="print-preview-wrap"></div><div class="sheet-actions"><button class="btn secondary" id="cancelPreview">Kembali</button><button class="btn" id="confirmPrint">Cetak Bluetooth</button></div>`;
-    preview.className = 'bluetooth-preview-image';
-    body.querySelector('.print-preview-wrap').appendChild(preview);
+    body.innerHTML = `<div class="sheet-title">Preview Bluetooth</div><div class="print-preview-label">Teks tajam • Bluetooth ${is80mm ? '80mm' : '58mm'}</div><div class="print-preview-wrap"><div class="bluetooth-native-preview ${widthClass}">
+      <div class="bluetooth-native-center"><img src="${escapeHtml(data.logoData)}" class="receipt-logo logo-width-${data.logoMaxWidth}" alt="Logo"><b>${escapeHtml(data.storeName)}</b>${data.storeAddress ? `<span>${escapeHtml(data.storeAddress)}</span>` : ''}${data.storePhone ? `<span>${escapeHtml(data.storePhone)}</span>` : ''}</div>
+      <div class="bluetooth-native-divider"></div>
+      <div class="bluetooth-native-columns"><span>${escapeHtml(data.dateLabel)}</span><span>${escapeHtml(data.timeLabel)}</span><span>${escapeHtml(data.invoiceNumber)}</span></div>
+      <div class="bluetooth-native-divider"></div>
+      <div class="bluetooth-native-center"><b>${escapeHtml(data.customerName)}</b>${data.customerAddress || data.customerPhoneDisplay ? `<span>${escapeHtml([data.customerAddress, data.customerPhoneDisplay].filter(Boolean).join(' - '))}</span>` : ''}</div>
+      <div class="bluetooth-native-gap"></div>
+      ${data.lines.map((item) => `<div class="bluetooth-native-item"><div class="bluetooth-native-pair bluetooth-native-bold"><span>${escapeHtml(item.name)}</span><span>${rupiah(item.subtotal)}</span></div><div class="bluetooth-native-quantity"><span>${qtyLabel(item.qty)} ${escapeHtml(item.unit || '')} x</span><span>@ ${rupiah(item.price)},-</span></div>${item.note ? `<div>${escapeHtml(item.note)}</div>` : ''}</div>`).join('')}
+      ${data.discount > 0 ? `<div class="bluetooth-native-pair"><span>Diskon</span><span>-${rupiah(data.discount)}</span></div>` : ''}
+      ${data.shipping > 0 ? `<div class="bluetooth-native-pair"><span>Ongkos Kirim</span><span>+${rupiah(data.shipping)}</span></div>` : ''}
+      ${data.other > 0 ? `<div class="bluetooth-native-pair"><span>${escapeHtml(data.otherLabel || 'Lain-lain')}</span><span>+${rupiah(data.other)}</span></div>` : ''}
+      <div class="bluetooth-native-divider"></div>
+      <div class="bluetooth-native-pair bluetooth-native-total"><span>TOTAL</span><span>${rupiah(data.total)}</span></div>
+      <div class="bluetooth-native-pair"><span>BAYAR</span><span>${rupiah(data.paid)}</span></div>
+      <div class="bluetooth-native-pair bluetooth-native-bold"><span>${data.remaining > 0 ? 'SISA' : 'KEMBALI'}</span><span>${rupiah(Math.abs(data.remaining))}</span></div>
+      ${data.note ? `<div class="bluetooth-native-note"><b>Catatan:</b><br>${escapeHtml(data.note)}</div>` : ''}
+      ${data.qrisImageData ? `<div class="bluetooth-native-center"><span>Scan QRIS untuk bayar</span><img class="bluetooth-native-qris" src="${escapeHtml(data.qrisImageData)}" alt="QRIS"></div>` : ''}
+      <div class="bluetooth-native-footer">${escapeHtml(data.footerNote)}</div>
+    </div></div><div class="sheet-actions"><button class="btn secondary" id="cancelPreview">Kembali</button><button class="btn" id="confirmPrint">Cetak Bluetooth</button></div>`;
     body.querySelector('#cancelPreview').onclick = () => close(false);
     body.querySelector('#confirmPrint').onclick = () => close(true);
   }) === true;
