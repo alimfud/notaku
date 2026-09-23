@@ -10,14 +10,14 @@
 // (Chrome/Edge sengaja tidak mengekspos socket Bluetooth klasik ke halaman
 // web, alasan keamanan). Kalau setelah "Cari Printer" printer kamu tidak
 // muncul di daftar sama sekali, kemungkinan besar itu printer Bluetooth
-// klasik — solusinya pakai "Cetak / Simpan PDF" lalu bagikan ke app seperti
+// klasik — solusinya pakai "Simpan PDF" lalu bagikan ke app seperti
 // RawBT (app Android terpisah yang bisa jembatani ke printer klasik).
 //
 // Web Bluetooth JUGA hanya didukung Chrome/Edge di Android & Desktop —
 // TIDAK didukung Safari/iOS sama sekali (kebijakan Apple).
 // ===============================================================================
 
-import { EscPosBuilder, imageToMonochromeBits } from './escpos.js';
+import { EscPosBuilder } from './escpos.js';
 
 // UUID service/characteristic yang umum dipakai modul BLE UART pada printer
 // thermal murah (banyak printer generic Cina memakai salah satu dari ini).
@@ -63,7 +63,7 @@ async function findWritableCharacteristic(server) {
 /** Buka dialog pemilih perangkat Bluetooth Android/Chrome, lalu hubungkan. */
 export async function scanAndConnect() {
   if (!isSupported()) {
-    throw new Error('Browser ini tidak mendukung Bluetooth langsung. Pakai Chrome/Edge di Android, atau gunakan "Cetak / Simpan PDF".');
+    throw new Error('Browser ini tidak mendukung Bluetooth langsung. Pakai Chrome/Edge di Android, atau gunakan "Simpan PDF".');
   }
   const device = await navigator.bluetooth.requestDevice({
     acceptAllDevices: true,
@@ -133,97 +133,23 @@ async function writeBytes(bytes) {
   }
 }
 
-/**
- * Cetak struk lewat printer Bluetooth yang sedang tersambung.
- *
- * Catatan desain (setelah perbaikan): TOTAL dan nama toko sengaja TIDAK
- * memakai mode "lebar ganda" (GS ! width multiplier) lagi — sebelumnya itu
- * menyebabkan teks "TOTAL" tumpang tindih/terpotong ("OO.OOO") di printer
- * fisik, karena perhitungan lebar kolom di twoColumn() tidak menyesuaikan
- * dengan lebar karakter yang jadi dua kali lipat saat mode itu aktif. Bold
- * saja jauh lebih aman dan konsisten di berbagai firmware printer murah.
- *
- * QRIS SENGAJA TIDAK dicetak lewat jalur Bluetooth (raster bitmap) —
- * resolusi cetak printer thermal murah sering membuat kode QR tidak bisa
- * di-scan sama sekali, jadi percuma. QRIS tetap muncul di tampilan layar
- * (SaleDetailScreen) dan saat dibagikan sebagai gambar/PDF (resolusi utuh,
- * masih bisa di-scan lewat layar HP pelanggan).
- */
-export async function printReceiptViaBluetooth(receiptData, { charWidth = 32 } = {}) {
+/** Send the exact monochrome bitmap shown in the Bluetooth preview. */
+export async function printReceiptViaBluetooth(raster) {
   if (!isConnected()) throw new Error('Printer belum tersambung. Sambungkan dulu lewat Setting → Printer.');
-
-  const rp = (n) => Math.round(n || 0).toLocaleString('id-ID');
-  const b = new EscPosBuilder();
-
-  // ---------- Kop toko ----------
-  b.align('center');
-  if (receiptData.logoData) {
-    try {
-      const canvas = await dataUrlToCanvas(receiptData.logoData);
-      const paperPx = charWidth >= 48 ? 384 : 256;
-      const maxPx = Math.round(paperPx * Math.min(100, Math.max(10, Number(receiptData.logoMaxWidth) || 100)) / 100);
-      const mono = imageToMonochromeBits(canvas, maxPx);
-      b.rasterImage(mono.widthPx, mono.heightPx, mono.bits);
-    } catch (e) { /* logo tidak boleh menggagalkan cetak struk */ }
-  }
-  b.bold(true);
-  b.line(receiptData.storeName);
-  b.bold(false);
-  if (receiptData.storeAddress) b.line(receiptData.storeAddress);
-  if (receiptData.storePhone) b.line(receiptData.storePhone);
-  // ---------- Tanggal, jam, no. nota ----------
-  b.align('left');
-  b.threeColumn(receiptData.dateLabel, receiptData.timeLabel, receiptData.invoiceNumber, charWidth);
-  b.divider(charWidth);
-
-  // ---------- Pelanggan ----------
-  b.align('center').bold(true).line(receiptData.customerName).bold(false);
-  const addressPhoneLine = [receiptData.customerAddress, receiptData.customerPhoneDisplay].filter(Boolean).join(' • ');
-  if (addressPhoneLine) b.line(addressPhoneLine);
-  b.align('left');
-  b.feed(1);
-
-  // ---------- Daftar item ----------
-  receiptData.lines.forEach((line) => {
-    b.bold(true).twoColumn(line.name, rp(line.subtotal), charWidth).bold(false);
-    const qty = `${line.qty} ${line.unit || ''}`.trim();
-    b.twoColumn(`${qty} x`, `@ ${rp(line.price)},-`, charWidth);
-    if (line.note) b.line(line.note);
-  });
-  b.divider(charWidth);
-
-  // Rincian tambahan lalu total. Tidak ada QTY/SUBTOTAL agar struk ringkas.
-  if (receiptData.discount > 0) b.twoColumn('Diskon', '-' + rp(receiptData.discount), charWidth);
-  if (receiptData.shipping > 0) b.twoColumn('Ongkos Kirim', '+' + rp(receiptData.shipping), charWidth);
-  if (receiptData.other > 0) b.twoColumn(receiptData.otherLabel || 'Lain-lain', '+' + rp(receiptData.other), charWidth);
-  b.divider(charWidth);
-
-  b.bold(true);
-  b.twoColumn('TOTAL', rp(receiptData.total), charWidth);
-  b.bold(false);
-  b.twoColumn('BAYAR', rp(receiptData.paid), charWidth);
-  const remLabel = receiptData.remaining > 0 ? 'SISA' : 'KEMBALI';
-  b.twoColumn(remLabel, rp(Math.abs(receiptData.remaining)), charWidth);
-
-  if (receiptData.note) { b.feed(1); b.line('Catatan: ' + receiptData.note); }
-
-  b.feed(1);
-  b.align('center');
-  if (receiptData.footerNote) {
-    for (const l of receiptData.footerNote.split('\n')) b.line(l);
-  }
-  b.feed(3);
-  b.cut();
-
-  await writeBytes(b.toBytes());
+  await writeBytes(buildReceiptBytes(raster));
 }
 
-async function dataUrlToCanvas(src) {
-  const image = new Image();
-  image.src = src;
-  await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; });
-  const canvas = document.createElement('canvas');
-  canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
-  canvas.getContext('2d').drawImage(image, 0, 0);
-  return canvas;
+export function buildReceiptBytes({ widthPx, heightPx, bits }) {
+  if (![384, 576].includes(widthPx) || !Number.isInteger(heightPx) || heightPx < 1 ||
+      bits.length !== Math.ceil(widthPx / 8) * heightPx) {
+    throw new Error('Gambar nota Bluetooth tidak valid.');
+  }
+  const b = new EscPosBuilder().align('left');
+  const stride = Math.ceil(widthPx / 8);
+  // Small raster bands avoid firmware image-height limits; no feeds between bands.
+  for (let y = 0; y < heightPx; y += 128) {
+    const rows = Math.min(128, heightPx - y);
+    b.rasterImage(widthPx, rows, bits.subarray(y * stride, (y + rows) * stride));
+  }
+  return b.feed(3).cut().toBytes();
 }

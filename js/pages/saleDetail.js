@@ -7,7 +7,8 @@ import { rupiah, dateShort, escapeHtml, qtyLabel, resolveFooterNote, maskPhone, 
 import { openSheet, confirmDialog } from '../ui/dialog.js';
 import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, navigateBack } from '../app.js';
-import { printReceipt, shareAsText, shareAsImage, buildShareText } from '../services/printerService.js';
+import { shareAsText, buildShareText, prepareBluetoothReceipt, createReceiptImage, createReceiptPdf, downloadReceiptFile, shareReceiptFile } from '../services/printerService.js';
+import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
 
 export async function render(root, params) {
   setPageTitle('Detail Nota');
@@ -47,7 +48,7 @@ async function draw(root, saleId) {
       <div class="receipt-alert receipt-alert--completed">
         <div class="receipt-alert-text">Ditandai <b>SELESAI otomatis</b> karena tanggal pengambilan sudah lewat. Ketuk "Tandai Belum Selesai" di bawah kalau ini keliru.</div>
       </div>` : ''}
-    <div style="padding:16px;">
+    <div class="sale-detail-receipt-wrap">
       <div class="receipt" id="receiptCapture">
         ${receiptLogoMarkup(settings)}
         <div class="receipt-shop">${escapeHtml(settings.storeName)}</div>
@@ -70,7 +71,7 @@ async function draw(root, saleId) {
           ${sale.otherAmount > 0 ? `<div class="tr"><span>${escapeHtml(sale.otherLabel || 'Lain-lain')}</span><span>+${rupiah(sale.otherAmount)}</span></div>` : ''}
           <div class="tr grand"><span>TOTAL</span><span>${rupiah(sale.total)}</span></div>
           <div class="tr"><span>BAYAR</span><span>${rupiah(paidAmount)}</span></div>
-          <div class="tr" style="color:${remaining > 0 ? 'var(--accent)' : 'var(--status-lunas)'};font-weight:700;">
+          <div class="tr receipt-balance ${remaining > 0 ? 'receipt-balance--due' : 'receipt-balance--paid'}">
             <span>${remaining > 0 ? 'SISA' : 'KEMBALI'}</span><span>${rupiah(Math.abs(remaining))}</span>
           </div>
         </div>
@@ -84,21 +85,21 @@ async function draw(root, saleId) {
       </div>
     </div>
     ${payments.length ? `
-      <div class="section-title">Riwayat Pembayaran <span style="font-weight:400;text-transform:none;font-style:italic;">(ketuk untuk koreksi)</span></div>
-      <div class="list" style="padding:0 16px;">
+      <div class="section-title">Riwayat Pembayaran <span class="sale-detail-payment-hint">(ketuk untuk koreksi)</span></div>
+      <div class="sale-detail-payment-list list">
         ${payments.map((p) => `
-          <button class="row" data-pid="${p.id}" style="padding:8px 0;border-bottom:1px solid var(--outline);border-radius:0;background:none;">
+          <button class="sale-detail-payment-row row" data-pid="${p.id}">
             <div class="row-body">
-              <div style="font-weight:600;font-size:14px;">${rupiah(p.amount)}</div>
+              <div class="sale-detail-payment-amount">${rupiah(p.amount)}</div>
               <div class="row-meta">${p.paymentDate} • ${p.paymentTime}${p.note ? ' • ' + escapeHtml(p.note) : ''}</div>
             </div>
-            <span style="color:var(--muted);">✎</span>
+            <span class="sale-detail-payment-edit">✎</span>
           </button>`).join('')}
       </div>` : ''}
-    <div style="padding:20px 16px;">
-      <button id="toggleCompletedBtn" class="btn ${sale.completed ? 'secondary' : ''}" style="margin:0; justify-self: center;">${sale.completed ? '↺ Tandai Belum Selesai' : '✓ Tandai Selesai'}</button>
-      <button id="addPaymentBtn" class="btn secondary" style="margin-top:10px;">+ Tambah Pembayaran</button>
-      <button id="printBtn" class="btn secondary" style="margin-top:10px;">Bagikan Nota</button>
+    <div class="sale-detail-actions">
+      <button id="toggleCompletedBtn" class="sale-detail-complete-action btn ${sale.completed ? 'secondary' : ''}">${sale.completed ? '↺ Tandai Belum Selesai' : '✓ Tandai Selesai'}</button>
+      <button id="addPaymentBtn" class="sale-detail-secondary-action btn secondary">+ Tambah Pembayaran</button>
+      <button id="printBtn" class="sale-detail-secondary-action btn secondary">Bagikan Nota</button>
     </div>
   `;
 
@@ -132,7 +133,7 @@ async function handleAddPayment(root, saleId, remaining) {
   const result = await openSheet((body, close) => {
     body.innerHTML = `
       <div class="sheet-title">Tambah Pembayaran</div>
-      <div style="padding:0 20px 8px;color:var(--muted);font-size:13px;">Sisa saat ini: ${rupiah(remaining)}</div>
+      <div class="sale-detail-payment-help">Sisa saat ini: ${rupiah(remaining)}</div>
       <div class="field"><label>Jumlah Bayar</label><input id="pAmount" type="number" inputmode="numeric" autofocus></div>
       <button class="btn" id="pSave">Simpan</button>
     `;
@@ -157,9 +158,9 @@ async function handleEditPayment(root, saleId, payment) {
     body.innerHTML = `
       <div class="sheet-title">Koreksi Pembayaran</div>
       <div class="field"><label>Jumlah Bayar</label><input id="pAmount" type="number" inputmode="numeric" value="${Math.round(payment.amount)}" autofocus></div>
-      <div class="field" style="display:flex;gap:12px;">
-        <div style="flex:1;"><label>Tanggal</label><input id="pDate" type="date" value="${payment.paymentDate}"></div>
-        <div style="flex:1;"><label>Jam</label><input id="pTime" type="time" value="${payment.paymentTime}"></div>
+      <div class="sale-detail-payment-datetime field">
+        <div class="sale-detail-payment-field"><label>Tanggal</label><input id="pDate" type="date" value="${payment.paymentDate}"></div>
+        <div class="sale-detail-payment-field"><label>Jam</label><input id="pTime" type="time" value="${payment.paymentTime}"></div>
       </div>
       <div class="field"><label>Catatan (opsional)</label><input id="pNote" value="${escapeHtml(payment.note || '')}"></div>
       <button class="btn" id="pSave">Simpan Perubahan</button>
@@ -224,7 +225,9 @@ function buildReceiptDataForShare(sale, items, settings, paidAmount, remaining) 
     invoiceNumber: sale.invoiceNumber,
     dateLabel: dateShort(sale.saleDate),
     customerName: sale.customerName,
-    lines: items.map((i) => ({ name: i.productName, qty: i.qty, unit: i.unit, subtotal: i.subtotal, price: i.price })),
+    lines: items.map((i) => ({ name: i.productName, qty: i.qty, unit: i.unit, subtotal: i.subtotal, price: i.price, note: i.note })),
+    discount: sale.discountAmount, shipping: sale.shippingAmount,
+    other: sale.otherAmount, otherLabel: sale.otherLabel, note: sale.note,
     total: sale.total,
     paid: paidAmount,
     remaining,
@@ -232,13 +235,8 @@ function buildReceiptDataForShare(sale, items, settings, paidAmount, remaining) 
   };
 }
 
-function getReceiptLogo(settings) {
-  return settings.storeLogoData || 'docs/logo.webp';
-}
-
 function receiptLogoMarkup(settings) {
-  const width = Math.min(100, Math.max(10, Number(settings.storeLogoMaxWidth) || 100));
-  return `<div class="receipt-logo-wrap"><img src="${getReceiptLogo(settings)}" alt="Logo toko" class="receipt-logo" style="--receipt-logo-max-width:${width}%;"></div>`;
+  return `<div class="receipt-logo-wrap"><img src="${escapeHtml(receiptLogo(settings))}" alt="Logo toko" class="receipt-logo logo-width-${logoWidth(settings)}"></div>`;
 }
 
 async function showShareSheet(root, sale, items, settings, paidAmount, remaining) {
@@ -264,11 +262,7 @@ async function showShareSheet(root, sale, items, settings, paidAmount, remaining
     body.querySelector('#doPrint').onclick = () => close('print');
   });
 
-  if (result === 'print') {
-    if (!settings.printPreview || await showPrintPreview(settings.paperSize)) printReceipt();
-    return;
-  }
-  if (result === 'bluetooth') { await handleBluetoothPrint(sale, items, settings, paidAmount, remaining); return; }
+  if (result === 'bluetooth') { await handleBluetoothPrint(settings); return; }
 
   if (result === 'chatwa') {
     const waNumber = toWhatsAppNumber(sale.customerPhone);
@@ -290,86 +284,96 @@ async function showShareSheet(root, sale, items, settings, paidAmount, remaining
     } catch (e) { toast('Gagal membagikan nota.'); }
     return;
   }
-  if (result === 'image') {
+  if (result === 'image' || result === 'print') {
+    document.getElementById('loadingOverlay').classList.remove('hidden');
     try {
       const el = document.getElementById('receiptCapture');
-      const status = await shareAsImage(el, sale.invoiceNumber);
-      if (status === 'downloaded') toast('Gambar nota diunduh');
-    } catch (e) { toast(e.message || 'Gagal membuat gambar nota.'); }
+      const file = result === 'image'
+        ? await createReceiptImage(el, sale.invoiceNumber)
+        : await createReceiptPdf(el, sale.invoiceNumber, settings.paperSize);
+      document.getElementById('loadingOverlay').classList.add('hidden');
+      await showFileShare(file, toWhatsAppNumber(sale.customerPhone), result === 'print');
+    } catch (e) { toast(e.message || 'Gagal membuat file nota.'); }
+    finally { document.getElementById('loadingOverlay').classList.add('hidden'); }
   }
 }
 
-/** Pratinjau sebelum cetak memakai salinan struk yang sama persis dengan nota. */
-async function showPrintPreview(paperSize) {
-  const labels = { THERMAL_58MM: 'Thermal 58mm', THERMAL_80MM: 'Thermal 80mm', PDF_A4: 'A4' };
-  const result = await openSheet((body, close) => {
-    body.innerHTML = `<div class="sheet-title">Preview Cetak</div><div class="print-preview-label">${labels[paperSize] || 'Thermal 58mm'}</div><div class="print-preview-wrap"></div><div class="sheet-actions"><button class="btn secondary" id="cancelPreview">Kembali</button><button class="btn" id="confirmPrint">Cetak</button></div>`;
-    const receipt = document.getElementById('receiptCapture').cloneNode(true);
-    receipt.removeAttribute('id');
-    receipt.classList.add('print-preview-receipt', `paper-${paperSize}`);
-    body.querySelector('.print-preview-wrap').appendChild(receipt);
-    body.querySelector('#cancelPreview').onclick = () => close(false);
-    body.querySelector('#confirmPrint').onclick = () => close(true);
+// A fresh tap after file generation preserves Web Share / popup user activation.
+async function showFileShare(file, waNumber, isPdf) {
+  await openSheet((body, close) => {
+    body.innerHTML = `<div class="sheet-title">${isPdf ? 'PDF' : 'Gambar'} Nota Siap</div>
+      ${waNumber ? '<p class="receipt-share-help">Unduh file dan buka chat pelanggan, lalu lampirkan file tersebut di WhatsApp. Menu berbagi perangkat juga tersedia.</p>' : ''}
+      ${waNumber ? '<button class="btn" id="fileWa">Unduh &amp; Buka WA Pelanggan</button>' : ''}
+      <button class="btn secondary" id="fileShare">Bagikan ${isPdf ? 'PDF' : 'Gambar'}</button>
+      <button class="btn secondary" id="fileSave">Simpan ${isPdf ? 'PDF' : 'Gambar'}</button>`;
+    const wa = body.querySelector('#fileWa');
+    if (wa) wa.onclick = () => {
+      downloadReceiptFile(file);
+      window.open(`https://wa.me/${waNumber}`, '_blank', 'noopener');
+      close();
+    };
+    body.querySelector('#fileSave').onclick = () => { downloadReceiptFile(file); toast('File nota diunduh'); close(); };
+    body.querySelector('#fileShare').onclick = async () => {
+      try {
+        const status = await shareReceiptFile(file);
+        if (status === 'downloaded') toast('File nota diunduh');
+        if (status !== 'cancelled') close();
+      } catch (e) { toast(e.message || 'Gagal membagikan file nota.'); }
+    };
   });
-  return result === true;
 }
 
-async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining) {
+async function handleBluetoothPrint(settings) {
   const bt = await import('../services/printing/bluetoothPrinter.js');
-  const phoneDisplay = displayPhone(sale.customerPhone, settings);
-  const receiptData = {
-    storeName: settings.storeName, storeAddress: settings.storeAddress, storePhone: settings.storePhone, logoData: getReceiptLogo(settings), logoMaxWidth: settings.storeLogoMaxWidth,
-    invoiceNumber: sale.invoiceNumber, dateLabel: dateShort(sale.saleDate), timeLabel: sale.saleTime,
-    customerName: sale.customerName, customerAddress: sale.customerAddress, customerPhoneDisplay: phoneDisplay,
-    lines: items.map((i) => ({ name: i.productName, qty: i.qty, unit: i.unit, price: i.price, subtotal: i.subtotal, note: i.note })),
-    subtotal: sale.subtotal, discount: sale.discountAmount,
-    shipping: sale.shippingAmount, other: sale.otherAmount, otherLabel: sale.otherLabel,
-    total: sale.total, paid: paidAmount, remaining, note: sale.note,
-    footerNote: resolveFooterNote(settings.footerNote),
-  };
-
-  const previewed = await showBluetoothPreview(settings.btCharWidth || 32);
-  if (!previewed) return;
-  document.getElementById('loadingOverlay').classList.remove('hidden');
+  const loading = document.getElementById('loadingOverlay');
+  loading.classList.remove('hidden');
   try {
+    const prepared = await prepareBluetoothReceipt(document.getElementById('receiptCapture'), settings.btCharWidth);
+    loading.classList.add('hidden');
+    if (settings.printPreview && !await showBluetoothPreview(prepared.preview, settings.btCharWidth)) return;
+    loading.classList.remove('hidden');
     if (!bt.isConnected()) {
       const reconnected = settings.btPrinterId ? await bt.reconnectSaved(settings.btPrinterId) : null;
       if (!reconnected) {
-        document.getElementById('loadingOverlay').classList.add('hidden');
-        const confirmScan = await confirmDialog({
-          title: 'Printer Belum Tersambung',
-          message: 'Cari printer Bluetooth sekarang? Pastikan printer sudah menyala dan Bluetooth HP aktif.',
-          confirmLabel: 'Cari Printer',
+        loading.classList.add('hidden');
+        // Request the device directly inside the click handler (browser gesture requirement).
+        const connected = await openSheet((body, close) => {
+          body.innerHTML = '<div class="sheet-title">Printer Belum Tersambung</div><p class="receipt-share-help">Nyalakan printer dan Bluetooth perangkat, lalu pilih printer.</p><button class="btn" id="connectReceiptPrinter">Cari Printer</button>';
+          body.querySelector('#connectReceiptPrinter').onclick = async (event) => {
+            event.currentTarget.disabled = true;
+            try {
+              const info = await bt.scanAndConnect();
+              const { saveSettings } = await import('../services/settingsService.js');
+              await saveSettings({ btPrinterId: info.id, btPrinterName: info.name });
+              close(true);
+            } catch (error) {
+              toast(error.message || 'Gagal menyambungkan printer.');
+              body.querySelector('#connectReceiptPrinter').disabled = false;
+            }
+          };
         });
-        if (!confirmScan) return;
-        document.getElementById('loadingOverlay').classList.remove('hidden');
-        await bt.scanAndConnect();
+        if (!connected) return;
+        loading.classList.remove('hidden');
       }
     }
-
-    await bt.printReceiptViaBluetooth(receiptData, { charWidth: settings.btCharWidth || 32 });
+    await bt.printReceiptViaBluetooth(prepared.raster);
     toast('Berhasil dikirim ke printer');
   } catch (e) {
     toast(e.message || 'Gagal mencetak via Bluetooth.');
   } finally {
-    document.getElementById('loadingOverlay').classList.add('hidden');
+    loading.classList.add('hidden');
   }
 }
 
-/** Preview Bluetooth memakai salinan elemen nota yang sama, bukan preview PDF. */
-async function showBluetoothPreview(charWidth) {
-  const paperLabel = charWidth >= 48 ? 'Bluetooth 80mm' : 'Bluetooth 58mm';
-  const result = await openSheet((body, close) => {
-    body.innerHTML = `<div class="sheet-title">Preview Bluetooth</div><div class="print-preview-label">${paperLabel}</div><div class="print-preview-wrap"></div><div class="sheet-actions"><button class="btn secondary" id="cancelPreview">Kembali</button><button class="btn" id="confirmPrint">Cetak Bluetooth</button></div>`;
-    const receipt = document.getElementById('receiptCapture').cloneNode(true);
-    receipt.removeAttribute('id');
-    receipt.classList.add('print-preview-receipt', 'bluetooth-preview-receipt');
-    if (charWidth >= 48) receipt.classList.add('bluetooth-80mm');
-    body.querySelector('.print-preview-wrap').appendChild(receipt);
+/** Display the very same black/white pixels encoded in the ESC/POS payload. */
+async function showBluetoothPreview(preview, charWidth) {
+  return await openSheet((body, close) => {
+    body.innerHTML = `<div class="sheet-title">Preview Bluetooth</div><div class="print-preview-label">Bluetooth ${Number(charWidth) >= 48 ? '80mm' : '58mm'}</div><div class="print-preview-wrap"></div><div class="sheet-actions"><button class="btn secondary" id="cancelPreview">Kembali</button><button class="btn" id="confirmPrint">Cetak Bluetooth</button></div>`;
+    preview.className = 'bluetooth-preview-image';
+    body.querySelector('.print-preview-wrap').appendChild(preview);
     body.querySelector('#cancelPreview').onclick = () => close(false);
     body.querySelector('#confirmPrint').onclick = () => close(true);
-  });
-  return result === true;
+  }) === true;
 }
 
 function displayPhone(phone, settings) {

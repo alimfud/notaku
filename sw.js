@@ -14,17 +14,22 @@
 // Setting) langsung bisa dibuka, bukan cuma halaman yang kebetulan pernah
 // dikunjungi.
 //
-// Yang TIDAK bisa dipakai offline (butuh koneksi karena filenya besar & dari
-// CDN eksternal): impor database lama (perlu sql.js) dan bagikan-sebagai-
-// gambar (perlu html2canvas). Fitur inti (lihat/buat/ubah nota, produk,
+// Impor database lama memerlukan koneksi untuk sql.js. Modul gambar/PDF
+// disimpan lokal dan di-precache, termasuk logo bawaan. Fitur inti (lihat/buat/ubah nota, produk,
 // pelanggan, laporan, cetak, backup lokal) semuanya tetap jalan offline.
 
-const CACHE_VERSION = 'notaku-web-v1.5.3'; // naikkan setiap rilis
+const CACHE_VERSION = 'notaku-web-v1.5.4'; // naikkan setiap rilis
 
 const CORE_ASSETS = [
   './',
   './index.html',
   './css/style.css',
+  './css/receipt.css',
+  './css/page-details-settings.css',
+  './docs/logo.webp',
+  './js/vendor/html2canvas.min.js',
+  './js/vendor/jspdf.umd.min.js',
+  './js/services/receiptLogo.js',
   './manifest.json',
   './version.json',
   './icons/icon-192.png',

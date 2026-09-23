@@ -8,6 +8,7 @@ import { confirmDialog, alertDialog } from '../ui/dialog.js';
 import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, checkForUpdate } from '../app.js';
 import { APP_VERSION } from '../version.js';
+import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
 
 export async function render(root, params) {
   const sub = params[0];
@@ -25,7 +26,7 @@ function tile(icon, title, sub, route) {
     <button class="settings-tile" data-route="${route}">
       <div class="icon-box">${icon}</div>
       <div class="settings-body"><div class="settings-title">${title}</div><div class="settings-sub">${sub}</div></div>
-      <span style="color:var(--muted);">›</span>
+      <span class="settings-muted">›</span>
     </button>`;
 }
 
@@ -33,16 +34,16 @@ function renderHub(root) {
   setPageTitle('Setting');
   setTopbarActions([]);
   root.innerHTML = `
-    <div style="padding-top:8px;">
+    <div class="settings-hub">
       ${tile('🏪', 'Info Toko', 'Nama, alamat, telepon toko', 'settings/store')}
       ${tile('🧾', 'Nomor Nota', 'Prefix, digit, mode reset nomor', 'settings/invoice')}
       ${tile('🖨️', 'Printer', 'Ukuran kertas & printer Bluetooth', 'settings/printer')}
       ${tile('🔳', 'QRIS', 'Tampilkan kode QRIS di struk belum lunas', 'settings/qris')}
-      <div style="height:8px;"></div>
+      <div class="settings-spacer"></div>
       ${tile('☁️', 'Backup / Restore', 'Cadangkan data & impor database lama', 'settings/backup')}
     </div>
-    <div style="padding:20px 16px;color:var(--muted);font-size:12px;text-align:center;">NotaKu Web v${APP_VERSION}</div>
-    <div style="padding:0 16px 20px;text-align:center;">
+    <div class="settings-version">NotaKu Web v${APP_VERSION}</div>
+    <div class="settings-update-action">
       <button class="btn small secondary" id="btnCheckUpdate">Cek Pembaruan</button>
     </div>
   `;
@@ -61,15 +62,15 @@ async function renderStore(root) {
     <div class="field"><label>Alamat</label><textarea id="fAddress" rows="2">${escapeHtml(s.storeAddress)}</textarea></div>
     <div class="field"><label>Telepon</label><input id="fPhone" value="${escapeHtml(s.storePhone)}"></div>
     <div class="field"><label>Catatan Kaki Struk</label><textarea id="fFooter" rows="3">${escapeHtml(s.footerNote)}</textarea><div class="row-meta">Tanggal/jam cetak selalu ditambahkan. Gunakan [print_datetime] bila ingin menaruhnya di posisi tertentu.</div></div>
-    <div class="field"><label>Logo Toko (opsional)</label><input id="fLogo" type="file" accept="image/*"><div class="row-meta">Jika kosong, NotaKu memakai logo bawaan. Ukuran berlaku sama pada nota dan Bluetooth.</div>${s.storeLogoData ? '<button class="btn small ghost" id="removeLogo" style="margin-top:8px;">Hapus Logo</button>' : ''}</div>
-    <div class="field logo-size-field"><label>Lebar Maksimum Logo <output id="logoWidthValue">${s.storeLogoMaxWidth}%</output></label><input id="logoMaxWidth" type="range" min="10" max="100" value="${s.storeLogoMaxWidth}"></div>
+    <div class="field"><label>Logo Toko (opsional)</label><input id="fLogo" type="file" accept="image/*"><div class="row-meta">Jika kosong, NotaKu memakai logo bawaan. Ukuran berlaku sama pada nota dan Bluetooth.</div><button class="settings-logo-remove btn small ghost ${s.storeLogoData ? '' : 'hidden'}" id="removeLogo">Hapus Logo</button></div>
+    <div class="field logo-size-field"><label for="logoMaxWidth">Lebar Maksimum Logo <output id="logoWidthValue">${logoWidth(s)}%</output></label><input id="logoMaxWidth" type="range" min="10" max="100" step="1" value="${logoWidth(s)}"><div class="settings-logo-preview"><img id="storeLogoPreview" class="receipt-logo logo-width-${logoWidth(s)}" src="${escapeHtml(receiptLogo(s))}" alt="Preview logo toko"></div></div>
     <div class="section-title">Privasi Data Pelanggan</div>
-    <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;">
+    <label class="settings-privacy">
       <div>
-        <div style="font-size:14px;font-weight:600;">Tampilan nomor HP pelanggan di struk</div>
+        <div class="settings-label">Tampilan nomor HP pelanggan di struk</div>
         <div class="row-meta">Pilih tampil penuh, 3 digit terakhir, atau sembunyikan.</div>
       </div>
-      <select id="phoneDisplay" style="width:auto;"><option value="FULL" ${(s.customerPhoneDisplay === 'FULL' || (!s.customerPhoneDisplay && !s.maskCustomerPhone)) ? 'selected' : ''}>Full</option><option value="LAST3" ${(s.customerPhoneDisplay === 'LAST3' || (!s.customerPhoneDisplay && s.maskCustomerPhone)) ? 'selected' : ''}>3 digit</option><option value="HIDDEN" ${s.customerPhoneDisplay === 'HIDDEN' ? 'selected' : ''}>Hidden</option></select>
+      <select class="settings-phone-select" id="phoneDisplay"><option value="FULL" ${(s.customerPhoneDisplay === 'FULL' || (!s.customerPhoneDisplay && !s.maskCustomerPhone)) ? 'selected' : ''}>Full</option><option value="LAST3" ${(s.customerPhoneDisplay === 'LAST3' || (!s.customerPhoneDisplay && s.maskCustomerPhone)) ? 'selected' : ''}>3 digit</option><option value="HIDDEN" ${s.customerPhoneDisplay === 'HIDDEN' ? 'selected' : ''}>Hidden</option></select>
     </label>
     <button class="btn" id="fSave">Simpan</button>
   `;
@@ -88,13 +89,34 @@ async function renderStore(root) {
   };
   root.querySelector('#fLogo').onchange = (e) => {
     const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader(); reader.onload = async () => { await saveSettings({ storeLogoData: reader.result }); toast('Logo toko disimpan'); }; reader.readAsDataURL(file);
+    if (!file.type.startsWith('image/')) { toast('Pilih file gambar.'); return; }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const image = new Image();
+      image.src = reader.result;
+      try { await image.decode(); } catch { toast('File gambar tidak dapat dibaca.'); return; }
+      await saveSettings({ storeLogoData: reader.result });
+      root.querySelector('#storeLogoPreview').src = reader.result;
+      root.querySelector('#removeLogo').classList.remove('hidden');
+      toast('Logo toko disimpan');
+    };
+    reader.onerror = () => toast('Gagal membaca gambar.');
+    reader.readAsDataURL(file);
   };
-  const logoWidth = root.querySelector('#logoMaxWidth');
-  logoWidth.oninput = () => { root.querySelector('#logoWidthValue').value = `${logoWidth.value}%`; };
-  logoWidth.onchange = async () => { await saveSettings({ storeLogoMaxWidth: Number(logoWidth.value) }); toast('Ukuran logo disimpan'); };
+  const logoSlider = root.querySelector('#logoMaxWidth');
+  logoSlider.oninput = () => {
+    root.querySelector('#logoWidthValue').value = `${logoSlider.value}%`;
+    root.querySelector('#storeLogoPreview').className = `receipt-logo logo-width-${logoSlider.value}`;
+  };
+  logoSlider.onchange = async () => { await saveSettings({ storeLogoMaxWidth: Number(logoSlider.value) }); toast('Ukuran logo disimpan'); };
   const removeLogo = root.querySelector('#removeLogo');
-  if (removeLogo) removeLogo.onclick = async () => { await saveSettings({ storeLogoData: '' }); await renderStore(root); };
+  removeLogo.onclick = async () => {
+    await saveSettings({ storeLogoData: '' });
+    root.querySelector('#storeLogoPreview').src = receiptLogo({});
+    root.querySelector('#fLogo').value = '';
+    removeLogo.classList.add('hidden');
+    toast('Logo bawaan digunakan');
+  };
 }
 
 async function renderInvoice(root) {
@@ -108,7 +130,7 @@ async function renderInvoice(root) {
     <label class="field-radio"><input type="radio" name="numformat" value="DAILY_SEQUENCE" ${s.invoiceNumberFormat === 'DAILY_SEQUENCE' ? 'checked' : ''}><div><div class="radio-title">Tahun Bulan + Urutan</div><div class="radio-sub">Format: Prefix + TahunBulan + nomor urut dua digit, reset setiap bulan. Contoh: INV-260901.</div></div></label>
     <label class="field-radio"><input type="radio" name="numformat" value="SEQUENTIAL" ${s.invoiceNumberFormat === 'SEQUENTIAL' ? 'checked' : ''}><div><div class="radio-title">Nomor Urut Saja</div><div class="radio-sub">Prefix + angka urut tanpa tanggal, dengan mode reset sendiri.</div></div></label>
 
-    <div id="sequentialFields" style="${s.invoiceNumberFormat === 'SEQUENTIAL' ? '' : 'display:none;'}">
+    <div id="sequentialFields" class="${s.invoiceNumberFormat === 'SEQUENTIAL' ? '' : 'hidden'}">
       <div class="field"><label>Jumlah Digit</label><input id="fDigit" type="number" value="${s.invoiceDigitCount}"></div>
       <div class="field"><label>Nomor Berikutnya</label><input id="fNext" type="number" value="${s.invoiceNextNumber}"></div>
       <div class="section-title">Mode Reset</div>
@@ -116,11 +138,11 @@ async function renderInvoice(root) {
       <label class="field-radio"><input type="radio" name="reset" value="DAILY" ${s.invoiceResetMode === 'DAILY' ? 'checked' : ''}><div><div class="radio-title">Harian</div><div class="radio-sub">Nomor kembali ke 1 setiap hari baru</div></div></label>
       <label class="field-radio"><input type="radio" name="reset" value="MONTHLY" ${s.invoiceResetMode === 'MONTHLY' ? 'checked' : ''}><div><div class="radio-title">Bulanan</div><div class="radio-sub">Nomor kembali ke 1 setiap bulan baru</div></div></label>
     </div>
-    <div id="dailySeqFields" style="${s.invoiceNumberFormat === 'DAILY_SEQUENCE' ? '' : 'display:none;'}">
+    <div id="dailySeqFields" class="${s.invoiceNumberFormat === 'DAILY_SEQUENCE' ? '' : 'hidden'}">
       <div class="field"><label>Jumlah Digit Urutan Bulanan</label><input id="fDigitDaily" type="number" min="2" value="${s.invoiceDigitCount}"></div>
     </div>
 
-    <div class="info-card" style="margin-top:14px;"><div class="info-text" id="preview"></div></div>
+    <div class="settings-invoice-example info-card"><div class="info-text" id="preview"></div></div>
     <button class="btn" id="fSave">Simpan</button>
   `;
 
@@ -145,8 +167,8 @@ async function renderInvoice(root) {
 
   root.querySelectorAll('input[name="numformat"]').forEach((r) => {
     r.addEventListener('change', () => {
-      root.querySelector('#sequentialFields').style.display = r.value === 'SEQUENTIAL' ? '' : 'none';
-      root.querySelector('#dailySeqFields').style.display = r.value === 'DAILY_SEQUENCE' ? '' : 'none';
+      root.querySelector('#sequentialFields').classList.toggle('hidden', r.value !== 'SEQUENTIAL');
+      root.querySelector('#dailySeqFields').classList.toggle('hidden', r.value !== 'DAILY_SEQUENCE');
       updatePreview();
     });
   });
@@ -178,35 +200,35 @@ async function renderPrinter(root) {
 
   root.innerHTML = `
     <div class="section-title">Printer Bluetooth (Cetak Langsung)</div>
-    <div style="padding:0 16px 12px;">
-      <div class="info-card" style="margin:0 0 12px;">
+    <div class="settings-printer-section">
+      <div class="settings-printer-info info-card">
         <div class="info-title">Catatan penting</div>
-        <div class="info-text">Cetak Bluetooth langsung hanya untuk printer BLE (Bluetooth Low Energy) dan hanya jalan di Chrome/Edge Android — tidak di iPhone. Kalau printer kamu tidak muncul saat "Cari Printer", kemungkinan itu printer Bluetooth klasik yang memang tidak bisa diakses browser — pakai "Cetak / Simpan PDF" sebagai gantinya.</div>
+        <div class="info-text">Cetak Bluetooth langsung hanya untuk printer BLE (Bluetooth Low Energy) dan hanya jalan di Chrome/Edge Android — tidak di iPhone. Kalau printer kamu tidak muncul saat "Cari Printer", kemungkinan itu printer Bluetooth klasik yang memang tidak bisa diakses browser — pakai "Simpan PDF" sebagai gantinya.</div>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--outline);">
+      <div class="settings-printer-status">
         <div>
-          <div style="font-size:14px;font-weight:700;">${btOk ? 'Tersambung' : (s.btPrinterId ? 'Tersimpan (belum tersambung)' : 'Belum ada printer')}</div>
+          <div class="settings-printer-status-label">${btOk ? 'Tersambung' : (s.btPrinterId ? 'Tersimpan (belum tersambung)' : 'Belum ada printer')}</div>
           <div class="row-meta">${btOk ? escapeHtml(btInfo.name) : (s.btPrinterName ? escapeHtml(s.btPrinterName) : '—')}</div>
         </div>
-        <button class="btn small secondary" id="btnBtConnect" style="margin:0;">${btOk ? 'Sambung Ulang' : 'Cari Printer'}</button>
+        <button class="settings-button btn small secondary" id="btnBtConnect">${btOk ? 'Sambung Ulang' : 'Cari Printer'}</button>
       </div>
-      ${s.btPrinterId ? `<button class="btn small ghost" id="btnBtForget" style="margin:10px 0 0;">Lupakan Printer Ini</button>` : ''}
+      ${s.btPrinterId ? `<button class="settings-printer-forget btn small ghost" id="btnBtForget">Lupakan Printer Ini</button>` : ''}
     </div>
 
     <div class="section-title">Lebar Kertas Bluetooth</div>
     <label class="field-radio"><input type="radio" name="charwidth" value="32" ${s.btCharWidth === 32 ? 'checked' : ''}><div><div class="radio-title">58mm (32 karakter/baris)</div></div></label>
     <label class="field-radio"><input type="radio" name="charwidth" value="48" ${s.btCharWidth === 48 ? 'checked' : ''}><div><div class="radio-title">80mm (48 karakter/baris)</div></div></label>
 
-    <div class="section-title">Ukuran Kertas (Cetak / Simpan PDF)</div>
+    <div class="section-title">Ukuran Kertas PDF</div>
     <label class="field-radio"><input type="radio" name="paper" value="THERMAL_58MM" ${s.paperSize === 'THERMAL_58MM' ? 'checked' : ''}><div><div class="radio-title">Thermal 58mm</div><div class="radio-sub">Printer struk kecil (kasir portabel)</div></div></label>
     <label class="field-radio"><input type="radio" name="paper" value="THERMAL_80MM" ${s.paperSize === 'THERMAL_80MM' ? 'checked' : ''}><div><div class="radio-title">Thermal 80mm</div><div class="radio-sub">Printer struk standar toko</div></div></label>
     <label class="field-radio"><input type="radio" name="paper" value="PDF_A4" ${s.paperSize === 'PDF_A4' ? 'checked' : ''}><div><div class="radio-title">A4 (dokumen biasa)</div><div class="radio-sub">Untuk dicetak di printer biasa</div></div></label>
-    <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-top:1px solid var(--outline);">
-      <div><div style="font-size:14px;font-weight:600;">Preview sebelum cetak</div><div class="row-meta">Tampilkan hasil sesuai ukuran kertas sebelum dialog cetak dibuka.</div></div>
-      <input id="printPreviewToggle" type="checkbox" ${s.printPreview ? 'checked' : ''} style="width:44px;height:24px;flex-shrink:0;margin-left:12px;">
+    <label class="settings-preview-toggle">
+      <div><div class="settings-label">Preview sebelum cetak Bluetooth</div><div class="row-meta">Tampilkan gambar yang akan dikirim ke printer Bluetooth.</div></div>
+      <input class="settings-preview-checkbox" id="printPreviewToggle" type="checkbox" ${s.printPreview ? 'checked' : ''}>
     </label>
     <div class="info-card">
-      <div class="info-text">"Cetak / Simpan PDF" memakai fitur cetak bawaan browser — cocok untuk printer apa pun yang sudah terpasang sebagai printer sistem HP/laptop, atau kalau printer Bluetooth-mu tidak didukung cetak langsung.</div>
+      <div class="info-text">"Simpan PDF" membuat file nota yang dapat diunduh atau dibagikan. Ukuran kertas PDF terpisah dari lebar printer Bluetooth.</div>
     </div>
   `;
 
@@ -218,7 +240,7 @@ async function renderPrinter(root) {
   });
   root.querySelector('#printPreviewToggle').onchange = async (e) => {
     await saveSettings({ printPreview: e.target.checked });
-    toast(e.target.checked ? 'Preview cetak diaktifkan' : 'Preview cetak dinonaktifkan');
+    toast(e.target.checked ? 'Preview Bluetooth diaktifkan' : 'Preview Bluetooth dinonaktifkan');
   };
 
   root.querySelector('#btnBtConnect').onclick = async () => {
@@ -247,21 +269,21 @@ async function renderQris(root) {
   setTopbarActions([]);
   const s = await getSettings();
   root.innerHTML = `
-    <div style="padding:16px;">
-      <label style="display:flex;align-items:center;justify-content:space-between;">
+    <div class="settings-section">
+      <label class="settings-toggle-row">
         <div>
-          <div style="font-size:15px;font-weight:700;">Tampilkan QRIS di Struk</div>
+          <div class="settings-section-label">Tampilkan QRIS di Struk</div>
           <div class="row-meta">Muncul otomatis kalau nota BELUM LUNAS, hilang kalau sudah lunas.</div>
         </div>
-        <input type="checkbox" id="qrisToggle" ${s.qrisEnabled ? 'checked' : ''} style="width:44px;height:24px;">
+        <input class="settings-checkbox" type="checkbox" id="qrisToggle" ${s.qrisEnabled ? 'checked' : ''}>
       </label>
     </div>
-    <div style="padding:0 16px;">
-      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Gambar QRIS</div>
-      ${s.qrisImageData ? `<img src="${s.qrisImageData}" style="width:160px;height:160px;object-fit:contain;border:1px solid var(--outline);border-radius:12px;display:block;margin-bottom:10px;">` : `<div class="info-card" style="margin:0 0 10px;"><div class="info-text">Belum ada gambar QRIS. Upload dari galeri HP kamu (foto/screenshot kode QRIS statis milik tokomu, bisa didapat dari aplikasi bank/e-wallet).</div></div>`}
-      <input type="file" id="qrisFile" accept="image/*" style="display:none">
+    <div class="settings-content">
+      <div class="settings-image-label">Gambar QRIS</div>
+      ${s.qrisImageData ? `<img class="settings-qris-image" src="${s.qrisImageData}">` : `<div class="settings-qris-empty info-card"><div class="info-text">Belum ada gambar QRIS. Upload dari galeri HP kamu (foto/screenshot kode QRIS statis milik tokomu, bisa didapat dari aplikasi bank/e-wallet).</div></div>`}
+      <input class="settings-file-input" type="file" id="qrisFile" accept="image/*">
       <button class="btn secondary small" id="btnUploadQris">${s.qrisImageData ? 'Ganti Gambar' : 'Upload Gambar QRIS'}</button>
-      ${s.qrisImageData ? `<button class="btn danger small" id="btnRemoveQris" style="margin-left:8px;">Hapus</button>` : ''}
+      ${s.qrisImageData ? `<button class="settings-remove-image btn danger small" id="btnRemoveQris">Hapus</button>` : ''}
     </div>
   `;
   root.querySelector('#qrisToggle').onchange = async (e) => {
@@ -295,29 +317,29 @@ async function renderBackup(root) {
   setPageTitle('Backup / Restore');
   setTopbarActions([]);
   root.innerHTML = `
-    <div style="padding:16px;">
-      <div style="font-size:16px;font-weight:800;margin-bottom:6px;">Cadangkan Data</div>
-      <div style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;">Unduh file cadangan seluruh data NotaKu (nota, produk, pelanggan, pengaturan), lalu simpan ke Google Drive atau tempat lain lewat aplikasi file HP kamu.</div>
-      <button class="btn" id="btnBackup" style="margin:0;">Unduh Cadangan</button>
+    <div class="settings-section">
+      <div class="settings-heading">Cadangkan Data</div>
+      <div class="settings-description">Unduh file cadangan seluruh data NotaKu (nota, produk, pelanggan, pengaturan), lalu simpan ke Google Drive atau tempat lain lewat aplikasi file HP kamu.</div>
+      <button class="settings-button btn" id="btnBackup">Unduh Cadangan</button>
     </div>
-    <div style="padding:0 16px 16px;">
+    <div class="settings-section-bottom">
       ${tile('⏱️', 'Atur Backup Otomatis', 'Jadwalkan backup ke Google Drive', 'settings/autobackup')}
     </div>
-    <div style="padding:0 16px 16px;">
-      <div style="font-size:16px;font-weight:800;margin-bottom:6px;">Pulihkan dari Cadangan NotaKu</div>
-      <div style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;">Pilih file cadangan .json yang pernah dibuat NotaKu. <b>PERHATIAN:</b> ini akan MENGGANTI seluruh data yang ada saat ini.</div>
-      <button class="btn secondary" id="btnRestore" style="margin:0;">Pilih File &amp; Pulihkan</button>
-      <input type="file" id="fileRestore" accept="application/json,.json" style="display:none">
+    <div class="settings-section-bottom">
+      <div class="settings-heading">Pulihkan dari Cadangan NotaKu</div>
+      <div class="settings-description">Pilih file cadangan .json yang pernah dibuat NotaKu. <b>PERHATIAN:</b> ini akan MENGGANTI seluruh data yang ada saat ini.</div>
+      <button class="settings-button btn secondary" id="btnRestore">Pilih File &amp; Pulihkan</button>
+      <input class="settings-file-input" type="file" id="fileRestore" accept="application/json,.json">
     </div>
-    <div style="padding:0 16px 16px;">
-      <div style="font-size:16px;font-weight:800;margin-bottom:6px;">Impor Database Aplikasi Lama</div>
-      <div class="info-card" style="margin:0 0 12px;">
+    <div class="settings-section-bottom">
+      <div class="settings-heading">Impor Database Aplikasi Lama</div>
+      <div class="settings-printer-info info-card">
         <div class="info-title">Pindah dari aplikasi nota lain?</div>
         <div class="info-text">Kalau kamu punya file .db dari aplikasi nota sebelumnya (di HP atau Google Drive), NotaKu bisa membaca dan MENAMBAHKAN riwayat nota, produk, dan pelanggan dari file itu — data yang sudah ada di NotaKu tetap aman.</div>
       </div>
-      <button class="btn secondary" id="btnImport" style="margin:0;">Pilih File &amp; Impor</button>
-      <input type="file" id="fileImport" accept=".db,application/octet-stream" style="display:none">
-      <div style="font-size:11.5px;color:var(--muted);margin-top:10px;">Tips: kalau file tersimpan di Google Drive, pilih "Files"/"Berkas" pada layar pemilih file lalu masuk ke akun Drive-mu — file akan diunduh sementara secara otomatis oleh browser untuk dibaca.</div>
+      <button class="settings-button btn secondary" id="btnImport">Pilih File &amp; Impor</button>
+      <input class="settings-file-input" type="file" id="fileImport" accept=".db,application/octet-stream">
+      <div class="settings-help">Tips: kalau file tersimpan di Google Drive, pilih "Files"/"Berkas" pada layar pemilih file lalu masuk ke akun Drive-mu — file akan diunduh sementara secara otomatis oleh browser untuk dibaca.</div>
     </div>
   `;
 
@@ -387,7 +409,7 @@ async function renderAutoBackup(root) {
 
   if (!configured) {
     root.innerHTML = `
-      <div class="info-card" style="margin:16px;">
+      <div class="settings-setup-info info-card">
         <div class="info-title">Perlu setup sekali sebelum dipakai</div>
         <div class="info-text">Fitur ini butuh Google Client ID yang didaftarkan sendiri di Google Cloud Console (gratis). Ikuti langkah di <b>docs/DRIVE_SETUP.md</b> pada project NotaKu, lalu isi <code>js/config.js</code>.</div>
       </div>`;
@@ -395,62 +417,62 @@ async function renderAutoBackup(root) {
   }
 
   root.innerHTML = `
-    <div style="padding:16px;">
-      <label style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <div style="font-size:15px;font-weight:700;">Aktifkan Backup Otomatis</div>
-        <input type="checkbox" id="enableToggle" ${cfg.enabled ? 'checked' : ''} style="width:44px;height:24px;">
+    <div class="settings-section">
+      <label class="settings-backup-toggle">
+        <div class="settings-section-label">Aktifkan Backup Otomatis</div>
+        <input class="settings-checkbox" type="checkbox" id="enableToggle" ${cfg.enabled ? 'checked' : ''}>
       </label>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--outline);border-bottom:1px solid var(--outline);margin-bottom:16px;">
+      <div class="settings-drive-account">
         <div>
-          <div style="font-size:13.5px;font-weight:700;">Akun Google Drive</div>
+          <div class="settings-drive-label">Akun Google Drive</div>
           <div class="row-meta">${cfg.driveConnected ? escapeHtml(cfg.driveAccountEmail || 'Tersambung') : 'Belum tersambung'}</div>
         </div>
-        <button class="btn small secondary" id="btnDriveConnect" style="margin:0;">${cfg.driveConnected ? 'Putuskan' : 'Hubungkan'}</button>
+        <button class="settings-button btn small secondary" id="btnDriveConnect">${cfg.driveConnected ? 'Putuskan' : 'Hubungkan'}</button>
       </div>
-      <div class="info-card" style="margin:0 0 20px;">
+      <div class="settings-backup-info info-card">
         <div class="info-text">Gunakan akun Google yang sama di semua perangkat kalau ingin semua HP/laptop toko mengakses file backup yang sama.</div>
       </div>
 
-      <div style="font-size:13.5px;font-weight:700;margin-bottom:10px;">Jam Backup</div>
+      <div class="settings-schedule-label">Jam Backup</div>
       <div id="timeSlots">
         ${(cfg.scheduleTimes || []).map((t, i) => `
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;" data-slot="${i}">
+          <div class="settings-backup-slot" data-slot="${i}">
             <input type="checkbox" checked disabled>
-            <input type="time" value="${t}" class="slotTime" style="border:1px solid var(--outline);border-radius:8px;padding:6px 8px;">
-            <button class="btn small ghost removeSlot" style="margin:0;">Hapus</button>
+            <input type="time" value="${t}" class="settings-time-input slotTime">
+            <button class="settings-button btn small ghost removeSlot">Hapus</button>
           </div>`).join('')}
       </div>
-      <button class="btn small secondary" id="btnAddSlot" style="margin:0 0 20px;">+ Tambah Jam</button>
+      <button class="settings-backup-info btn small secondary" id="btnAddSlot">+ Tambah Jam</button>
 
-      <div class="field" style="padding:0;margin-bottom:16px;">
+      <div class="settings-retention field">
         <label>Hapus file backup yang lebih lama dari (hari)</label>
         <input id="deleteOlderThan" type="number" value="${cfg.deleteOlderThanDays}">
       </div>
 
-      <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:20px;">
-        <input type="checkbox" id="confirmToggle" ${cfg.confirmBeforeBackup ? 'checked' : ''} style="margin-top:2px;">
-        <span style="font-size:13.5px;">Konfirmasi sebelum backup (muncul dialog tiap kali sebelum upload)</span>
+      <label class="settings-confirm-backup">
+        <input class="settings-confirm-checkbox" type="checkbox" id="confirmToggle" ${cfg.confirmBeforeBackup ? 'checked' : ''}>
+        <span class="settings-confirm-label">Konfirmasi sebelum backup (muncul dialog tiap kali sebelum upload)</span>
       </label>
 
-      ${cfg.lastBackupAt ? `<div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Backup terakhir: ${new Date(cfg.lastBackupAt).toLocaleString('id-ID')}</div>` : ''}
+      ${cfg.lastBackupAt ? `<div class="settings-last-backup">Backup terakhir: ${new Date(cfg.lastBackupAt).toLocaleString('id-ID')}</div>` : ''}
 
       <button class="btn" id="btnBackupNow">Backup Sekarang</button>
 
-      <div class="info-card" style="margin-top:20px;">
+      <div class="settings-backup-note info-card">
         <div class="info-title">Soal "otomatis"</div>
         <div class="info-text">Backup di jam yang dijadwalkan akan berjalan begitu aplikasi dibuka/kembali aktif SETELAH jam tersebut lewat — bukan persis di jam itu kalau aplikasi sedang tidak dibuka sama sekali (keterbatasan web app tanpa server, lihat docs/DRIVE_SETUP.md).</div>
       </div>
 
-      <div class="section-title" style="padding-left:0;margin-top:24px;">Sinkronisasi Antar Perangkat</div>
-      <div class="info-card" style="margin:0 0 14px;">
+      <div class="settings-sync-heading section-title">Sinkronisasi Antar Perangkat</div>
+      <div class="settings-sync-info info-card">
         <div class="info-title">Satu database, banyak perangkat</div>
         <div class="info-text">Dorong (push) data dari perangkat ini ke Drive, lalu tarik (pull) dari perangkat lain yang login akun Google sama supaya datanya ikut sama. <b>Bukan sinkron realtime</b> — siapa yang push TERAKHIR itu yang berlaku; kalau dua HP push beda perubahan bersamaan, yang belakangan menimpa yang duluan. Selalu Pull dulu sebelum mulai kerja di sebuah perangkat, Push setelah selesai.</div>
       </div>
-      <div id="syncStatus" style="font-size:12px;color:var(--muted);margin-bottom:12px;">Memeriksa status...</div>
-      <div style="display:flex;gap:10px;">
-        <button class="btn secondary" id="btnPush" style="margin:0;flex:1;">⬆ Push ke Cloud</button>
-        <button class="btn secondary" id="btnPull" style="margin:0;flex:1;">⬇ Tarik dari Cloud</button>
+      <div class="settings-sync-status" id="syncStatus">Memeriksa status...</div>
+      <div class="settings-sync-actions">
+        <button class="settings-sync-button btn secondary" id="btnPush">⬆ Push ke Cloud</button>
+        <button class="settings-sync-button btn secondary" id="btnPull">⬇ Tarik dari Cloud</button>
       </div>
     </div>
   `;
@@ -515,8 +537,8 @@ async function renderAutoBackup(root) {
   root.querySelector('#btnAddSlot').onclick = () => {
     const container = root.querySelector('#timeSlots');
     const div = document.createElement('div');
-    div.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:10px;';
-    div.innerHTML = `<input type="checkbox" checked disabled><input type="time" value="09:00" class="slotTime" style="border:1px solid var(--outline);border-radius:8px;padding:6px 8px;"><button class="btn small ghost removeSlot" style="margin:0;">Hapus</button>`;
+    div.className = 'settings-backup-slot';
+    div.innerHTML = `<input type="checkbox" checked disabled><input type="time" value="09:00" class="settings-time-input slotTime"><button class="settings-button btn small ghost removeSlot">Hapus</button>`;
     container.appendChild(div);
     div.querySelector('.removeSlot').onclick = () => div.remove();
   };

@@ -29,7 +29,7 @@ async function generateMonthlySequence(settings, saleDate) {
   const currentMonthKey = todayKey.substring(0, 7);
   const lastMonthKey = (settings.invoiceLastResetDate || '').substring(0, 7);
   const shouldReset = lastMonthKey !== currentMonthKey;
-  const nextNumber = shouldReset ? 1 : settings.invoiceNextNumber;
+  const nextNumber = shouldReset ? 1 : Math.max(1, Math.floor(Number(settings.invoiceNextNumber) || 1));
 
   const counterPart = String(nextNumber).padStart(settings.invoiceDigitCount || 2, '0');
   const invoiceNumber = `${settings.invoicePrefix}${yy}${mm}${counterPart}`;
@@ -44,7 +44,7 @@ async function generateMonthlySequence(settings, saleDate) {
 
 async function generateSequential(settings, saleDate) {
   const todayKey = dbDate(saleDate);
-  let nextNumber = settings.invoiceNextNumber;
+  let nextNumber = Math.max(1, Math.floor(Number(settings.invoiceNextNumber) || 1));
   let shouldReset = false;
 
   if (settings.invoiceResetMode === 'DAILY') {

@@ -17,7 +17,7 @@ const DEFAULTS = {
   invoiceLastResetDate: '',
   invoiceNumberFormat: 'DAILY_SEQUENCE', // prefix+YYMM+urutan bulanan | 'SEQUENTIAL' (prefix+nomor urut biasa)
   paperSize: 'THERMAL_58MM', // THERMAL_58MM | THERMAL_80MM | PDF_A4
-  printPreview: false,       // tampilkan pratinjau aplikasi sebelum window.print()
+  printPreview: true,        // pratinjau bitmap sebelum cetak Bluetooth
 
   // Printer Bluetooth (BLE)
   btPrinterId: '',          // id perangkat Web Bluetooth yang terakhir tersambung (untuk sambung ulang otomatis)

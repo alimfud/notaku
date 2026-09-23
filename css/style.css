@@ -195,34 +195,6 @@ body{
 .total-row{display:flex;justify-content:space-between;font-size:14.5px;padding:3px 0;}
 .total-row.grand{font-size:20px;font-weight:800;border-top:1px solid var(--outline);margin-top:6px;padding-top:10px;}
 
-/* Receipt */
-.receipt{background:#fff;padding:22px 20px 30px;}
-.receipt-logo-wrap{text-align:center;}
-.receipt-logo{display:inline-block;width:var(--receipt-logo-max-width,100%);max-width:100%;height:auto;max-height:100%;object-fit:contain;}
-.receipt-shop{text-align:center;font-size:18px;font-weight:800;}
-.receipt-addr{text-align:center;font-size:12.5px;color:var(--ink-soft);margin-top:3px;line-height:1.4;}
-.receipt-meta{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);padding:12px 0;border-top:1px dashed var(--outline);border-bottom:1px dashed var(--outline);margin-top:14px;}
-.receipt-customer{font-size:15.5px;font-weight:700;padding:12px 0 4px; text-align: center;}
-.receipt-item{padding:8px 0;border-bottom:1px solid var(--outline);}
-.ri-top{display:flex;justify-content:space-between;font-size:14.5px;font-weight:600;}
-.ri-bottom{display:flex;justify-content:center;position:relative;font-size:13px;color:var(--ink-soft);margin-top:2px;min-height:18px;}
-.ri-bottom .ri-qty{position:absolute;left:0;}
-/* Kolom @ harga berada di tengah, tetapi isi angka rata kanan pada lebar
-   tetap. Karena itu seluruh "@ Rp...,-" berakhir sejajar antar-item. */
-.ri-bottom .ri-price{position:absolute;left:35%;transform:translateX(-50%);width:min(170px,65%);text-align:right;white-space:nowrap;}
-.receipt-totals{margin-top:6px;}
-.receipt-totals .tr{display:flex;justify-content:space-between;font-size:14px;padding:3px 0;}
-.receipt-totals .tr.grand{font-size:21px;font-weight:800;padding:7px 0;}
-.receipt-footer{text-align:center;font-size:12px;color:var(--muted);margin-top:18px;line-height:1.6;white-space:pre-line;}
-.receipt-note{margin-top:8px;font-style:italic;}
-.receipt-qris{text-align:center;margin-top:14px;}
-.receipt-qris-label{font-size:12px;color:var(--ink-soft);margin-bottom:6px;}
-.receipt-qris-image{width:160px;height:160px;object-fit:contain;}
-.receipt-alert{margin:16px 16px 0;padding:12px 14px;border-radius:12px;background:var(--primary-container);display:flex;align-items:center;gap:10px;}
-.receipt-alert--completed{background:var(--surface-dim);display:block;}
-.receipt-alert-text{flex:1;font-size:12.5px;color:var(--ink-soft);}
-.receipt-alert-action{background:none;border:1px solid var(--ink);border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;white-space:nowrap;}
-.logo-size-field output{float:right;color:var(--ink-soft);font-size:12px;text-transform:none;letter-spacing:0;}
 
 /* Sheets (bottom sheet modal) */
 .sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:60;display:flex;align-items:flex-end;justify-content:center;}
@@ -235,14 +207,6 @@ body{
 .sheet-handle{width:40px;height:4px;background:var(--outline);border-radius:4px;margin:12px auto;}
 .sheet-title{padding:0 20px 4px;font-size:18px;font-weight:800;}
 .sheet-body{padding:4px 0 20px;}
-.print-preview-label{text-align:center;font-size:12px;color:var(--muted);padding:4px 16px 12px;}
-.print-preview-wrap{padding:0 16px;max-height:55vh;overflow:auto;background:var(--surface-dim);}
-.print-preview-receipt{margin:0 auto;border:1px solid var(--outline);border-radius:0;box-shadow:0 2px 8px rgba(0,0,0,.08);}
-.print-preview-receipt.paper-THERMAL_58MM{width:58mm;max-width:100%;}
-.print-preview-receipt.paper-THERMAL_80MM{width:80mm;max-width:100%;}
-.print-preview-receipt.paper-PDF_A4{width:210mm;max-width:100%;}
-.bluetooth-preview-receipt{width:58mm;max-width:100%;}
-.bluetooth-preview-receipt.bluetooth-80mm{width:80mm;}
 .sheet-actions{display:flex;gap:10px;padding:16px;}
 .sheet-actions .btn{margin:0;flex:1;width:auto;}
 

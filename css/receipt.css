@@ -1,0 +1,135 @@
+/* Receipt */
+.receipt{background:#fff;padding:22px 20px 30px;}
+.receipt-logo-wrap{text-align:center;}
+.receipt-logo{display:inline-block;width:var(--receipt-logo-max-width,100%);max-width:100%;height:auto;object-fit:contain;}
+.receipt .receipt-shop{text-align:center;font-size:18px;font-weight:800;}
+.receipt .receipt-addr{text-align:center;font-size:12.5px;color:var(--ink-soft);margin-top:3px;line-height:1.4;}
+.receipt .receipt-meta{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);padding:12px 0;border-top:1px dashed var(--outline);border-bottom:1px dashed var(--outline);margin-top:14px;}
+.receipt .receipt-customer{font-size:15.5px;font-weight:700;padding:12px 0 4px; text-align: center;}
+.receipt .receipt-item{padding:8px 0;border-bottom:1px solid var(--outline);}
+.receipt .ri-top{display:flex;justify-content:space-between;gap:12px;font-size:14.5px;font-weight:600;}
+.receipt .ri-bottom{display:flex;font-size:13px;color:var(--ink-soft);margin-top:2px;min-height:18px;gap:4px;}
+.receipt .ri-bottom .ri-qty{flex:0 0 calc(33.333% - 4px);min-width:0;overflow-wrap:anywhere;}
+/* Price values align at the right edge of the middle column. */
+.receipt .ri-bottom .ri-price{flex:0 0 calc(33.333% - 4px);min-width:0;text-align:right;overflow-wrap:anywhere;}
+.receipt .receipt-totals{margin-top:6px;}
+.receipt .receipt-totals .tr{display:flex;justify-content:space-between;font-size:14px;padding:3px 0;}
+.receipt .receipt-totals .tr.grand{font-size:21px;font-weight:800;padding:7px 0;}
+.receipt .receipt-footer{text-align:center;font-size:12px;color:var(--muted);margin-top:18px;line-height:1.6;white-space:pre-line;}
+.receipt .receipt-note{margin-top:8px;font-style:italic;}
+.receipt .receipt-qris{text-align:center;margin-top:14px;}
+.receipt .receipt-qris-label{font-size:12px;color:var(--ink-soft);margin-bottom:6px;}
+.receipt .receipt-qris-image{width:160px;height:160px;object-fit:contain;}
+.receipt-alert{margin:16px 16px 0;padding:12px 14px;border-radius:12px;background:var(--primary-container);display:flex;align-items:center;gap:10px;}
+.receipt-alert--completed{background:var(--surface-dim);display:block;}
+.receipt-alert-text{flex:1;font-size:12.5px;color:var(--ink-soft);}
+.receipt-alert-action{background:none;border:1px solid var(--ink);border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;white-space:nowrap;}
+.logo-size-field output{float:right;color:var(--ink-soft);font-size:12px;text-transform:none;letter-spacing:0;}
+
+.receipt .ri-top span:first-child{min-width:0;overflow-wrap:anywhere;}
+.receipt .ri-top span:last-child,.receipt .tr span:last-child{flex-shrink:0;text-align:right;}
+.receipt .receipt-meta span{flex:1;min-width:0;overflow-wrap:anywhere;}
+.receipt .receipt-meta span:nth-child(2){text-align:center;}
+.receipt .receipt-meta span:last-child{text-align:right;}
+.receipt .ri-bottom.receipt-note{display:block;text-align:left;overflow-wrap:anywhere;}
+.receipt .receipt-balance{font-weight:700;}
+.receipt .receipt-balance--due{color:var(--accent);}
+.receipt .receipt-balance--paid{color:var(--status-lunas);}
+.sale-detail-receipt-wrap{padding:16px;}
+.receipt-share-help{padding:0 20px;color:var(--ink-soft);font-size:13px;line-height:1.5;}
+.settings-logo-preview{text-align:center;background:white;margin-top:12px;}
+.print-preview-label{text-align:center;font-size:12px;color:var(--muted);padding:4px 16px 12px;}
+.print-preview-wrap{padding:12px 16px;max-height:55vh;overflow:auto;background:var(--surface-dim);}
+.bluetooth-preview-image{display:block;max-width:100%;height:auto;margin:auto;background:white;}
+.receipt.receipt-thermal,.receipt.receipt-thermal *{color:#000;border-color:#000;}
+.receipt-logo.logo-width-10{--receipt-logo-max-width:10%;}
+.receipt-logo.logo-width-11{--receipt-logo-max-width:11%;}
+.receipt-logo.logo-width-12{--receipt-logo-max-width:12%;}
+.receipt-logo.logo-width-13{--receipt-logo-max-width:13%;}
+.receipt-logo.logo-width-14{--receipt-logo-max-width:14%;}
+.receipt-logo.logo-width-15{--receipt-logo-max-width:15%;}
+.receipt-logo.logo-width-16{--receipt-logo-max-width:16%;}
+.receipt-logo.logo-width-17{--receipt-logo-max-width:17%;}
+.receipt-logo.logo-width-18{--receipt-logo-max-width:18%;}
+.receipt-logo.logo-width-19{--receipt-logo-max-width:19%;}
+.receipt-logo.logo-width-20{--receipt-logo-max-width:20%;}
+.receipt-logo.logo-width-21{--receipt-logo-max-width:21%;}
+.receipt-logo.logo-width-22{--receipt-logo-max-width:22%;}
+.receipt-logo.logo-width-23{--receipt-logo-max-width:23%;}
+.receipt-logo.logo-width-24{--receipt-logo-max-width:24%;}
+.receipt-logo.logo-width-25{--receipt-logo-max-width:25%;}
+.receipt-logo.logo-width-26{--receipt-logo-max-width:26%;}
+.receipt-logo.logo-width-27{--receipt-logo-max-width:27%;}
+.receipt-logo.logo-width-28{--receipt-logo-max-width:28%;}
+.receipt-logo.logo-width-29{--receipt-logo-max-width:29%;}
+.receipt-logo.logo-width-30{--receipt-logo-max-width:30%;}
+.receipt-logo.logo-width-31{--receipt-logo-max-width:31%;}
+.receipt-logo.logo-width-32{--receipt-logo-max-width:32%;}
+.receipt-logo.logo-width-33{--receipt-logo-max-width:33%;}
+.receipt-logo.logo-width-34{--receipt-logo-max-width:34%;}
+.receipt-logo.logo-width-35{--receipt-logo-max-width:35%;}
+.receipt-logo.logo-width-36{--receipt-logo-max-width:36%;}
+.receipt-logo.logo-width-37{--receipt-logo-max-width:37%;}
+.receipt-logo.logo-width-38{--receipt-logo-max-width:38%;}
+.receipt-logo.logo-width-39{--receipt-logo-max-width:39%;}
+.receipt-logo.logo-width-40{--receipt-logo-max-width:40%;}
+.receipt-logo.logo-width-41{--receipt-logo-max-width:41%;}
+.receipt-logo.logo-width-42{--receipt-logo-max-width:42%;}
+.receipt-logo.logo-width-43{--receipt-logo-max-width:43%;}
+.receipt-logo.logo-width-44{--receipt-logo-max-width:44%;}
+.receipt-logo.logo-width-45{--receipt-logo-max-width:45%;}
+.receipt-logo.logo-width-46{--receipt-logo-max-width:46%;}
+.receipt-logo.logo-width-47{--receipt-logo-max-width:47%;}
+.receipt-logo.logo-width-48{--receipt-logo-max-width:48%;}
+.receipt-logo.logo-width-49{--receipt-logo-max-width:49%;}
+.receipt-logo.logo-width-50{--receipt-logo-max-width:50%;}
+.receipt-logo.logo-width-51{--receipt-logo-max-width:51%;}
+.receipt-logo.logo-width-52{--receipt-logo-max-width:52%;}
+.receipt-logo.logo-width-53{--receipt-logo-max-width:53%;}
+.receipt-logo.logo-width-54{--receipt-logo-max-width:54%;}
+.receipt-logo.logo-width-55{--receipt-logo-max-width:55%;}
+.receipt-logo.logo-width-56{--receipt-logo-max-width:56%;}
+.receipt-logo.logo-width-57{--receipt-logo-max-width:57%;}
+.receipt-logo.logo-width-58{--receipt-logo-max-width:58%;}
+.receipt-logo.logo-width-59{--receipt-logo-max-width:59%;}
+.receipt-logo.logo-width-60{--receipt-logo-max-width:60%;}
+.receipt-logo.logo-width-61{--receipt-logo-max-width:61%;}
+.receipt-logo.logo-width-62{--receipt-logo-max-width:62%;}
+.receipt-logo.logo-width-63{--receipt-logo-max-width:63%;}
+.receipt-logo.logo-width-64{--receipt-logo-max-width:64%;}
+.receipt-logo.logo-width-65{--receipt-logo-max-width:65%;}
+.receipt-logo.logo-width-66{--receipt-logo-max-width:66%;}
+.receipt-logo.logo-width-67{--receipt-logo-max-width:67%;}
+.receipt-logo.logo-width-68{--receipt-logo-max-width:68%;}
+.receipt-logo.logo-width-69{--receipt-logo-max-width:69%;}
+.receipt-logo.logo-width-70{--receipt-logo-max-width:70%;}
+.receipt-logo.logo-width-71{--receipt-logo-max-width:71%;}
+.receipt-logo.logo-width-72{--receipt-logo-max-width:72%;}
+.receipt-logo.logo-width-73{--receipt-logo-max-width:73%;}
+.receipt-logo.logo-width-74{--receipt-logo-max-width:74%;}
+.receipt-logo.logo-width-75{--receipt-logo-max-width:75%;}
+.receipt-logo.logo-width-76{--receipt-logo-max-width:76%;}
+.receipt-logo.logo-width-77{--receipt-logo-max-width:77%;}
+.receipt-logo.logo-width-78{--receipt-logo-max-width:78%;}
+.receipt-logo.logo-width-79{--receipt-logo-max-width:79%;}
+.receipt-logo.logo-width-80{--receipt-logo-max-width:80%;}
+.receipt-logo.logo-width-81{--receipt-logo-max-width:81%;}
+.receipt-logo.logo-width-82{--receipt-logo-max-width:82%;}
+.receipt-logo.logo-width-83{--receipt-logo-max-width:83%;}
+.receipt-logo.logo-width-84{--receipt-logo-max-width:84%;}
+.receipt-logo.logo-width-85{--receipt-logo-max-width:85%;}
+.receipt-logo.logo-width-86{--receipt-logo-max-width:86%;}
+.receipt-logo.logo-width-87{--receipt-logo-max-width:87%;}
+.receipt-logo.logo-width-88{--receipt-logo-max-width:88%;}
+.receipt-logo.logo-width-89{--receipt-logo-max-width:89%;}
+.receipt-logo.logo-width-90{--receipt-logo-max-width:90%;}
+.receipt-logo.logo-width-91{--receipt-logo-max-width:91%;}
+.receipt-logo.logo-width-92{--receipt-logo-max-width:92%;}
+.receipt-logo.logo-width-93{--receipt-logo-max-width:93%;}
+.receipt-logo.logo-width-94{--receipt-logo-max-width:94%;}
+.receipt-logo.logo-width-95{--receipt-logo-max-width:95%;}
+.receipt-logo.logo-width-96{--receipt-logo-max-width:96%;}
+.receipt-logo.logo-width-97{--receipt-logo-max-width:97%;}
+.receipt-logo.logo-width-98{--receipt-logo-max-width:98%;}
+.receipt-logo.logo-width-99{--receipt-logo-max-width:99%;}
+.receipt-logo.logo-width-100{--receipt-logo-max-width:100%;}

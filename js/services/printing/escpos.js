@@ -19,7 +19,7 @@ export class EscPosBuilder {
   }
 
   _append(arr) {
-    this.bytes.push(...arr);
+    for (const byte of arr) this.bytes.push(byte);
     return this;
   }
 
