@@ -3,7 +3,7 @@
   :root { --ink:#382b30; --ink-soft:#65515a; --surface:#fff7ed; --surface-dim:#f3e6df; --surface-alt:#eddbd2; --outline:#e6d3c9; --muted:#806873; --primary:#791e38; --primary-container:#ead2dd; --accent:#a4492d; --status-lunas:#2b6743; --status-partial:#906011; --status-unpaid:#a0324c; --status-overpaid:#315e87; }
   body { background:#e9d7d1; }
   #app { max-width:1100px; background:linear-gradient(135deg,#f7e8df,#f3e7ed 65%,#e8ece1); }
-  #topbar { background:#491d30; color:#f2ccaa; border-bottom:1px solid var(--outline); padding-top:calc(env(safe-area-inset-top,0px) + 16px); padding-bottom:16px; }
+  #topbar { background:#491d30; color:#fff; border-bottom:1px solid var(--outline); padding-top:calc(env(safe-area-inset-top,0px) + 16px); padding-bottom:16px; }
   /*
   #topbar .icon-btn { color:var(--primary); }
   */
