@@ -4,7 +4,7 @@
 [data-page="dashboard"] .dashboard-kicker { color:var(--primary); font-weight:600; font-size:13px; margin:0; overflow-wrap:anywhere; }
 [data-page="dashboard"] .dashboard-date { margin:0; color:var(--muted); font-size:12px; }
 [data-page="dashboard"] .dashboard-heading .btn { flex-shrink:0; }
-[data-page="dashboard"] .dashboard-overview { display:grid; grid-template-columns:1.15fr 1fr; gap:16px; }
+[data-page="dashboard"] .dashboard-overview { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:16px; }
 [data-page="dashboard"] .dashboard-hero { border-radius:18px; padding:24px; background:linear-gradient(120deg,#791e38,#a03d56); color:#fff; min-width:0; }
 [data-page="dashboard"] .dashboard-label { font-size:13px; color:#f4dce3; }
 [data-page="dashboard"] .dashboard-revenue { font-size:clamp(24px,3vw,34px); font-weight:750; letter-spacing:-1px; margin:10px 0 22px; overflow-wrap:anywhere; }
@@ -37,9 +37,16 @@
 }
 @media(max-width:600px) {
   [data-page="dashboard"] { padding:18px; }
-  [data-page="dashboard"] .dashboard-overview { grid-template-columns:1fr; }
+  [data-page="dashboard"] .dashboard-overview { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  [data-page="dashboard"] .dashboard-hero, [data-page="dashboard"] .dashboard-attention { padding:16px 14px; min-width:0; }
+  [data-page="dashboard"] .dashboard-revenue { font-size:clamp(16px,4.5vw,24px); letter-spacing:-.5px; margin:12px 0 18px; }
+  [data-page="dashboard"] .dashboard-label { font-size:12px; }
+  [data-page="dashboard"] .dashboard-hero-bottom { flex-direction:column; gap:12px; padding-top:12px; }
+  [data-page="dashboard"] .dashboard-hero-bottom strong { font-size:14px; margin-top:4px; }
+  [data-page="dashboard"] .dashboard-attention h3 { font-size:14px; }
+  [data-page="dashboard"] .dashboard-attention button { flex-direction:column; align-items:stretch; gap:7px; padding:12px 0; font-size:12px; }
+  [data-page="dashboard"] .dashboard-attention strong { font-size:15px; font-variant-numeric:tabular-nums; }
   [data-page="dashboard"] .dashboard-heading h2 { font-size:23px; }
-  [data-page="dashboard"] .dashboard-attention strong { font-size:20px; }
   [data-page="dashboard"] .dashboard-shortcuts { gap:7px; }
   [data-page="dashboard"] .dashboard-shortcuts button { font-size:11px; padding:12px 3px; }
 }
