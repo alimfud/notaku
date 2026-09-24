@@ -1,7 +1,7 @@
 import { getAllSaleSummaries } from '../services/saleService.js';
 import { getSettings } from '../services/settingsService.js';
 import { getAll } from '../db.js';
-import { rupiah, todayDbDate, dateShort, escapeHtml, initials } from '../format.js';
+import { rupiah, todayDbDate, dateShort, escapeHtml, initials, dbDate } from '../format.js';
 import { STATUS_LABEL } from '../services/saleCalculation.js';
 import { navigate, setPageTitle, setTopbarActions } from '../app.js';
 
@@ -11,21 +11,30 @@ export async function render(root) {
   const [summaries, settings, payments] = await Promise.all([getAllSaleSummaries(), getSettings(), getAll('payments')]);
   if (root.dataset.page !== 'dashboard') return;
   const today = todayDbDate();
-  // Match the existing reports: saleDate is the date stored on the nota.
-  const daySales = summaries.filter(({ sale }) => sale.saleDate === today);
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  const periodStart = dbDate(sevenDaysAgo);
+  const sevenDaysAhead = new Date();
+  sevenDaysAhead.setDate(sevenDaysAhead.getDate() + 6);
+  const periodEnd = dbDate(sevenDaysAhead);
+  const periodStartMs = new Date(periodStart + 'T00:00:00').getTime();
+  const periodSales = summaries.filter(({ sale }) => {
+    const createdMs = new Date(sale.createdAt || `${sale.saleDate}T${sale.saleTime || '00:00'}`).getTime();
+    return createdMs >= periodStartMs && createdMs <= Date.now();
+  });
   const activeIds = new Set(summaries.map(({ sale }) => sale.id));
-  const received = payments.filter(p => p.paymentDate === today && activeIds.has(p.saleId)).reduce((sum, p) => sum + p.amount, 0);
+  const received = payments.filter(p => p.paymentDate >= periodStart && p.paymentDate <= today && activeIds.has(p.saleId)).reduce((sum, p) => sum + p.amount, 0);
   const pending = summaries.filter(({ sale }) => !sale.completed);
-  const pickupToday = pending.filter(({ sale }) => sale.saleDate === today);
-  const receivables = summaries.filter(s => !['PAID', 'OVERPAID'].includes(s.displayStatus)).reduce((sum, s) => sum + Math.max(0, s.remaining), 0);
+  const pickupThisWeek = pending.filter(({ sale }) => sale.saleDate >= today && sale.saleDate <= periodEnd);
+  const receivables = pickupThisWeek.filter(s => !['PAID', 'OVERPAID'].includes(s.displayStatus)).reduce((sum, s) => sum + Math.max(0, s.remaining), 0);
   const upcoming = pending.filter(({ sale }) => sale.saleDate >= today).sort((a, b) => (a.sale.saleDate + a.sale.saleTime).localeCompare(b.sale.saleDate + b.sale.saleTime)).slice(0, 5);
   const hour = new Date().getHours();
   const greeting = hour < 11 ? 'Selamat pagi' : hour < 15 ? 'Selamat siang' : hour < 18 ? 'Selamat sore' : 'Selamat malam';
   root.innerHTML = `
     <div class="dashboard-heading"><div><p class="dashboard-kicker">${escapeHtml(settings.storeName || 'Toko Saya')}</p><h2>${greeting}!</h2><p class="dashboard-date">${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p></div><button class="btn small" data-go="sale/new">+ Buat nota</button></div>
     <div class="dashboard-overview">
-      <section class="dashboard-hero"><div class="dashboard-label">Penjualan hari ini</div><div class="dashboard-revenue">${rupiah(daySales.reduce((sum, s) => sum + s.sale.total, 0))}</div><div class="dashboard-hero-bottom"><div><span>Nota hari ini</span><strong>${daySales.length} nota</strong></div><div><span>Pembayaran masuk</span><strong>${rupiah(received)}</strong></div></div></section>
-      <section class="dashboard-attention"><h3>Perlu perhatian</h3><button data-go="home"><span>Pengambilan hari ini<small>Pesanan belum selesai</small></span><strong>${pickupToday.length}</strong></button><button data-go="reports"><span>Belum lunas<small>Total sisa tagihan</small></span><strong>${rupiah(receivables)}</strong></button></section>
+      <section class="dashboard-hero"><div class="dashboard-label">Penjualan 7 hari terakhir</div><div class="dashboard-revenue">${rupiah(periodSales.reduce((sum, s) => sum + s.sale.total, 0))}</div><div class="dashboard-hero-bottom"><div><span>Nota 7 hari</span><strong>${periodSales.length} nota</strong></div><div><span>Pembayaran 7 hari</span><strong>${rupiah(received)}</strong></div></div></section>
+      <section class="dashboard-attention"><h3>Perlu perhatian</h3><button data-go="home"><span>Pengambilan 7 hari<small>Hari ini sampai 6 hari ke depan</small></span><strong>${pickupThisWeek.length}</strong></button><button data-go="reports"><span>Belum lunas 7 hari<small>Sisa tagihan jadwal tersebut</small></span><strong>${rupiah(receivables)}</strong></button></section>
     </div>
     <h3 class="dashboard-section">Akses cepat</h3>
     <div class="dashboard-shortcuts">${[['customers','Pelanggan','users'],['expenses','Pengeluaran','wallet'],['reports','Laporan','chart'],['settings','Pengaturan','settings']].map(([route, label, icon]) => `<button data-go="${route}"><span class="dashboard-shortcut-icon">${shortcutIcon(icon)}</span>${label}</button>`).join('')}</div>

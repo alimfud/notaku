@@ -69,5 +69,12 @@
     [data-page="home"] .row-money { font-size:13px; }
     .summary-divider { margin:0 10px; }
   }
+  @media(max-width:799px) {
+    #bottomnav { overflow:visible; }
+    .nav-btn[data-route="sale/new"] { position:relative; color:#fff0e4; font-weight:650; padding-top:0; }
+    .nav-btn[data-route="sale/new"] svg { width:52px; height:52px; padding:14px; margin-top:-27px; margin-bottom:1px; color:#fff; background:#a53b5a; border:4px solid #f3e6df; border-radius:50%; box-shadow:0 7px 16px #35101f55; }
+    .nav-btn[data-route="sale/new"].active { background:transparent; color:#ffdaa9; }
+    .nav-btn[data-route="sale/new"].active svg { background:#c24f70; }
+  }
 }
 @media(prefers-reduced-motion:reduce) { .page-enter, .sheet { animation:none; } }

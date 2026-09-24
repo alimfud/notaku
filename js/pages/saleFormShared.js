@@ -2,8 +2,7 @@
 //
 // Satu implementasi UI dipakai BERSAMA oleh "Nota Baru" (createSale.js) dan
 // "Ubah Nota" (saleEdit.js) — supaya keduanya TIDAK PERNAH tampil beda lagi.
-// Beda antara mode 'create' dan 'edit' HANYA pada: field tanggal/jam (cuma
-// muncul di mode edit) dan field pembayaran awal (cuma muncul di mode create,
+// Beda antara mode 'create' dan 'edit' HANYA pada pembayaran awal (cuma muncul di mode create,
 // karena di mode edit pembayaran diatur terpisah lewat riwayat pembayaran).
 
 import { getAllCustomers, cashCustomer, saveCustomer } from '../services/customerService.js';
@@ -63,11 +62,10 @@ function draw(root, mode, state, onSave) {
       <div style="font-size:11px;color:var(--muted);margin-top:4px;text-align:center;">Data pelanggan diperbarui otomatis dari daftar setelah disave.</div>
     </div>
 
-    ${mode === 'edit' ? `
     <div class="field" style="padding:12px 16px 0;display:flex;gap:12px;">
-      <div style="flex:1;"><label>Tanggal Pengambilan</label><input id="fDate" type="date" value="${state.saleDate}"></div>
-      <div style="flex:1;"><label>Jam</label><input id="fTime" type="time" value="${state.saleTime}"></div>
-    </div>` : ''}
+      <div style="flex:1;"><label>Tanggal Pengambilan</label><input id="fDate" type="date" value="${state.saleDate || ''}" required></div>
+      <div style="flex:1;"><label>Jam Pengambilan</label><input id="fTime" type="time" value="${state.saleTime || ''}" required></div>
+    </div>
 
     <div style="padding:14px 16px 0;display:flex;gap:8px;align-items:stretch;">
       <div style="display:flex;align-items:center;border:1px solid var(--outline);border-radius:10px;overflow:hidden;flex-shrink:0;">
@@ -114,10 +112,8 @@ function draw(root, mode, state, onSave) {
   root.querySelector('#custPhone').oninput = (e) => { state.customer.phone = e.target.value; };
   root.querySelector('#pickCustomerBtn').onclick = () => pickCustomer(root, mode, state, onSave);
 
-  if (mode === 'edit') {
-    root.querySelector('#fDate').onchange = (e) => { state.saleDate = e.target.value; };
-    root.querySelector('#fTime').onchange = (e) => { state.saleTime = e.target.value; };
-  }
+  root.querySelector('#fDate').onchange = (e) => { state.saleDate = e.target.value; };
+  root.querySelector('#fTime').onchange = (e) => { state.saleTime = e.target.value; };
 
   root.querySelector('#adjustmentsBtn').onclick = () => editAdjustments(root, mode, state, onSave);
   root.querySelector('#manualItemBtn').onclick = () => addManualItem(root, mode, state, onSave);
@@ -430,6 +426,8 @@ async function editAdjustments(root, mode, state, onSave) {
 
 async function save(root, mode, state, onSave) {
   if (!state.customer.name.trim()) { toast('Nama pelanggan wajib diisi.'); return; }
+  if (!state.saleDate) { toast('Tanggal pengambilan wajib diisi.'); return; }
+  if (!state.saleTime) { toast('Jam pengambilan wajib diisi.'); return; }
   if (state.saving) return;
   state.saving = true;
   const saveBtn = root.querySelector('#saveBtn');

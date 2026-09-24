@@ -30,7 +30,7 @@ async function syncCustomerMasterRecord(customer) {
   }
 }
 
-export async function createSale({ customer, lines, adjustments = null, discountAmount = 0, initialPayment = 0, note = '' }) {
+export async function createSale({ customer, lines, adjustments = null, discountAmount = 0, initialPayment = 0, saleDate = '', saleTime = '', note = '' }) {
   if (!lines.length) throw new AppError('Transaksi harus mempunyai minimal 1 item.');
   for (const line of lines) {
     if (line.qty <= 0) throw new AppError(`Jumlah untuk "${line.name}" harus lebih dari 0.`);
@@ -59,8 +59,9 @@ export async function createSale({ customer, lines, adjustments = null, discount
       customerName: customer.name,
       customerPhone: customer.phone || '',
       customerAddress: customer.address || '',
-      saleDate: dbDate(now),
-      saleTime: timeLabel(now),
+      // Fallback dipertahankan untuk impor/caller lama; form baru mewajibkan keduanya.
+      saleDate: saleDate || dbDate(now),
+      saleTime: saleTime || timeLabel(now),
       subtotal,
       discountAmount: calc.discountAmount,
       taxAmount: calc.taxAmount,
@@ -279,20 +280,21 @@ export async function setCompleted(saleId, completed) {
 }
 
 /**
- * Aturan otomatis: begitu TANGGAL PENGAMBILAN sudah lewat (hari ini > tanggal
- * pengambilan), nota otomatis ditandai SELESAI — asumsi: kalau tanggal
- * pengambilannya sudah lewat, pesanan itu praktis sudah selesai dikerjakan.
- * Ini terpisah dari status pembayaran (lihat applyAutoLunasRule). Nota yang
+ * Aturan otomatis: setelah lewat minimal 2 hari dari TANGGAL PENGAMBILAN dan
+ * nota telah mendapat status LUNAS OTOMATIS, nota ikut ditandai SELESAI.
+ * Nota yang
  * PERNAH ditandai balik "belum selesai" secara manual (completedOverridden)
  * tidak akan disentuh lagi oleh aturan ini.
  */
 export async function applyAutoCompleteRule() {
   const sales = (await db.getAll('sales')).filter((s) => !s.isDeleted && !s.completed && !s.completedOverridden);
   if (!sales.length) return 0;
-  const todayKey = todayDbDate();
+  const todayMs = new Date(todayDbDate() + 'T00:00:00').getTime();
   const toUpdate = [];
   for (const sale of sales) {
-    if (sale.saleDate < todayKey) {
+    const pickupMs = new Date(sale.saleDate + 'T00:00:00').getTime();
+    const daysPast = Math.floor((todayMs - pickupMs) / 86400000);
+    if (daysPast >= 2 && sale.autoMarkedPaid) {
       toUpdate.push({ ...sale, completed: 1, autoCompleted: 1, updatedAt: new Date().toISOString() });
     }
   }

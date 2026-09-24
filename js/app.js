@@ -200,7 +200,7 @@ async function runBackgroundChecks() {
     const changed2 = await applyAutoCompleteRule();
     if (changed1 > 0 || changed2 > 0) {
       const { route } = parseHash();
-      if (route === 'home') handleRouteChange(); // refresh list kalau lagi di Home
+      if (route === 'home' || route === 'dashboard') handleRouteChange(); // refresh tampilan aktif
     }
   } catch (e) {
     console.error('[runBackgroundChecks] auto-lunas/auto-complete', e);

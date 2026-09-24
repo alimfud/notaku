@@ -1,4 +1,4 @@
 {
-  "version": "1.6.1",
-  "notes": "Kartu ringkasan Beranda tetap berdampingan pada layar HP dengan isi yang lebih ringkas."
+  "version": "1.6.2",
+  "notes": "Ringkasan Beranda memakai periode 7 hari, penyelesaian otomatis mengikuti lunas otomatis, tombol Buat Nota ditonjolkan, dan jadwal pengambilan tersedia saat membuat nota."
 }
