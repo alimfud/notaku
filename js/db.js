@@ -127,6 +127,34 @@ export async function bulkPutMulti(storeToValues) {
   });
 }
 
+/** Read and change one sale and its payments atomically, including across tabs.
+ * The updater is synchronous and returns { sale, payments?, removeIds? } or null.
+ */
+export async function mutateSalePayments(saleId, updater) {
+  const t = await tx(['sales', 'payments'], 'readwrite');
+  return new Promise((resolve, reject) => {
+    let sale, payments, ready = 0, changed = false, failure;
+    const saleRequest = t.objectStore('sales').get(saleId);
+    const paymentRequest = t.objectStore('payments').index('saleId').getAll(saleId);
+    const apply = () => {
+      if (++ready !== 2 || !sale) return;
+      try {
+        const result = updater(sale, payments);
+        if (!result) return;
+        t.objectStore('sales').put(result.sale);
+        for (const payment of result.payments || []) t.objectStore('payments').put(payment);
+        for (const id of result.removeIds || []) t.objectStore('payments').delete(id);
+        changed = true;
+      } catch (error) { failure = error; t.abort(); }
+    };
+    saleRequest.onsuccess = () => { sale = saleRequest.result; apply(); };
+    paymentRequest.onsuccess = () => { payments = paymentRequest.result; apply(); };
+    t.oncomplete = () => resolve(changed);
+    t.onabort = () => reject(failure || t.error || new Error('Transaksi pembayaran dibatalkan.'));
+    t.onerror = () => reject(failure || t.error);
+  });
+}
+
 export async function remove(store, key) {
   const t = await tx([store], 'readwrite');
   return new Promise((resolve, reject) => {

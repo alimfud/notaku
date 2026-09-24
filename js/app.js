@@ -195,10 +195,9 @@ function registerServiceWorker() {
 
 async function runBackgroundChecks() {
   try {
-    const { applyAutoLunasRule, applyAutoCompleteRule } = await import('./services/saleService.js');
-    const changed1 = await applyAutoLunasRule();
-    const changed2 = await applyAutoCompleteRule();
-    if (changed1 > 0 || changed2 > 0) {
+    const { applyAutomaticStatusRules } = await import('./services/saleService.js');
+    const changed = await applyAutomaticStatusRules();
+    if (changed > 0) {
       const { route } = parseHash();
       if (route === 'home' || route === 'dashboard') handleRouteChange(); // refresh tampilan aktif
     }

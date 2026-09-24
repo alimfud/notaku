@@ -32,3 +32,6 @@
 [data-page="reports"] .reports-layout-31 { font-size:11.5px;color:var(--muted);padding-top:8px;font-style:italic; }
 [data-page="reports"] .row-meta { text-align: left; }
 [data-page="reports"] .field { text-align: left; text-align-last: auto; }
+[data-page="reports"] .reports-layout-5, [data-page="reports"] .reports-layout-20 { min-width:0; overflow-wrap:anywhere; }
+[data-page="reports"] .reports-layout-4:first-of-type .reports-layout-5:first-child { background:#ead2dd; }
+[data-page="reports"] .reports-layout-4:first-of-type .reports-layout-5:last-child { background:#d4e5d5; }

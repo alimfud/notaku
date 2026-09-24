@@ -143,9 +143,23 @@ export async function updatePayment(paymentId, { amount, paymentDate, paymentTim
   try {
     const existing = await db.get('payments', paymentId);
     if (!existing) throw new AppError('Pembayaran tidak ditemukan.');
-    const updated = { ...existing, amount, paymentDate: paymentDate || existing.paymentDate, paymentTime: paymentTime || existing.paymentTime, note: note ?? existing.note };
-    await db.put('payments', updated);
-    await recomputeSaleStatus(existing.saleId);
+    await db.mutateSalePayments(existing.saleId, (sale, payments) => {
+      const current = payments.find(p => p.id === paymentId);
+      if (!current) return null;
+      const updated = { ...current, amount, paymentDate: paymentDate || current.paymentDate, paymentTime: paymentTime || current.paymentTime, note: note ?? current.note };
+      if (current.isAutomatic) {
+        updated.isAutomatic = false;
+        updated.correctedAt = new Date().toISOString();
+        sale.autoMarkedPaid = 0;
+        sale.autoLunasOverridden = 1;
+      }
+      const paid = payments.reduce((sum, p) => sum + (p.id === paymentId ? amount : p.amount), 0);
+      if (current.isAutomatic && sale.autoCompleted && sale.total - paid > 0.5) {
+        sale.completed = 0;
+        sale.autoCompleted = 0;
+      }
+      return { sale: { ...sale, status: resolveStatus(sale.total, paid), updatedAt: new Date().toISOString() }, payments: [updated] };
+    });
   } catch (e) {
     if (e instanceof AppError) throw e;
     console.error('[SaleService.updatePayment]', e);
@@ -157,8 +171,17 @@ export async function deletePayment(paymentId) {
   try {
     const existing = await db.get('payments', paymentId);
     if (!existing) return;
-    await db.remove('payments', paymentId);
-    await recomputeSaleStatus(existing.saleId);
+    await db.mutateSalePayments(existing.saleId, (sale, payments) => {
+      const current = payments.find(p => p.id === paymentId);
+      if (!current) return null;
+      if (current.isAutomatic) {
+        sale.autoMarkedPaid = 0;
+        sale.autoLunasOverridden = 1;
+        if (sale.autoCompleted) { sale.completed = 0; sale.autoCompleted = 0; }
+      }
+      const paid = payments.filter(p => p.id !== paymentId).reduce((sum, p) => sum + p.amount, 0);
+      return { sale: { ...sale, status: resolveStatus(sale.total, paid), updatedAt: new Date().toISOString() }, removeIds: [paymentId] };
+    });
   } catch (e) {
     console.error('[SaleService.deletePayment]', e);
     throw new AppError('Gagal menghapus pembayaran. Silakan coba lagi.');
@@ -259,22 +282,28 @@ export async function deleteSale(saleId) {
 }
 
 /**
- * Status yang ditampilkan ke user. Beda dengan resolveStatus() murni karena
- * memperhitungkan [autoMarkedPaid] — nota yang ditandai LUNAS otomatis (lihat
- * applyAutoLunasRule) tampil LUNAS walau catatan pembayaran belum menutup
- * total, KECUALI user sudah membatalkannya lewat revertAutoLunas.
+ * Status mengikuti jumlah pembayaran, termasuk pelunasan otomatis yang
+ * benar-benar dicatat di tabel pembayaran oleh applyAutoLunasRule.
  */
 export function computeDisplayStatus(sale, paidAmount) {
-  if (sale.autoMarkedPaid) return 'PAID';
   return resolveStatus(sale.total, paidAmount);
 }
 
 /** Tandai nota selesai dikerjakan/diambil atau belum — independen dari status pembayaran. */
 export async function setCompleted(saleId, completed) {
-  const sale = await db.get('sales', saleId);
+  let sale = await db.get('sales', saleId);
   if (!sale) return;
+  // Reopening an auto-paid order is an explicit correction, so cancel that
+  // automatic assumption as well rather than closing it again on the next read.
+  if (!completed && sale.autoMarkedPaid) {
+    await revertAutoLunas(saleId);
+    sale = await db.get('sales', saleId);
+  }
   sale.completed = completed ? 1 : 0;
-  if (!completed) sale.completedOverridden = 1; // user sengaja tandai balik "belum selesai" -> jangan diotomatiskan lagi
+  if (!completed) {
+    sale.completedOverridden = 1;
+    sale.autoCompleted = 0;
+  }
   sale.updatedAt = new Date().toISOString();
   await db.put('sales', sale);
 }
@@ -282,24 +311,24 @@ export async function setCompleted(saleId, completed) {
 /**
  * Aturan otomatis: setelah lewat minimal 2 hari dari TANGGAL PENGAMBILAN dan
  * nota telah mendapat status LUNAS OTOMATIS, nota ikut ditandai SELESAI.
- * Nota yang
- * PERNAH ditandai balik "belum selesai" secara manual (completedOverridden)
- * tidak akan disentuh lagi oleh aturan ini.
+ * Termasuk nota LUNAS otomatis lama yang belum ikut ditandai selesai.
  */
 export async function applyAutoCompleteRule() {
-  const sales = (await db.getAll('sales')).filter((s) => !s.isDeleted && !s.completed && !s.completedOverridden);
-  if (!sales.length) return 0;
-  const todayMs = new Date(todayDbDate() + 'T00:00:00').getTime();
-  const toUpdate = [];
-  for (const sale of sales) {
-    const pickupMs = new Date(sale.saleDate + 'T00:00:00').getTime();
-    const daysPast = Math.floor((todayMs - pickupMs) / 86400000);
-    if (daysPast >= 2 && sale.autoMarkedPaid) {
-      toUpdate.push({ ...sale, completed: 1, autoCompleted: 1, updatedAt: new Date().toISOString() });
-    }
+  const sales = (await db.getAll('sales')).filter(s => !s.isDeleted && !s.completed && s.autoMarkedPaid);
+  const todayMs = Date.parse(todayDbDate() + 'T00:00:00Z');
+  let changed = 0;
+  for (const candidate of sales) {
+    const updated = await db.mutateSalePayments(candidate.id, (sale, payments) => {
+      if (sale.isDeleted || sale.completed || !sale.autoMarkedPaid) return null;
+      const paid = payments.reduce((sum, p) => sum + p.amount, 0);
+      const status = resolveStatus(sale.total, paid);
+      const daysPast = Math.floor((todayMs - Date.parse(sale.saleDate + 'T00:00:00Z')) / 86400000);
+      if (!(daysPast >= 2) || !['PAID', 'OVERPAID'].includes(status)) return null;
+      return { sale: { ...sale, status, completed: 1, autoCompleted: 1, updatedAt: new Date().toISOString() } };
+    });
+    if (updated) changed++;
   }
-  if (toUpdate.length) await db.bulkPut('sales', toUpdate);
-  return toUpdate.length;
+  return changed;
 }
 
 /**
@@ -310,42 +339,63 @@ export async function applyAutoCompleteRule() {
  * akan disentuh lagi oleh aturan ini selamanya — keputusan manual dihormati.
  */
 export async function applyAutoLunasRule() {
-  const sales = (await db.getAll('sales')).filter((s) => !s.isDeleted && !s.autoMarkedPaid && !s.autoLunasOverridden);
-  if (!sales.length) return 0;
-  const allPayments = await db.getAll('payments');
-  const paidBySale = new Map();
-  for (const p of allPayments) paidBySale.set(p.saleId, (paidBySale.get(p.saleId) || 0) + p.amount);
-
-  const todayMs = new Date(todayDbDate() + 'T00:00:00').getTime();
-  const toUpdate = [];
-  for (const sale of sales) {
-    const paid = paidBySale.get(sale.id) || 0;
-    if (sale.total - paid <= 0.5) continue; // sudah lunas beneran, tidak perlu ditandai
-    const saleDateMs = new Date(sale.saleDate + 'T00:00:00').getTime();
-    const daysPast = Math.floor((todayMs - saleDateMs) / 86400000);
-    if (daysPast >= 2) {
-      toUpdate.push({ ...sale, autoMarkedPaid: 1, status: 'PAID', updatedAt: new Date().toISOString() });
-    }
+  const sales = (await db.getAll('sales')).filter(s => !s.isDeleted && !s.autoLunasOverridden && !s.autoPaymentRecorded);
+  const todayMs = Date.parse(todayDbDate() + 'T00:00:00Z');
+  let changed = 0;
+  for (const candidate of sales) {
+    if (!(todayMs - Date.parse(candidate.saleDate + 'T00:00:00Z') >= 2 * 86400000)) continue;
+    const updated = await db.mutateSalePayments(candidate.id, (sale, payments) => {
+      if (sale.isDeleted || sale.autoLunasOverridden || sale.autoPaymentRecorded) return null;
+      if (!(todayMs - Date.parse(sale.saleDate + 'T00:00:00Z') >= 2 * 86400000)) return null;
+      const paid = payments.reduce((sum, p) => sum + p.amount, 0);
+      const remaining = sale.total - paid;
+      const now = new Date().toISOString();
+      // A deterministic ID plus the shared read/write transaction prevents
+      // duplicate payments when several tabs open or legacy data is repaired.
+      const id = `auto-lunas:${sale.id}`;
+      const recorded = payments.find(p => p.id === id);
+      if (recorded || remaining <= 0.5) {
+        if (!sale.autoMarkedPaid) return null;
+        return { sale: { ...sale, autoPaymentRecorded: 1, status: resolveStatus(sale.total, paid), updatedAt: now } };
+      }
+      return {
+        sale: { ...sale, autoMarkedPaid: 1, autoPaymentRecorded: 1, status: 'PAID', completed: 1, autoCompleted: sale.completed ? (sale.autoCompleted || 0) : 1, updatedAt: now },
+        payments: [{ id, saleId: sale.id, amount: remaining, paymentDate: sale.saleDate, paymentTime: sale.saleTime || '00:00', note: 'Pelunasan otomatis saat pengambilan', isAutomatic: true, createdAt: now }],
+      };
+    });
+    if (updated) changed++;
   }
-  if (toUpdate.length) await db.bulkPut('sales', toUpdate);
-  return toUpdate.length;
+  return changed;
+}
+
+// Serialize concurrent page/background checks to avoid stale overlapping writes.
+let automaticStatusRun = null;
+export function applyAutomaticStatusRules() {
+  if (!automaticStatusRun) {
+    automaticStatusRun = (async () => {
+      const paid = await applyAutoLunasRule();
+      const completed = await applyAutoCompleteRule();
+      return paid + completed;
+    })().finally(() => { automaticStatusRun = null; });
+  }
+  return automaticStatusRun;
 }
 
 /** Batalkan status LUNAS otomatis (user tahu kalau nota itu SUNGGUH belum dibayar). */
 export async function revertAutoLunas(saleId) {
-  const sale = await db.get('sales', saleId);
-  if (!sale) return;
-  const allPayments = await db.getByIndex('payments', 'saleId', saleId);
-  const paidAmount = allPayments.reduce((s, p) => s + p.amount, 0);
-  sale.autoMarkedPaid = 0;
-  sale.autoLunasOverridden = 1;
-  sale.status = resolveStatus(sale.total, paidAmount);
-  sale.updatedAt = new Date().toISOString();
-  await db.put('sales', sale);
+  await db.mutateSalePayments(saleId, (sale, payments) => {
+    const removeIds = payments.filter(p => p.isAutomatic).map(p => p.id);
+    const paidAmount = payments.filter(p => !p.isAutomatic).reduce((sum, p) => sum + p.amount, 0);
+    sale.autoMarkedPaid = 0;
+    sale.autoLunasOverridden = 1;
+    if (sale.autoCompleted) { sale.completed = 0; sale.autoCompleted = 0; }
+    return { sale: { ...sale, status: resolveStatus(sale.total, paidAmount), updatedAt: new Date().toISOString() }, removeIds };
+  });
 }
 
 /** Ambil nota + agregat sudah-dibayar (setara SaleSummary Flutter). */
 export async function getSaleSummary(saleId) {
+  await applyAutomaticStatusRules();
   const sale = await db.get('sales', saleId);
   if (!sale) return null;
   const payments = await db.getByIndex('payments', 'saleId', saleId);
@@ -358,6 +408,7 @@ export async function getSaleSummary(saleId) {
  * @param {boolean} onlyIncomplete kalau true, hanya kembalikan nota yang BELUM ditandai selesai
  */
 export async function getAllSaleSummaries({ search = '', dateFrom = null, dateTo = null, sortBy = 'pickup', onlyIncomplete = false } = {}) {
+  await applyAutomaticStatusRules();
   let sales = await db.getAll('sales');
   sales = sales.filter((s) => !s.isDeleted);
   if (onlyIncomplete) sales = sales.filter((s) => !s.completed);

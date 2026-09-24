@@ -18,13 +18,15 @@
 // disimpan lokal dan di-precache, termasuk logo bawaan. Fitur inti (lihat/buat/ubah nota, produk,
 // pelanggan, laporan, cetak, backup lokal) semuanya tetap jalan offline.
 
-const CACHE_VERSION = 'notaku-web-v1.6.2'; // naikkan setiap rilis
+const CACHE_VERSION = 'notaku-web-v1.6.5'; // naikkan setiap rilis
 
 const CORE_ASSETS = [
   './',
   './index.html',
   './css/style.css',
   './css/theme.css',
+  './css/charts.css',
+  './js/ui/businessCharts.js',
   './css/pages/dashboard.css',
   './js/pages/dashboard.js',
   './js/ui/productImage.js',

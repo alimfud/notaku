@@ -41,12 +41,12 @@ async function draw(root, saleId) {
   root.innerHTML = `
     ${sale.autoMarkedPaid ? `
       <div class="receipt-alert">
-        <div class="receipt-alert-text">Ditandai <b>LUNAS otomatis</b> karena sudah &gt;2 hari dari tanggal pengambilan.</div>
+        <div class="receipt-alert-text"><b>Pelunasan otomatis</b> dicatat pada tanggal pengambilan setelah lewat 2 hari. Pembayaran ini ikut dihitung dalam laporan.</div>
         <button id="revertAutoBtn" class="receipt-alert-action">Batalkan</button>
       </div>` : ''}
     ${sale.autoCompleted ? `
       <div class="receipt-alert receipt-alert--completed">
-        <div class="receipt-alert-text">Ditandai <b>SELESAI otomatis</b> karena tanggal pengambilan sudah lewat. Ketuk "Tandai Belum Selesai" di bawah kalau ini keliru.</div>
+        <div class="receipt-alert-text">Ditandai <b>SELESAI otomatis</b> setelah 2 hari dari tanggal pengambilan dan LUNAS otomatis. "Tandai Belum Selesai" juga membatalkan LUNAS otomatis jika status tersebut masih aktif.</div>
       </div>` : ''}
     <div class="sale-detail-receipt-wrap">
       <div class="receipt" id="receiptCapture">
@@ -115,7 +115,7 @@ async function draw(root, saleId) {
     revertBtn.onclick = async () => {
       const confirmed = await confirmDialog({
         title: 'Batalkan LUNAS Otomatis?',
-        message: 'Nota ini akan ditandai BELUM LUNAS lagi sesuai jumlah pembayaran yang sungguh tercatat. Nota ini tidak akan ditandai LUNAS otomatis lagi di kemudian hari.',
+        message: 'Catatan pelunasan otomatis akan dihapus. DP dan pembayaran manual tetap tersimpan. Status nota dihitung ulang dan otomatis lunas tidak dijalankan lagi untuk nota ini.',
         confirmLabel: 'Ya, Batalkan',
       });
       if (!confirmed) return;

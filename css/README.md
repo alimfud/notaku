@@ -3,6 +3,7 @@
 - `style.css`: komponen dasar bersama (navigasi, tombol, popup, struktur field).
 - `theme.css`: tema marun berwarna dan navigasi responsif; palet layar tidak mengubah warna struk.
 - `pages/dashboard.css`: beranda ringkasan usaha, akses cepat, dan jadwal pengambilan.
+- `charts.css`: grafik harian dan diagram status pembayaran pada Beranda/Laporan, tanpa dependensi jaringan.
 - `pages/home.css`: daftar nota, tanggal, dan nomor invoice.
 - `pages/products.css`: daftar produk dan popup tambah/ubah produk.
 - `pages/customers.css`: daftar pelanggan dan popup pelanggan.

@@ -1,4 +1,4 @@
 {
-  "version": "1.6.2",
-  "notes": "Ringkasan Beranda memakai periode 7 hari, penyelesaian otomatis mengikuti lunas otomatis, tombol Buat Nota ditonjolkan, dan jadwal pengambilan tersedia saat membuat nota."
+  "version": "1.6.5",
+  "notes": "Kartu Pesanan dan grafik Beranda menghitung dari tujuh hari lalu sampai hari ini berdasarkan tanggal nota dibuat, dengan tanggal asal untuk nota impor."
 }
