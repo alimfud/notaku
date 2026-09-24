@@ -37,7 +37,6 @@
 .receipt .receipt-balance--paid{color:var(--status-lunas);}
 .sale-detail-receipt-wrap{padding:16px;}
 .receipt-share-help{padding:0 20px;color:var(--ink-soft);font-size:13px;line-height:1.5;}
-.settings-logo-preview{text-align:center;background:white;margin-top:12px;}
 .print-preview-label{text-align:center;font-size:12px;color:var(--muted);padding:4px 16px 12px;}
 .print-preview-wrap{padding:12px 16px;max-height:55vh;overflow:auto;background:var(--surface-dim);}
 .bluetooth-native-preview{box-sizing:content-box;margin:auto;background:#fff;color:#000;padding:10px 4px 18px;font:15px/1.35 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere;}

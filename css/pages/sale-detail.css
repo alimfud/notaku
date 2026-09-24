@@ -1,0 +1,14 @@
+/* sale-detail: edit only these scoped rules for this page and its sheets. */
+[data-page="sale-detail"] .sale-detail-payment-hint{font-weight:400;text-transform:none;font-style:italic;}
+[data-page="sale-detail"] .sale-detail-payment-list{padding:0 16px;}
+[data-page="sale-detail"] .sale-detail-payment-row{padding:8px 0;border-bottom:1px solid var(--outline);border-radius:0;background:none;}
+[data-page="sale-detail"] .sale-detail-payment-amount{font-weight:600;font-size:14px;}
+[data-page="sale-detail"] .sale-detail-payment-edit{color:var(--muted);}
+[data-page="sale-detail"] .sale-detail-actions{padding:20px 16px;}
+[data-page="sale-detail"] .sale-detail-complete-action{margin:0; justify-self: center;}
+[data-page="sale-detail"] .sale-detail-secondary-action{margin-top:10px;}
+[data-page="sale-detail"] .sale-detail-payment-help{padding:0 20px 8px;color:var(--muted);font-size:13px;}
+[data-page="sale-detail"] .sale-detail-payment-datetime{display:flex;gap:12px;}
+[data-page="sale-detail"] .sale-detail-payment-field{flex:1;}
+[data-page="sale-detail"] .row-meta { text-align: center; }
+[data-page="sale-detail"] .field { text-align: left; text-align-last: center; padding-block: initial; padding-inline: 0; }

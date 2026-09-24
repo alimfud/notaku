@@ -10,7 +10,7 @@ export async function render(root) {
   setPageTitle('Pelanggan');
   setTopbarActions([]);
   root.innerHTML = `
-    <div class="search-row" style="padding-top:16px;"><input class="search-input" id="cSearch" placeholder="Cari pelanggan"></div>
+    <div class="customers-layout-1 search-row"><input class="search-input" id="cSearch" placeholder="Cari pelanggan"></div>
     <div id="cList" class="list"></div>
     <button class="fab" id="fabAdd">+</button>
   `;

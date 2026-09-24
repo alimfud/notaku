@@ -1,0 +1,11 @@
+/* home: edit only these scoped rules for this page and its sheets. */
+[data-page="home"] .home-layout-1 { display:flex;align-items:center;justify-content:space-between;padding:0 16px 10px;gap:10px; }
+[data-page="home"] .home-layout-2 { display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft); }
+[data-page="home"] .home-layout-3 { font-size:12.5px;border:1px solid var(--outline);border-radius:8px;padding:6px 8px;background:var(--surface-dim);color:var(--ink); }
+[data-page="home"] .home-layout-4 { flex:0; }
+[data-page="home"] .home-layout-5 { font-weight:400;font-style:italic; }
+[data-page="home"] .home-layout-6 { font-size:10px;font-weight:700;color:var(--primary);border:1px solid var(--primary);border-radius:5px;padding:1px 5px;vertical-align:middle; }
+[data-page="home"] .row-meta { text-align: left; line-height: 1.45; }
+[data-page="home"] .field { text-align: left; text-align-last: auto; }
+[data-page="home"] .nota-date { display: inline-block; }
+[data-page="home"] .nota-invoice { display: inline-block; overflow-wrap: anywhere; }

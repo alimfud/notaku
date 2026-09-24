@@ -51,6 +51,10 @@ export function openSheet(renderContent) {
     sheet.innerHTML = '<div class="sheet-handle"></div>';
     const body = document.createElement('div');
     body.className = 'sheet-body';
+    // Sheets live outside pageRoot; retain their owning page's CSS scope.
+    const owner = document.getElementById('pageRoot');
+    body.dataset.page = owner?.dataset.page || '';
+    body.dataset.section = owner?.dataset.section || '';
     sheet.appendChild(body);
     backdrop.appendChild(sheet);
     document.body.appendChild(backdrop);

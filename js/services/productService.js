@@ -18,13 +18,14 @@ export async function getProduct(id) {
   return db.get('products', id);
 }
 
-export async function saveProduct({ id, name, category, unit, price, cost, stock, barcode }) {
+export async function saveProduct({ id, name, category, unit, price, cost, stock, barcode, imageData }) {
   if (!name || !name.trim()) throw new Error('Nama produk wajib diisi.');
   const now = new Date().toISOString();
   if (id) {
     const existing = await db.get('products', id);
     const updated = {
       ...existing,
+      imageData: imageData === undefined ? (existing?.imageData || '') : imageData,
       name: name.trim(),
       category: (category || '').trim(),
       unit: (unit || 'pcs').trim() || 'pcs',
@@ -38,6 +39,7 @@ export async function saveProduct({ id, name, category, unit, price, cost, stock
     return updated;
   }
   const created = {
+    imageData: imageData || '',
     id: uid(),
     name: name.trim(),
     category: (category || '').trim(),

@@ -197,7 +197,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     console.log('PASS upload/remove logo restores fallback without losing unsaved store fields');
 
     await page.evaluate(async () => { await navigator.serviceWorker.ready; });
-    await page.waitForFunction(async () => { const cache = await caches.open('notaku-web-v1.5.8'); return !!await cache.match('./js/vendor/jspdf.umd.min.js') && !!await cache.match('./js/vendor/html2canvas.min.js'); });
+    await page.waitForFunction(async () => { const { APP_VERSION } = await import('./js/version.js'); const cache = await caches.open('notaku-web-v' + APP_VERSION); return !!await cache.match('./js/vendor/jspdf.umd.min.js') && !!await cache.match('./js/vendor/html2canvas.min.js'); });
     await context.setOffline(true);
     await page.reload(); await page.waitForSelector('#receiptCapture');
     await page.locator('#printBtn').click(); await page.locator('#btPrint').click();

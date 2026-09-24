@@ -1,0 +1,4 @@
+/* customers: edit only these scoped rules for this page and its sheets. */
+[data-page="customers"] .customers-layout-1 { padding-top:16px; }
+[data-page="customers"] .row-meta { text-align: left; }
+[data-page="customers"] .field { text-align: left; text-align-last: auto; }

@@ -94,7 +94,7 @@ function draw(root, mode, state, onSave) {
     </div>
     <div style="height:230px;"></div>
 
-    <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;background:#fff;border-top:1px solid var(--outline);padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 12px);">
+    <div class="sale-checkout" style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;background:#fff;border-top:1px solid var(--outline);padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 12px);">
       <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:4px;">
         <span>Item: ${state.lines.length}</span><span>Qty: ${qtyLabel(totalQty)}</span><span>Subtotal: ${rupiah(subtotal)}</span>
       </div>

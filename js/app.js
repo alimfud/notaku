@@ -20,9 +20,10 @@ const bottomnav = document.getElementById('bottomnav');
 const drawer = document.getElementById('drawer');
 const drawerOverlay = document.getElementById('drawerOverlay');
 
-const TOP_LEVEL_ROUTES = ['home', 'products', 'customers', 'expenses', 'reports', 'settings'];
+const TOP_LEVEL_ROUTES = ['dashboard', 'home', 'products', 'customers', 'expenses', 'reports', 'settings'];
 
 const PAGE_LOADERS = {
+  dashboard: () => import('./pages/dashboard.js'),
   home: () => import('./pages/home.js'),
   sale: () => import('./pages/createSaleOrDetail.js'),
   products: () => import('./pages/products.js'),
@@ -96,7 +97,7 @@ export async function checkForUpdate(silent = true) {
 function parseHash() {
   const hash = window.location.hash.replace(/^#\/?/, '');
   const parts = hash.split('/').filter(Boolean);
-  const route = parts[0] || 'home';
+  const route = parts[0] || 'dashboard';
   const params = parts.slice(1);
   return { route, params };
 }
@@ -109,7 +110,13 @@ async function handleRouteChange() {
   btnBack.classList.toggle('hidden', isTopLevel);
   btnMenu.classList.toggle('hidden', !isTopLevel);
   bottomnav.classList.toggle('hidden', !isTopLevel);
-  document.querySelectorAll('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.route === route));
+  const navRoute = ['customers', 'expenses', 'reports'].includes(route) ? 'settings' : route;
+  document.querySelectorAll('.nav-btn').forEach((b) => {
+    const active = b.dataset.route === navRoute;
+    b.classList.toggle('active', active);
+    if (active) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
 
   const loader = PAGE_LOADERS[route];
   if (!loader) {
@@ -120,6 +127,10 @@ async function handleRouteChange() {
   try {
     const mod = await loader();
     if (token !== currentToken) return; // route berubah lagi sebelum modul selesai dimuat — buang hasil ini
+    pageRoot.dataset.page = route === 'sale'
+      ? (params[0] === 'new' ? 'sale-new' : params[1] === 'edit' ? 'sale-edit' : 'sale-detail')
+      : route;
+    pageRoot.dataset.section = route === 'settings' ? (params[0] || 'hub') : '';
     pageRoot.classList.remove('page-enter');
     // eslint-disable-next-line no-unused-expressions
     void pageRoot.offsetWidth; // restart animasi
@@ -167,7 +178,7 @@ function registerServiceWorker() {
 
 // ---------------- Boot ----------------
 (async function boot() {
-  if (!window.location.hash) window.location.hash = '#/home';
+  if (!window.location.hash) window.location.hash = '#/dashboard';
   await handleRouteChange();
   registerServiceWorker();
   import('./installPrompt.js').then(({ initInstallPrompt }) => initInstallPrompt());

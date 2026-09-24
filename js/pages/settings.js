@@ -31,10 +31,14 @@ function tile(icon, title, sub, route) {
 }
 
 function renderHub(root) {
-  setPageTitle('Setting');
+  setPageTitle('Kelola Usaha');
   setTopbarActions([]);
   root.innerHTML = `
     <div class="settings-hub">
+      ${tile('👥', 'Pelanggan', 'Daftar pelanggan & riwayat nota', 'customers')}
+      ${tile('💳', 'Pengeluaran', 'Belanja & biaya operasional', 'expenses')}
+      ${tile('📊', 'Laporan', 'Penjualan, pembayaran & ringkasan usaha', 'reports')}
+      <div class="settings-spacer"></div>
       ${tile('🏪', 'Info Toko', 'Nama, alamat, telepon toko', 'settings/store')}
       ${tile('🧾', 'Nomor Nota', 'Prefix, digit, mode reset nomor', 'settings/invoice')}
       ${tile('🖨️', 'Printer', 'Ukuran kertas & printer Bluetooth', 'settings/printer')}
@@ -58,12 +62,22 @@ async function renderStore(root) {
   setTopbarActions([]);
   const s = await getSettings();
   root.innerHTML = `
+    <div class="field settings-store-logo">
+      <label for="fLogo">Logo Toko (opsional)</label>
+      <div class="settings-logo-preview"><img id="storeLogoPreview" class="receipt-logo logo-width-${logoWidth(s)}" src="${escapeHtml(receiptLogo(s))}" alt="Preview logo toko"></div>
+      <div class="settings-logo-control">
+        <label for="logoMaxWidth">Lebar Maksimum Logo <output id="logoWidthValue">${logoWidth(s)}%</output></label>
+        <input id="logoMaxWidth" type="range" min="10" max="100" step="1" value="${logoWidth(s)}">
+        <div class="settings-logo-limits" aria-hidden="true"><span>10%</span><span>100%</span></div>
+      </div>
+      <input id="fLogo" type="file" accept="image/*">
+      <div class="row-meta">Jika kosong, NotaKu memakai logo bawaan. Ukuran berlaku sama pada nota dan Bluetooth.</div>
+      <button class="settings-logo-remove btn small ghost ${s.storeLogoData ? '' : 'hidden'}" id="removeLogo">Hapus Logo</button>
+    </div>
     <div class="field"><label>Nama Toko</label><input id="fName" value="${escapeHtml(s.storeName)}"></div>
     <div class="field"><label>Alamat</label><textarea id="fAddress" rows="2">${escapeHtml(s.storeAddress)}</textarea></div>
     <div class="field"><label>Telepon</label><input id="fPhone" value="${escapeHtml(s.storePhone)}"></div>
-    <div class="field"><label>Catatan Kaki Struk</label><textarea id="fFooter" rows="3">${escapeHtml(s.footerNote)}</textarea><div class="row-meta">Tanggal/jam cetak selalu ditambahkan. Gunakan [print_datetime] bila ingin menaruhnya di posisi tertentu.</div></div>
-    <div class="field"><label>Logo Toko (opsional)</label><input id="fLogo" type="file" accept="image/*"><div class="row-meta">Jika kosong, NotaKu memakai logo bawaan. Ukuran berlaku sama pada nota dan Bluetooth.</div><button class="settings-logo-remove btn small ghost ${s.storeLogoData ? '' : 'hidden'}" id="removeLogo">Hapus Logo</button></div>
-    <div class="field logo-size-field"><label for="logoMaxWidth">Lebar Maksimum Logo <output id="logoWidthValue">${logoWidth(s)}%</output></label><input id="logoMaxWidth" type="range" min="10" max="100" step="1" value="${logoWidth(s)}"><div class="settings-logo-preview"><img id="storeLogoPreview" class="receipt-logo logo-width-${logoWidth(s)}" src="${escapeHtml(receiptLogo(s))}" alt="Preview logo toko"></div></div>
+    <div class="field"><label>Catatan Kaki Struk</label><textarea id="fFooter" rows="3">${escapeHtml(s.footerNote)}</textarea><div class="row-meta">Gunakan [print_datetime] bila ingin menaruhnya di posisi tertentu.</div></div>
     <div class="section-title">Privasi Data Pelanggan</div>
     <label class="settings-privacy">
       <div>

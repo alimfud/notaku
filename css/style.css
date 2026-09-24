@@ -119,7 +119,7 @@ body{
 }
 .row-body{flex:1;min-width:0;}
 .row-title{font-size:15.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.row-meta{font-size:12.5px;color:var(--muted);margin-top:2px; text-align: center;}
+.row-meta{font-size:12.5px;color:var(--muted);margin-top:2px;}
 .row-trailing{text-align:right;flex-shrink:0;}
 .row-money{font-size:15px;font-weight:700;color:var(--ink);}
 .row-status{font-size:10.5px;font-weight:700;margin-top:2px;letter-spacing:.02em;}
@@ -162,7 +162,7 @@ body{
 .drawer-sep{height:1px;background:var(--outline);margin:8px 0;}
 
 /* Forms */
-.field{padding-block:initial;border-bottom:1px solid var(--outline);text-align-last:center;}
+.field{padding:12px 16px;border-bottom:1px solid var(--outline);}
 .field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em;}
 .field input,.field textarea,.field select{
   width:100%;border:none;font-size:16px;padding:2px 0;font-family:inherit;color:var(--ink);background:transparent;

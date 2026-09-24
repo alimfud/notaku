@@ -1,0 +1,3 @@
+/* sale-edit: edit only these scoped rules for this page and its sheets. */
+[data-page="sale-edit"] .row-meta { text-align: center; }
+[data-page="sale-edit"] .field { text-align: left; text-align-last: center; padding-block: initial; padding-inline: 0; }

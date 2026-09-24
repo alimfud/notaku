@@ -1,0 +1,22 @@
+/* products: edit only these scoped rules for this page and its sheets. */
+[data-page="products"] .products-layout-1 { padding-top:16px; }
+[data-page="products"] .row-meta { text-align: left; }
+[data-page="products"] .field { text-align: left; text-align-last: auto; }
+[data-page="products"] .row-money { flex-shrink: 0; text-align: right; }
+[data-page="products"] #pList { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px; padding:8px 16px; }
+[data-page="products"] #pList .row { display:flex; flex-direction:column; align-items:stretch; gap:10px; padding:10px; border:1px solid var(--outline); border-radius:17px; background:var(--surface); min-width:0; }
+[data-page="products"] #pList .row-title { white-space:normal; font-size:14px; }
+[data-page="products"] #pList .row-money { text-align:left; color:var(--primary); padding:0 3px 4px; }
+[data-page="products"] #pList .row-body { padding:0 3px; }
+[data-page="products"] .product-photo { height:135px; border-radius:11px; overflow:hidden; display:grid; place-items:center; background:#efceb3; color:#895132; font-size:32px; font-weight:650; }
+[data-page="products"] .row:nth-child(3n+2) .product-photo { background:#d4e3c9; color:#466743; }
+[data-page="products"] .row:nth-child(3n+3) .product-photo { background:#e1d1e9; color:#775286; }
+[data-page="products"] .product-photo img { width:100%; height:100%; object-fit:cover; }
+[data-page="products"] .product-photo-preview { width:100px; height:100px; object-fit:cover; display:block; border-radius:12px; margin:8px 0 12px; }
+[data-page="products"] .product-photo-field input { font-size:13px; margin:8px 0; }
+[data-page="products"] .product-photo-hint { font-size:12px; color:var(--muted); }
+[data-page="products"] #pList .empty-state { grid-column:1 / -1; }
+@media(max-width:380px) {
+  [data-page="products"] #pList { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  [data-page="products"] .product-photo { height:110px; }
+}

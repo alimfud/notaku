@@ -11,7 +11,7 @@ let _sortBy = 'pickup';    // pickup (tgl pengambilan) | created (tgl nota dibua
 let _onlyIncomplete = true; // fokus ke yang belum selesai secara default
 
 export async function render(root) {
-  setPageTitle('NotaKu');
+  setPageTitle('Daftar Nota');
   setTopbarActions([]);
   root.innerHTML = `
     <div class="summary-card" id="summaryCard"></div>
@@ -24,12 +24,12 @@ export async function render(root) {
       <button class="chip" data-f="week">Minggu Ini</button>
       <button class="chip" data-f="month">Bulan Ini</button>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px 10px;gap:10px;">
-      <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft);">
+    <div class="home-layout-1">
+      <label class="home-layout-2">
         <input type="checkbox" id="onlyIncompleteToggle" ${_onlyIncomplete ? 'checked' : ''}>
         Proses
       </label>
-      <select id="sortSelect" style="font-size:12.5px;border:1px solid var(--outline);border-radius:8px;padding:6px 8px;background:var(--surface-dim);color:var(--ink);">
+      <select class="home-layout-3" id="sortSelect">
         <option value="pickup" ${_sortBy === 'pickup' ? 'selected' : ''}>Tgl Ambil</option>
         <option value="created" ${_sortBy === 'created' ? 'selected' : ''}>Tgl Dibuat</option>
       </select>
@@ -86,7 +86,7 @@ async function renderList(root) {
       <div class="summary-value">${rupiah(monthRevenue)}</div>
     </div>
     <div class="summary-divider"></div>
-    <div class="summary-block" style="flex:0;">
+    <div class="home-layout-4 summary-block">
       <div class="summary-label">Transaksi</div>
       <div class="summary-value">${monthCount}</div>
     </div>
@@ -105,7 +105,7 @@ async function renderList(root) {
   listEl.innerHTML = summaries.map((s) => {
     const status = s.displayStatus;
     const colorVar = { PAID: 'var(--status-lunas)', PARTIAL: 'var(--status-partial)', OVERPAID: 'var(--status-overpaid)', UNPAID: 'var(--status-unpaid)' }[status];
-    const autoTag = s.sale.autoMarkedPaid ? ' <span style="font-weight:400;font-style:italic;">(otomatis)</span>' : '';
+    const autoTag = s.sale.autoMarkedPaid ? ' <span class="home-layout-5">(otomatis)</span>' : '';
     const dateLabel = _sortBy === 'created'
       ? new Date(s.sale.createdAt).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
       : `${dateShort(s.sale.saleDate)} • ${s.sale.saleTime}`;
@@ -113,8 +113,8 @@ async function renderList(root) {
       <button class="row" data-id="${s.sale.id}" style="opacity:${s.sale.completed ? 0.55 : 1};">
         <div class="avatar">${initials(s.sale.customerName)}</div>
         <div class="row-body">
-          <div class="row-title">${escapeHtml(s.sale.customerName)}${s.sale.completed ? ' <span style="font-size:10px;font-weight:700;color:var(--primary);border:1px solid var(--primary);border-radius:5px;padding:1px 5px;vertical-align:middle;">SELESAI</span>' : ''}</div>
-          <div class="row-meta">${dateLabel} • ${escapeHtml(s.sale.invoiceNumber)}</div>
+          <div class="row-title">${escapeHtml(s.sale.customerName)}${s.sale.completed ? ' <span class="home-layout-6">SELESAI</span>' : ''}</div>
+          <div class="row-meta"><span class="nota-date">${dateLabel}</span> <span class="nota-invoice">• ${escapeHtml(s.sale.invoiceNumber)}</span></div>
         </div>
         <div class="row-trailing">
           <div class="row-money">${rupiah(s.sale.total)}</div>
