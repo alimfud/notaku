@@ -10,63 +10,21 @@ import { navigate, setPageTitle, setTopbarActions, navigateBack } from '../app.j
 import { shareAsText, buildShareText, createReceiptImage, createReceiptPdf, downloadReceiptFile, shareReceiptFile } from '../services/printerService.js';
 import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
 
-/**
- * PERFORMANCE FIX #4: Timeout & Loading UI
- * Utility function untuk prevent infinite loading pada jaringan lambat
- */
-async function withTimeout(promise, ms = 10000) {
-  const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => {
-      reject(new Error(`Operasi memakan waktu terlalu lama (>${(ms/1000).toFixed(0)}s). Periksa koneksi internet Anda.`));
-    }, ms);
-  });
-  return Promise.race([promise, timeoutPromise]);
-}
-
 export async function render(root, params) {
   setPageTitle('Detail Nota');
   const saleId = params[0];
-  
-  // Tampilkan loading UI dulu
-  root.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:1em;color:#999;">
-      <div style="width:40px;height:40px;border:3px solid #f0f0f0;border-top:3px solid #791e38;border-radius:50%;animation:spin 1s linear infinite;"></div>
-      <p>Memuat detail nota...</p>
-    </div>
-    <style>
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    </style>
-  `;
-  
-  try {
-    await draw(root, saleId);
-  } catch (e) {
-    console.error('[saleDetail.render]', e);
-    root.innerHTML = `
-      <div style="padding:2em;text-align:center;">
-        <p style="font-size:1.5em;margin-bottom:0.5em;">❌ Gagal memuat nota</p>
-        <p style="color:#666;margin-bottom:1em;">${escapeHtml(e.message || 'Periksa koneksi internet atau coba reload aplikasi.')}</p>
-        <button onclick="location.reload()" style="padding:0.8em 1.5em;background:#791e38;color:white;border:none;border-radius:4px;cursor:pointer;font-size:1em;">
-          🔄 Coba Lagi
-        </button>
-      </div>
-    `;
-  }
+  await draw(root, saleId);
 }
 
 async function draw(root, saleId) {
-  // Gunakan timeout untuk prevent infinite loading
-  const summary = await withTimeout(getSaleSummary(saleId), 8000);
+  const summary = await getSaleSummary(saleId);
   if (!summary) {
     root.innerHTML = `<div class="empty-state"><p>Nota tidak ditemukan.</p></div>`;
     return;
   }
-  const items = await withTimeout(db.getByIndex('saleItems', 'saleId', saleId), 8000);
+  const items = await db.getByIndex('saleItems', 'saleId', saleId);
   items.sort((a, b) => a.sortOrder - b.sortOrder);
-  const settings = await withTimeout(getSettings(), 5000);
+  const settings = await getSettings();
   const { sale, paidAmount, remaining, payments, displayStatus } = summary;
   const showQris = settings.qrisEnabled && settings.qrisImageData && displayStatus !== 'PAID' && displayStatus !== 'OVERPAID';
   const phoneDisplay = displayPhone(sale.customerPhone, settings);

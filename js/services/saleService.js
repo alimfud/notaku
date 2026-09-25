@@ -313,43 +313,22 @@ export async function setCompleted(saleId, completed) {
  * nota telah mendapat status LUNAS OTOMATIS, nota ikut ditandai SELESAI.
  * Termasuk nota LUNAS otomatis lama yang belum ikut ditandai selesai.
  */
-/**
- * PERFORMANCE FIX #2b: Batch processing untuk applyAutoCompleteRule
- * Sama seperti FIX #2, tapi untuk marking sebagai complete
- */
 export async function applyAutoCompleteRule() {
   const sales = (await db.getAll('sales')).filter(s => !s.isDeleted && !s.completed && s.autoMarkedPaid);
-  const allPayments = await db.getAll('payments'); // Query sekali
-  
-  // Map: saleId → total paid
-  const paidBySale = new Map();
-  for (const p of allPayments) {
-    paidBySale.set(p.saleId, (paidBySale.get(p.saleId) || 0) + p.amount);
-  }
-
   const todayMs = Date.parse(todayDbDate() + 'T00:00:00Z');
-  const salesToUpdate = [];
-  
+  let changed = 0;
   for (const candidate of sales) {
-    const paid = paidBySale.get(candidate.id) || 0;
-    const status = resolveStatus(candidate.total, paid);
-    const daysPast = Math.floor((todayMs - Date.parse(candidate.saleDate + 'T00:00:00Z')) / 86400000);
-    
-    if (daysPast >= 2 && ['PAID', 'OVERPAID'].includes(status)) {
-      candidate.status = status;
-      candidate.completed = 1;
-      candidate.autoCompleted = 1;
-      candidate.updatedAt = new Date().toISOString();
-      salesToUpdate.push(candidate);
-    }
+    const updated = await db.mutateSalePayments(candidate.id, (sale, payments) => {
+      if (sale.isDeleted || sale.completed || !sale.autoMarkedPaid) return null;
+      const paid = payments.reduce((sum, p) => sum + p.amount, 0);
+      const status = resolveStatus(sale.total, paid);
+      const daysPast = Math.floor((todayMs - Date.parse(sale.saleDate + 'T00:00:00Z')) / 86400000);
+      if (!(daysPast >= 2) || !['PAID', 'OVERPAID'].includes(status)) return null;
+      return { sale: { ...sale, status, completed: 1, autoCompleted: 1, updatedAt: new Date().toISOString() } };
+    });
+    if (updated) changed++;
   }
-
-  // Batch update
-  if (salesToUpdate.length) {
-    await db.bulkPut('sales', salesToUpdate);
-  }
-  
-  return salesToUpdate.length;
+  return changed;
 }
 
 /**
@@ -359,113 +338,47 @@ export async function applyAutoCompleteRule() {
  * Nota yang PERNAH dibatalkan manual oleh user (autoLunasOverridden) tidak
  * akan disentuh lagi oleh aturan ini selamanya — keputusan manual dihormati.
  */
-/**
- * PERFORMANCE FIX #2: Batch processing untuk applyAutoLunasRule
- * Sebelumnya: N+1 query pattern → 100+ query untuk 100 nota (SANGAT LAMBAT)
- * Sesudah: 2 query (getAll sales + getAll payments) + batch update (FAST)
- */
 export async function applyAutoLunasRule() {
   const sales = (await db.getAll('sales')).filter(s => !s.isDeleted && !s.autoLunasOverridden && !s.autoPaymentRecorded);
-  const allPayments = await db.getAll('payments'); // Query sekali untuk SEMUA pembayaran
-  
-  // Bikin Map: saleId → [payments] untuk lookup O(1)
-  const paymentsBySale = new Map();
-  for (const p of allPayments) {
-    if (!paymentsBySale.has(p.saleId)) {
-      paymentsBySale.set(p.saleId, []);
-    }
-    paymentsBySale.get(p.saleId).push(p);
-  }
-
   const todayMs = Date.parse(todayDbDate() + 'T00:00:00Z');
-  const salesToUpdate = [];
-  const paymentsToAdd = [];
-  
+  let changed = 0;
   for (const candidate of sales) {
     if (!(todayMs - Date.parse(candidate.saleDate + 'T00:00:00Z') >= 2 * 86400000)) continue;
-    
-    const payments = paymentsBySale.get(candidate.id) || [];
-    const paid = payments.reduce((sum, p) => sum + p.amount, 0);
-    const remaining = candidate.total - paid;
-    
-    const now = new Date().toISOString();
-    const id = `auto-lunas:${candidate.id}`;
-    const recorded = payments.find(p => p.id === id);
-    
-    if (recorded || remaining <= 0.5) {
-      if (!candidate.autoMarkedPaid) continue;
-      // Update nota
-      candidate.autoPaymentRecorded = 1;
-      candidate.status = resolveStatus(candidate.total, paid);
-      candidate.updatedAt = now;
-      salesToUpdate.push(candidate);
-    } else {
-      // Update nota
-      candidate.autoMarkedPaid = 1;
-      candidate.autoPaymentRecorded = 1;
-      candidate.status = 'PAID';
-      candidate.completed = 1;
-      candidate.autoCompleted = candidate.completed ? (candidate.autoCompleted || 0) : 1;
-      candidate.updatedAt = now;
-      salesToUpdate.push(candidate);
-      
-      // Tambah pembayaran otomatis
-      paymentsToAdd.push({
-        id,
-        saleId: candidate.id,
-        amount: remaining,
-        paymentDate: candidate.saleDate,
-        paymentTime: candidate.saleTime || '00:00',
-        note: 'Pelunasan otomatis saat pengambilan',
-        isAutomatic: true,
-        createdAt: now,
-      });
-    }
+    const updated = await db.mutateSalePayments(candidate.id, (sale, payments) => {
+      if (sale.isDeleted || sale.autoLunasOverridden || sale.autoPaymentRecorded) return null;
+      if (!(todayMs - Date.parse(sale.saleDate + 'T00:00:00Z') >= 2 * 86400000)) return null;
+      const paid = payments.reduce((sum, p) => sum + p.amount, 0);
+      const remaining = sale.total - paid;
+      const now = new Date().toISOString();
+      // A deterministic ID plus the shared read/write transaction prevents
+      // duplicate payments when several tabs open or legacy data is repaired.
+      const id = `auto-lunas:${sale.id}`;
+      const recorded = payments.find(p => p.id === id);
+      if (recorded || remaining <= 0.5) {
+        if (!sale.autoMarkedPaid) return null;
+        return { sale: { ...sale, autoPaymentRecorded: 1, status: resolveStatus(sale.total, paid), updatedAt: now } };
+      }
+      return {
+        sale: { ...sale, autoMarkedPaid: 1, autoPaymentRecorded: 1, status: 'PAID', completed: 1, autoCompleted: sale.completed ? (sale.autoCompleted || 0) : 1, updatedAt: now },
+        payments: [{ id, saleId: sale.id, amount: remaining, paymentDate: sale.saleDate, paymentTime: sale.saleTime || '00:00', note: 'Pelunasan otomatis saat pengambilan', isAutomatic: true, createdAt: now }],
+      };
+    });
+    if (updated) changed++;
   }
-
-  // Tulis SEMUA perubahan dalam batch transaction (sangat cepat)
-  if (salesToUpdate.length) {
-    await db.bulkPut('sales', salesToUpdate);
-  }
-  if (paymentsToAdd.length) {
-    await db.bulkPut('payments', paymentsToAdd);
-  }
-  
-  return salesToUpdate.length;
+  return changed;
 }
 
 // Serialize concurrent page/background checks to avoid stale overlapping writes.
 let automaticStatusRun = null;
-let lastAutoStatusTime = 0;
-const AUTO_STATUS_CACHE_DURATION_MS = 30000; // Cache selama 30 detik
-
-/**
- * PERFORMANCE FIX #1: Memoization cache untuk applyAutomaticStatusRules
- * Sebelumnya: Setiap render halaman → baca DB (lambat 3-5 detik)
- * Sesudah: Cache 30 detik → langsung return dari cache (instan!)
- */
 export function applyAutomaticStatusRules() {
-  const now = Date.now();
-  
-  // Kalau cache masih segar (< 30 detik), return tanpa buat query baru
-  if (automaticStatusRun && (now - lastAutoStatusTime) < AUTO_STATUS_CACHE_DURATION_MS) {
-    return automaticStatusRun;
+  if (!automaticStatusRun) {
+    automaticStatusRun = (async () => {
+      const paid = await applyAutoLunasRule();
+      const completed = await applyAutoCompleteRule();
+      return paid + completed;
+    })().finally(() => { automaticStatusRun = null; });
   }
-
-  // Cache expired atau belum ada, buat transaksi baru
-  automaticStatusRun = (async () => {
-    const paid = await applyAutoLunasRule();
-    const completed = await applyAutoCompleteRule();
-    return paid + completed;
-  })();
-  
-  lastAutoStatusTime = now;
   return automaticStatusRun;
-}
-
-// Fungsi untuk reset cache (optional, bisa dipanggil kalau ada perubahan manual)
-export function invalidateAutoStatusCache() {
-  lastAutoStatusTime = 0;
 }
 
 /** Batalkan status LUNAS otomatis (user tahu kalau nota itu SUNGGUH belum dibayar). */

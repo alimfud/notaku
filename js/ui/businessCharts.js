@@ -11,13 +11,13 @@ export function dailyChart(days, { compact = false, dateBasis = 'pickup', period
   const max = Math.max(0, ...days.flatMap(d => visible.map(s => d[s.key])));
   const ceiling = max > 0 ? Math.ceil(max / 10 ** Math.floor(Math.log10(max))) * 10 ** Math.floor(Math.log10(max)) : 1;
   const detail = d => `${dateShort(d.date)} · ${d.count} nota · ${visible.map(s => `${s.label}: ${rupiah(d[s.key])}`).join(' · ')}`;
-  return `<section class="business-chart"><div class="business-chart-heading"><h3>Aktivitas per tanggal</h3><p>${periodLabel ? `${escapeHtml(periodLabel)}<br>` : ''}${dateBasis === 'created' ? 'Nilai nota mengikuti tanggal dibuat. Nota impor memakai tanggal nota dari data asal.' : 'Nilai nota mengikuti tanggal pengambilan.'}</p></div>
+  return `<section class="business-chart"><div class="business-chart-heading"><h3>Aktivitas per tanggal</h3><p>${periodLabel ? `${escapeHtml(periodLabel)}<br>` : ''}${dateBasis === 'created' ? 'Nilai yang tercantum mengikuti tanggal pembuatan Nota' : 'Nilai nota mengikuti tanggal pengambilan.'}</p></div>
     <div class="business-legend">${visible.map(s => `<span><i style="background:${s.color}"></i>${s.label}</span>`).join('')}</div>
     ${max ? '' : '<p class="business-chart-empty">Belum ada nilai transaksi pada periode ini.</p>'}
     <div class="business-plot"><div class="business-axis"><span>${max ? compactMoney(ceiling) : 'Rp0'}</span><span>${max ? compactMoney(ceiling / 2) : ''}</span><span>0</span></div>
       <div class="business-bars-scroll"><div class="business-bars" style="--day-count:${Math.max(1, days.length)}">${days.map(d => `<button type="button" class="business-day" data-chart-detail="${escapeHtml(detail(d))}" aria-label="${escapeHtml(detail(d))}"><span class="business-columns">${visible.map(s => `<span style="height:${Math.max(0, d[s.key]) / ceiling * 100}%;background:${s.color}"></span>`).join('')}</span><span class="business-day-label">${d.date.slice(8)}/${d.date.slice(5, 7)}</span></button>`).join('')}</div></div></div>
     <p class="business-chart-detail" aria-live="polite">Ketuk batang untuk melihat nominal.</p>
-    <p class="business-chart-note">Pembayaran mengikuti tanggal bayar, termasuk pelunasan otomatis pada tanggal pengambilan. Pengeluaran mengikuti tanggal pencatatan.</p></section>`;
+    <p class="business-chart-note">Pembayaran lunas otomatis saat pengambilan, dan pengeluaran dicatat sesuai tanggal transaksi.</p></section>`;
 }
 
 export function statusChart(counts) {
