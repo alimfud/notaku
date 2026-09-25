@@ -17,7 +17,7 @@ export function dailyChart(days, { compact = false, dateBasis = 'pickup', period
     <div class="business-plot"><div class="business-axis"><span>${max ? compactMoney(ceiling) : 'Rp0'}</span><span>${max ? compactMoney(ceiling / 2) : ''}</span><span>0</span></div>
       <div class="business-bars-scroll"><div class="business-bars" style="--day-count:${Math.max(1, days.length)}">${days.map(d => `<button type="button" class="business-day" data-chart-detail="${escapeHtml(detail(d))}" aria-label="${escapeHtml(detail(d))}"><span class="business-columns">${visible.map(s => `<span style="height:${Math.max(0, d[s.key]) / ceiling * 100}%;background:${s.color}"></span>`).join('')}</span><span class="business-day-label">${d.date.slice(8)}/${d.date.slice(5, 7)}</span></button>`).join('')}</div></div></div>
     <p class="business-chart-detail" aria-live="polite">Ketuk batang untuk melihat nominal.</p>
-    <p class="business-chart-note">Pembayaran mengikuti tanggal bayar, termasuk pelunasan otomatis pada tanggal pengambilan. Pengeluaran mengikuti tanggal pencatatan.</p></section>`;
+    <p class="business-chart-note">Pembayaran lunas otomatis saat pengambilan, dan pengeluaran dicatat sesuai tanggal transaksi.</p></section>`;
 }
 
 export function statusChart(counts) {
