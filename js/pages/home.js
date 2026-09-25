@@ -57,26 +57,62 @@ export async function render(root) {
   await renderList(root);
 }
 
+/**
+ * PERFORMANCE FIX #3: Reduce redundant database queries
+ * Sebelumnya: 2x getAllSaleSummaries() → 2x database query
+ * Sesudah: 1x query, filter di memory → instant!
+ * 
+ * HOTFIX: Fetch semua data tanpa filter tanggal ketat untuk tidak menghilangkan data di masa depan
+ */
 async function renderList(root) {
   const today = todayDbDate();
-  let dateFrom = null, dateTo = null;
-  if (_dateFilter === 'today') { dateFrom = dateTo = today; }
-  else if (_dateFilter === 'week') {
-    const now = new Date();
-    const day = now.getDay() === 0 ? 7 : now.getDay();
-    const monday = new Date(now); monday.setDate(now.getDate() - (day - 1));
-    dateFrom = monday.toISOString().slice(0, 10);
-    dateTo = today;
-  } else if (_dateFilter === 'month') {
-    dateFrom = today.slice(0, 8) + '01';
-    dateTo = today;
-  }
-
-  const summaries = await getAllSaleSummaries({ search: _search, dateFrom, dateTo, sortBy: _sortBy, onlyIncomplete: _onlyIncomplete });
-
-  // Ringkasan BULAN INI (bukan hari ini) — supaya pemilik toko langsung lihat progres bulanan.
   const monthStart = today.slice(0, 8) + '01';
-  const monthSummaries = await getAllSaleSummaries({ dateFrom: monthStart, dateTo: today });
+  
+  // ✅ Query SEKALI - ambil SEMUA nota (tanpa filter tanggal di level query)
+  // Ini penting karena ada data di masa depan yang tidak boleh hilang
+  const allMonthlySummaries = await getAllSaleSummaries({ 
+    sortBy: _sortBy 
+  });
+
+  // Filter untuk display (berdasarkan _dateFilter, _search, _onlyIncomplete)
+  const summaries = allMonthlySummaries.filter(s => {
+    // Filter 1: onlyIncomplete
+    if (_onlyIncomplete && s.sale.completed) {
+      return false;
+    }
+    
+    // Filter 2: Search
+    if (_search.trim()) {
+      const q = _search.trim().toLowerCase();
+      const nameMatch = s.sale.customerName.toLowerCase().includes(q);
+      const invoiceMatch = s.sale.invoiceNumber.toLowerCase().includes(q);
+      if (!nameMatch && !invoiceMatch) {
+        return false;
+      }
+    }
+    
+    // Filter 3: Date range based on _dateFilter
+    if (_dateFilter === 'today') {
+      return s.sale.saleDate === today;
+    } else if (_dateFilter === 'week') {
+      const now = new Date();
+      const day = now.getDay() === 0 ? 7 : now.getDay();
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - (day - 1));
+      const weekStart = monday.toISOString().slice(0, 10);
+      return s.sale.saleDate >= weekStart && s.sale.saleDate <= today;
+    } else if (_dateFilter === 'month') {
+      return s.sale.saleDate >= monthStart && s.sale.saleDate <= today;
+    }
+    
+    // 'all' filter - show ALL data tanpa batasan tanggal (PENTING: jangan hapus data masa depan)
+    return true;
+  });
+
+  // Filter untuk summary bulan (lebih sederhana karena sudah dalam range)
+  const monthSummaries = allMonthlySummaries.filter(s =>
+    s.sale.saleDate >= monthStart && s.sale.saleDate <= today
+  );
   const monthRevenue = monthSummaries.reduce((s, x) => s + x.sale.total, 0);
   const monthCount = monthSummaries.length;
 
