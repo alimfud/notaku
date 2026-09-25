@@ -49,5 +49,5 @@ export async function deleteCustomer(id) {
 }
 
 export function cashCustomer() {
-  return { id: '', name: 'CASH', phone: '', address: '' };
+  return { id: '', name: '', phone: '', address: '' };
 }
