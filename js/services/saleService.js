@@ -370,15 +370,31 @@ export async function applyAutoLunasRule() {
 
 // Serialize concurrent page/background checks to avoid stale overlapping writes.
 let automaticStatusRun = null;
+let lastAutoStatusTime = 0;
+const AUTO_STATUS_CACHE_DURATION_MS = 30000; // Cache 30 detik
+
 export function applyAutomaticStatusRules() {
-  if (!automaticStatusRun) {
-    automaticStatusRun = (async () => {
-      const paid = await applyAutoLunasRule();
-      const completed = await applyAutoCompleteRule();
-      return paid + completed;
-    })().finally(() => { automaticStatusRun = null; });
+  const now = Date.now();
+  
+  // Kalau cache masih segar (< 30 detik), return tanpa buat query baru
+  if (automaticStatusRun && (now - lastAutoStatusTime) < AUTO_STATUS_CACHE_DURATION_MS) {
+    return automaticStatusRun;
   }
+
+  // Cache expired atau belum ada, buat transaksi baru
+  automaticStatusRun = (async () => {
+    const paid = await applyAutoLunasRule();
+    const completed = await applyAutoCompleteRule();
+    return paid + completed;
+  })();
+  
+  lastAutoStatusTime = now;
   return automaticStatusRun;
+}
+
+// Fungsi untuk reset cache (optional, bisa dipanggil kalau ada perubahan)
+export function invalidateAutoStatusCache() {
+  lastAutoStatusTime = 0;
 }
 
 /** Batalkan status LUNAS otomatis (user tahu kalau nota itu SUNGGUH belum dibayar). */
