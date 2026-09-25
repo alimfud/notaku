@@ -7,7 +7,7 @@ import { STATUS_LABEL } from '../services/saleCalculation.js';
 import { navigate, setPageTitle, setTopbarActions } from '../app.js';
 
 export async function render(root) {
-  setPageTitle('NotaKu');
+  setPageTitle('NotaKu - Jajan Hajatan');
   setTopbarActions([]);
   const [summaries, settings, report, orders] = await Promise.all([getAllSaleSummaries(), getSettings(), generateReport('week'), generateReport('orders-last7')]);
   if (root.dataset.page !== 'dashboard') return;
