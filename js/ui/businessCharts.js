@@ -11,7 +11,7 @@ export function dailyChart(days, { compact = false, dateBasis = 'pickup', period
   const max = Math.max(0, ...days.flatMap(d => visible.map(s => d[s.key])));
   const ceiling = max > 0 ? Math.ceil(max / 10 ** Math.floor(Math.log10(max))) * 10 ** Math.floor(Math.log10(max)) : 1;
   const detail = d => `${dateShort(d.date)} · ${d.count} nota · ${visible.map(s => `${s.label}: ${rupiah(d[s.key])}`).join(' · ')}`;
-  return `<section class="business-chart"><div class="business-chart-heading"><h3>Aktivitas per tanggal</h3><p>${periodLabel ? `${escapeHtml(periodLabel)}<br>` : ''}${dateBasis === 'created' ? 'Nominal yang tercantum mengikuti tanggal pembuatan Nota' : 'Nilai nota mengikuti tanggal pengambilan.'}</p></div>
+  return `<section class="business-chart"><div class="business-chart-heading"><h3>Aktivitas per tanggal</h3><p>${periodLabel ? `${escapeHtml(periodLabel)}<br>` : ''}${dateBasis === 'created' ? 'Nilai yang tercantum mengikuti tanggal pembuatan Nota' : 'Nilai nota mengikuti tanggal pengambilan.'}</p></div>
     <div class="business-legend">${visible.map(s => `<span><i style="background:${s.color}"></i>${s.label}</span>`).join('')}</div>
     ${max ? '' : '<p class="business-chart-empty">Belum ada nilai transaksi pada periode ini.</p>'}
     <div class="business-plot"><div class="business-axis"><span>${max ? compactMoney(ceiling) : 'Rp0'}</span><span>${max ? compactMoney(ceiling / 2) : ''}</span><span>0</span></div>
