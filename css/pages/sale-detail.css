@@ -27,7 +27,7 @@
 
 #app:has(#pageRoot[data-page="sale-detail"]) #topbar { gap:2px; }
 #app:has(#pageRoot[data-page="sale-detail"]) #topbarActions .icon-btn { padding:7px; }
-#app:has(#pageRoot[data-page="sale-detail"]) #topbarActions .icon-btn svg { width:30px; height:30px; }
+#app:has(#pageRoot[data-page="sale-detail"]) #topbarActions .icon-btn svg { width:25px; height:25px; }
 
 [data-page="sale-detail"] .receipt-alert { margin:10px 0 0; padding:10px 12px; border:1px solid color-mix(in srgb,var(--primary) 18%,var(--outline)); border-radius:11px; }
 [data-page="sale-detail"] .receipt-alert-text { font-size:11.5px; line-height:1.45; }
