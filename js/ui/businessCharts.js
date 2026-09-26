@@ -1,9 +1,9 @@
 import { rupiah, dateShort, escapeHtml } from '../format.js';
 
 const series = [
-  { key: 'revenue', label: 'Nilai nota', color: '#8d2947' },
-  { key: 'received', label: 'Pembayaran tercatat', color: '#398178' },
-  { key: 'expenses', label: 'Pengeluaran', color: '#d68b3b' },
+  { key: 'revenue', label: '=> Nilai nota', color: '#8d2947' },
+  { key: 'received', label: '=> Pembayaran tercatat', color: '#398178' },
+  { key: 'expenses', label: '=> Pengeluaran', color: '#d68b3b' },
 ];
 
 export function dailyChart(days, { compact = false, dateBasis = 'pickup', periodLabel = '' } = {}) {
