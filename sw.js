@@ -18,7 +18,7 @@
 // disimpan lokal dan di-precache, termasuk logo bawaan. Fitur inti (lihat/buat/ubah nota, produk,
 // pelanggan, laporan, cetak, backup lokal) semuanya tetap jalan offline.
 
-const CACHE_VERSION = 'notaku-web-2bf6ce27a269'; // otomatis diganti scripts/prepare_release.py
+const CACHE_VERSION = 'notaku-web-v1.6.5'; // naikkan setiap rilis
 
 const CORE_ASSETS = [
   './',
@@ -46,8 +46,8 @@ const CORE_ASSETS = [
   './js/services/receiptLogo.js',
   './manifest.json',
   './version.json',
-  './icons/icon-192-9a404cbde1ca.png',
-  './icons/icon-512-8cb19a5b4443.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
   './js/app.js',
   './js/config.js',
   './js/db.js',

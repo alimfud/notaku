@@ -74,46 +74,24 @@ export function navigateBack() {
   }
 }
 
-// Versi terbaru dibaca langsung dari server. Jangan hapus Cache Storage/IndexedDB:
-// database transaksi dan konfigurasi milik pengguna wajib tetap aman.
-let updateInProgress = false;
-let lastUpdateCheck = 0;
 export async function checkForUpdate(silent = true) {
   const { toast } = await import('./ui/toast.js');
-  if (updateInProgress) return;
   try {
+    // cache: 'no-store' memaksa browser mengambil langsung dari jaringan
+    // tanpa lewat HTTP cache — tidak perlu trik query-string "?t=..." lagi
+    // (yang sebelumnya justru memicu bug di sw.js, sudah diperbaiki juga).
     const res = await fetch('./version.json', { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (data.version && data.version !== APP_VERSION) {
-      updateInProgress = true;
-      toast(`Memperbarui NotaKu ke ${data.version}...`);
-      // Ambil ulang service worker serta seluruh app shell (termasuk manifest dan ikon).
-      // reload otomatis setelah SW terpasang; fallback jika SW tidak tersedia.
-      if ('serviceWorker' in navigator) {
-        const reg = await navigator.serviceWorker.getRegistration();
-        if (reg) await reg.update();
-      }
-      // Gunakan URL berparameter rilis agar entry HTML tidak tertahan cache lama.
-      const next = new URL(location.href);
-      next.searchParams.set('release', data.version);
-      location.replace(next.href);
+      toast(`Versi baru ${data.version} tersedia. Tutup dan buka lagi aplikasi untuk update.`);
     } else if (!silent) {
       toast('Aplikasi sudah versi terbaru (' + APP_VERSION + ')');
     }
   } catch (e) {
     console.error('[checkForUpdate]', e);
     if (!silent) toast('Gagal memeriksa pembaruan. Periksa koneksi internet.');
-    updateInProgress = false;
   }
-}
-
-function checkUpdateIfDue() {
-  if (!navigator.onLine || updateInProgress) return;
-  const now = Date.now();
-  if (now - lastUpdateCheck < 60000) return;
-  lastUpdateCheck = now;
-  checkForUpdate(true);
 }
 
 function parseHash() {
@@ -183,19 +161,19 @@ btnBack.addEventListener('click', () => navigateBack());
 window.addEventListener('hashchange', handleRouteChange);
 
 // ---------------- Service worker + update check ----------------
-let swReloaded = false;
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (swReloaded || !navigator.serviceWorker.controller) return;
-    swReloaded = true;
-    location.reload();
-  });
-  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
-    // SW diperiksa setiap kali aplikasi dibuka; perubahan ditemukan tanpa
-    // meminta pengguna menutup aplikasi/menghapus data.
-    reg.update().catch(() => {});
-  }).catch((e) => console.warn('[serviceWorker]', e));
+  navigator.serviceWorker.register('./sw.js').then((reg) => {
+    reg.addEventListener('updatefound', () => {
+      const nw = reg.installing;
+      nw.addEventListener('statechange', () => {
+        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+          import('./ui/toast.js').then(({ toast }) => toast('Update tersedia — memuat versi terbaru...'));
+          setTimeout(() => location.reload(), 1200);
+        }
+      });
+    });
+  }).catch(() => {});
 }
 
 // ---------------- Boot ----------------
@@ -203,7 +181,6 @@ function registerServiceWorker() {
   if (!window.location.hash) window.location.hash = '#/dashboard';
   await handleRouteChange();
   registerServiceWorker();
-  checkUpdateIfDue();
   import('./installPrompt.js').then(({ initInstallPrompt }) => initInstallPrompt());
   runBackgroundChecks();
 
@@ -211,13 +188,8 @@ function registerServiceWorker() {
   // setelah dikunci) — ini bagian dari pendekatan "catch-up" untuk aturan
   // auto-lunas & jadwal backup, lihat komentar di saleService.js dan
   // driveBackupService.js soal batasan "otomatis" pada web app statis.
-  window.addEventListener('online', checkUpdateIfDue);
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      checkUpdateIfDue();
-      navigator.serviceWorker?.getRegistration().then((reg) => reg?.update()).catch(() => {});
-      runBackgroundChecks();
-    }
+    if (document.visibilityState === 'visible') runBackgroundChecks();
   });
 })();
 
