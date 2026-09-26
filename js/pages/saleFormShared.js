@@ -499,7 +499,7 @@ async function editAdjustments(root, mode, state, onSave) {
       <div class="sale-sheet-header">
         <div>
           <div class="sheet-title">Atur Tambahan</div>
-          <p>Aktifkan hanya komponen yang diperlukan.</p>
+          <p>Aktifkan yang diperlukan.</p>
         </div>
         <button type="button" class="sale-sheet-close" id="tClose" aria-label="Tutup">×</button>
       </div>
@@ -551,7 +551,7 @@ async function editAdjustments(root, mode, state, onSave) {
 
         ${mode === 'create' ? `
         <section class="sale-adjustment-option sale-payment-option">
-          <div class="sale-option-heading"><span><strong>Pembayaran awal</strong><small>Nominal yang dibayar sekarang</small></span></div>
+          <div class="sale-option-heading"><span><strong>Pembayaran awal</strong></span></div>
           <div class="sale-option-fields">
             <label class="sale-sheet-field"><span>Bayar sekarang</span><div class="sale-money-input"><b>Rp</b><input id="tPayment" type="number" inputmode="numeric" value="${state.payment || ''}" placeholder="0"></div></label>
           </div>
@@ -559,7 +559,7 @@ async function editAdjustments(root, mode, state, onSave) {
 
         <section class="sale-adjustment-option sale-note-option">
           <div class="sale-option-fields">
-            <label class="sale-sheet-field"><span>Catatan <em>Opsional</em></span><textarea id="tNote" rows="3" placeholder="Tulis catatan untuk nota ini">${escapeHtml(state.note)}</textarea></label>
+            <label class="sale-sheet-field"><span>Catatan nota <em>Opsional</em></span><textarea id="tNote" rows="2" placeholder="Tulis catatan singkat">${escapeHtml(state.note)}</textarea></label>
           </div>
         </section>
       </div>
