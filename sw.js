@@ -18,7 +18,7 @@
 // disimpan lokal dan di-precache, termasuk logo bawaan. Fitur inti (lihat/buat/ubah nota, produk,
 // pelanggan, laporan, cetak, backup lokal) semuanya tetap jalan offline.
 
-const CACHE_VERSION = 'notaku-web-v1.6.5-customers-dashboard-1'; // naikkan setiap rilis
+const CACHE_VERSION = 'notaku-web-v1.6.6-performance-1'; // naikkan setiap rilis
 
 const CORE_ASSETS = [
   './',
@@ -143,18 +143,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Online-first: selama jaringan tersedia selalu ambil kode terbaru dan
-  // perbarui cache. Saat offline/ada gangguan, gunakan versi terakhir yang
-  // tersimpan tanpa meminta pengguna menghapus cache atau storage manual.
+  // Cache-first: navigasi dan import modul harus langsung memakai app shell
+  // lokal. Versi baru tetap aman karena perubahan sw.js memasang CACHE_VERSION
+  // baru secara atomik, sedangkan version.json memang ditangani network-first
+  // pada blok khusus di atas.
   event.respondWith(
-    fetch(event.request, { cache: 'no-store' })
-      .then((res) => {
+    caches.match(event.request).then((cached) => cached ||
+      fetch(event.request).then((res) => {
         if (res.ok) {
           const copy = res.clone();
           caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, copy));
         }
         return res;
-      })
-      .catch(() => caches.match(event.request).then((cached) => cached || new Response('', { status: 504, statusText: 'Offline dan belum pernah di-cache' })))
+      }).catch(() => new Response('', { status: 504, statusText: 'Offline dan belum pernah di-cache' }))
+    )
   );
 });

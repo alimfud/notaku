@@ -1,4 +1,4 @@
 {
-  "version": "1.6.5",
-  "notes": "Kartu Pesanan dan grafik Beranda menghitung dari tujuh hari lalu sampai hari ini berdasarkan tanggal nota dibuat, dengan tanggal asal untuk nota impor."
+  "version": "1.6.6",
+  "notes": "Navigasi dan pembacaan data dipercepat dengan cache sesi, pemanasan halaman, dan app shell lokal tanpa menunggu jaringan."
 }

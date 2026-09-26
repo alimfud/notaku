@@ -8,6 +8,39 @@ const DB_VERSION = 2;
 
 let _dbPromise = null;
 
+// Cache baca per sesi. Navigasi SPA sering meminta store yang sama beberapa
+// kali (dashboard/laporan/status otomatis). IndexedDB tetap menjadi sumber
+// data utama; cache ini hanya menghindari transaction + structured-clone yang
+// berulang selama datanya belum berubah.
+const _readCache = new Map();
+const _readLoads = new Map();
+const _storeVersions = new Map();
+const _cacheChannel = typeof BroadcastChannel !== 'undefined'
+  ? new BroadcastChannel('notaku-db-cache')
+  : null;
+
+function cloneValue(value) {
+  if (value == null) return value;
+  return typeof structuredClone === 'function'
+    ? structuredClone(value)
+    : JSON.parse(JSON.stringify(value));
+}
+
+function invalidateStores(storeNames, notify = false) {
+  for (const store of storeNames) {
+    _readCache.delete(store);
+    // Promise baca lama tidak bisa dibatalkan, tetapi jangan biarkan pembaca
+    // baru ikut menunggu hasil yang dibuat sebelum perubahan dimulai.
+    _readLoads.delete(store);
+    _storeVersions.set(store, (_storeVersions.get(store) || 0) + 1);
+  }
+  if (notify) _cacheChannel?.postMessage(storeNames);
+}
+
+_cacheChannel?.addEventListener('message', (event) => {
+  if (Array.isArray(event.data)) invalidateStores(event.data, false);
+});
+
 function openDb() {
   if (_dbPromise) return _dbPromise;
   _dbPromise = new Promise((resolve, reject) => {
@@ -66,15 +99,30 @@ function tx(storeNames, mode = 'readonly') {
 
 /** Ambil semua baris dari sebuah store (opsional filter lewat index). */
 export async function getAll(store) {
+  if (_readCache.has(store)) return cloneValue(_readCache.get(store));
+  if (_readLoads.has(store)) return cloneValue(await _readLoads.get(store));
+
+  const version = _storeVersions.get(store) || 0;
   const t = await tx([store]);
-  return new Promise((resolve, reject) => {
+  const load = new Promise((resolve, reject) => {
     const req = t.objectStore(store).getAll();
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
+  _readLoads.set(store, load);
+  try {
+    const rows = await load;
+    if ((_storeVersions.get(store) || 0) === version) _readCache.set(store, rows);
+    return cloneValue(rows);
+  } finally {
+    if (_readLoads.get(store) === load) _readLoads.delete(store);
+  }
 }
 
 export async function getByIndex(store, indexName, value) {
+  if (_readCache.has(store)) {
+    return cloneValue(_readCache.get(store).filter((row) => row[indexName] === value));
+  }
   const t = await tx([store]);
   return new Promise((resolve, reject) => {
     const req = t.objectStore(store).index(indexName).getAll(value);
@@ -84,6 +132,9 @@ export async function getByIndex(store, indexName, value) {
 }
 
 export async function get(store, key) {
+  if (_readCache.has(store)) {
+    return cloneValue(_readCache.get(store).find((row) => row.id === key) || null);
+  }
   const t = await tx([store]);
   return new Promise((resolve, reject) => {
     const req = t.objectStore(store).get(key);
@@ -93,22 +144,25 @@ export async function get(store, key) {
 }
 
 export async function put(store, value) {
+  invalidateStores([store]);
   const t = await tx([store], 'readwrite');
   return new Promise((resolve, reject) => {
     const req = t.objectStore(store).put(value);
     req.onsuccess = () => resolve(value);
     req.onerror = () => reject(req.error);
+    t.oncomplete = () => invalidateStores([store], true);
   });
 }
 
 /** Simpan banyak baris sekaligus dalam SATU transaction (cepat, dipakai import). */
 export async function bulkPut(store, values) {
   if (!values.length) return;
+  invalidateStores([store]);
   const t = await tx([store], 'readwrite');
   return new Promise((resolve, reject) => {
     const os = t.objectStore(store);
     for (const v of values) os.put(v);
-    t.oncomplete = () => resolve();
+    t.oncomplete = () => { invalidateStores([store], true); resolve(); };
     t.onerror = () => reject(t.error);
   });
 }
@@ -116,13 +170,14 @@ export async function bulkPut(store, values) {
 /** Tulis ke beberapa store berbeda dalam SATU transaction (all-or-nothing). */
 export async function bulkPutMulti(storeToValues) {
   const storeNames = Object.keys(storeToValues);
+  invalidateStores(storeNames);
   const t = await tx(storeNames, 'readwrite');
   return new Promise((resolve, reject) => {
     for (const name of storeNames) {
       const os = t.objectStore(name);
       for (const v of storeToValues[name]) os.put(v);
     }
-    t.oncomplete = () => resolve();
+    t.oncomplete = () => { invalidateStores(storeNames, true); resolve(); };
     t.onerror = () => reject(t.error);
   });
 }
@@ -131,6 +186,7 @@ export async function bulkPutMulti(storeToValues) {
  * The updater is synchronous and returns { sale, payments?, removeIds? } or null.
  */
 export async function mutateSalePayments(saleId, updater) {
+  invalidateStores(['sales', 'payments']);
   const t = await tx(['sales', 'payments'], 'readwrite');
   return new Promise((resolve, reject) => {
     let sale, payments, ready = 0, changed = false, failure;
@@ -149,23 +205,26 @@ export async function mutateSalePayments(saleId, updater) {
     };
     saleRequest.onsuccess = () => { sale = saleRequest.result; apply(); };
     paymentRequest.onsuccess = () => { payments = paymentRequest.result; apply(); };
-    t.oncomplete = () => resolve(changed);
+    t.oncomplete = () => { invalidateStores(['sales', 'payments'], true); resolve(changed); };
     t.onabort = () => reject(failure || t.error || new Error('Transaksi pembayaran dibatalkan.'));
     t.onerror = () => reject(failure || t.error);
   });
 }
 
 export async function remove(store, key) {
+  invalidateStores([store]);
   const t = await tx([store], 'readwrite');
   return new Promise((resolve, reject) => {
     const req = t.objectStore(store).delete(key);
     req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
+    t.oncomplete = () => invalidateStores([store], true);
   });
 }
 
 /** Hapus semua baris yang cocok dengan sebuah index value (mis. semua saleItems milik satu sale). */
 export async function removeByIndex(store, indexName, value) {
+  invalidateStores([store]);
   const t = await tx([store], 'readwrite');
   return new Promise((resolve, reject) => {
     const req = t.objectStore(store).index(indexName).openCursor(IDBKeyRange.only(value));
@@ -173,26 +232,29 @@ export async function removeByIndex(store, indexName, value) {
       const cursor = req.result;
       if (cursor) { cursor.delete(); cursor.continue(); }
     };
-    t.oncomplete = () => resolve();
+    t.oncomplete = () => { invalidateStores([store], true); resolve(); };
     t.onerror = () => reject(t.error);
   });
 }
 
 export async function clearStore(store) {
+  invalidateStores([store]);
   const t = await tx([store], 'readwrite');
   return new Promise((resolve, reject) => {
     const req = t.objectStore(store).clear();
     req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
+    t.oncomplete = () => invalidateStores([store], true);
   });
 }
 
 export async function clearAll() {
   const stores = ['products', 'customers', 'sales', 'saleItems', 'payments', 'expenses', 'settings'];
+  invalidateStores(stores);
   const t = await tx(stores, 'readwrite');
   return new Promise((resolve, reject) => {
     for (const s of stores) t.objectStore(s).clear();
-    t.oncomplete = () => resolve();
+    t.oncomplete = () => { invalidateStores(stores, true); resolve(); };
     t.onerror = () => reject(t.error);
   });
 }

@@ -131,10 +131,6 @@ async function handleRouteChange() {
       ? (params[0] === 'new' ? 'sale-new' : params[1] === 'edit' ? 'sale-edit' : 'sale-detail')
       : route;
     pageRoot.dataset.section = route === 'settings' ? (params[0] || 'hub') : '';
-    pageRoot.classList.remove('page-enter');
-    // eslint-disable-next-line no-unused-expressions
-    void pageRoot.offsetWidth; // restart animasi
-    pageRoot.classList.add('page-enter');
     await mod.render(pageRoot, params);
   } catch (e) {
     console.error('[router]', e);
@@ -183,6 +179,7 @@ function registerServiceWorker() {
   registerServiceWorker();
   import('./installPrompt.js').then(({ initInstallPrompt }) => initInstallPrompt());
   runBackgroundChecks();
+  warmNavigation();
 
   // Ulangi pengecekan tiap kali aplikasi kembali aktif (mis. HP dibuka lagi
   // setelah dikunci) — ini bagian dari pendekatan "catch-up" untuk aturan
@@ -192,6 +189,24 @@ function registerServiceWorker() {
     if (document.visibilityState === 'visible') runBackgroundChecks();
   });
 })();
+
+// Muat modul halaman dan data form yang paling sering dipakai saat browser
+// sedang senggang. Klik pertama (terutama "+ Nota Baru") tidak lagi harus
+// menunggu download/parse modul atau pembacaan daftar produk.
+function warmNavigation() {
+  const warm = () => {
+    Promise.allSettled([
+      ...Object.values(PAGE_LOADERS).map((loader) => loader()),
+      import('./pages/createSale.js'),
+      import('./pages/saleEdit.js'),
+      import('./pages/saleDetail.js'),
+      import('./services/productService.js').then(({ getAllProducts }) => getAllProducts()),
+      import('./services/customerService.js').then(({ getAllCustomers }) => getAllCustomers()),
+    ]);
+  };
+  if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 1200 });
+  else setTimeout(warm, 0);
+}
 
 async function runBackgroundChecks() {
   try {
