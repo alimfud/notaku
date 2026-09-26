@@ -12,6 +12,7 @@
 - `pages/settings.css`: pengaturan, termasuk Info Toko, Nomor Nota, dan QRIS.
 - `pages/sale-new.css`: form nota baru dan popup-nya.
 - `pages/sale-edit.css`: form ubah nota dan popup-nya.
+- `pages/sale-form.css`: tampilan profesional bersama untuk form nota baru/ubah nota dan popup terkait.
 - `pages/sale-detail.css`: halaman Detail Nota dan popup pembayaran.
 - `receipt.css`: komponen struk, logo, dan preview Bluetooth.
 

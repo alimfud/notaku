@@ -46,61 +46,122 @@ function draw(root, mode, state, onSave) {
   const calc = computeAdjustments(subtotal, state.adjustments);
   const totalQty = state.lines.reduce((s, l) => s + l.qty, 0);
   const c = state.customer;
+  const adjustmentSummary = [];
+  if (state.adjustments.discount.enabled && state.adjustments.discount.value > 0) {
+    adjustmentSummary.push(state.adjustments.discount.mode === 'percent'
+      ? `Diskon ${state.adjustments.discount.value}%`
+      : `Diskon ${rupiah(state.adjustments.discount.value)}`);
+  }
+  if (state.adjustments.shipping.enabled && state.adjustments.shipping.amount > 0) adjustmentSummary.push(`Ongkir ${rupiah(state.adjustments.shipping.amount)}`);
+  if (state.adjustments.other.enabled && state.adjustments.other.amount > 0) adjustmentSummary.push(state.adjustments.other.label || 'Lain-lain');
+  if (mode === 'create' && state.payment > 0) adjustmentSummary.push(`Bayar ${rupiah(state.payment)}`);
+  if (state.note.trim()) adjustmentSummary.push('Ada catatan');
 
   root.innerHTML = `
-    <div style="padding:16px 16px 0;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;">Kepada Yth</div>
-        <button id="pickCustomerBtn" style="background:none;border:none;color:var(--ink);font-size:12.5px;text-decoration:underline;">Pilih dari daftar</button>
-      </div>
-      
-      <div style="display:flex;gap:8px;">
-		<div class="field" style="flex:1; border-bottom:outset; border-radius:10px;"><label>Nama</label><input id="custName" value="${escapeHtml(c.name)}" placeholder="Nama pelanggan"></div>
-		<div class="field" style="flex:1; border-bottom:outset; border-radius:10px;"><label>No. WhatsApp</label><input id="custPhone" value="${escapeHtml(c.phone)}" placeholder="(opsional)"></div>
-      </div>
-	  <div class="field" style="margin-top:10px; border-bottom:outset; border-radius:10px;"><label>Alamat</label><input id="custAddress" value="${escapeHtml(c.address)}" placeholder="(opsional)"></div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px;text-align:center;">Data pelanggan diperbarui otomatis dari daftar setelah disave.</div>
+    <div class="sale-form">
+      <section class="sale-form-card sale-customer-card">
+        <div class="sale-card-heading">
+          <div>
+            <div class="sale-card-kicker"></div>
+            <h2>Informasi pemesan</h2>
+          </div>
+          <button id="pickCustomerBtn" class="sale-text-btn" type="button">Pilih dari daftar</button>
+        </div>
+
+        <div class="sale-field-grid sale-field-grid-2">
+          <label class="sale-input-field">
+            <span>Nama pelanggan</span>
+            <input id="custName" value="${escapeHtml(c.name)}" placeholder="Masukkan nama" autocomplete="name">
+          </label>
+          <label class="sale-input-field">
+            <span>No. WhatsApp <em>Opsional</em></span>
+            <input id="custPhone" value="${escapeHtml(c.phone)}" placeholder="08xxxxxxxxxx" inputmode="tel" autocomplete="tel">
+          </label>
+        </div>
+        <label class="sale-input-field sale-address-field">
+          <span>Alamat <em>Opsional</em></span>
+          <input id="custAddress" value="${escapeHtml(c.address)}" placeholder="Masukkan alamat pelanggan" autocomplete="street-address">
+        </label>
+        <p class="sale-helper"></p>
+      </section>
+
+      <section class="sale-form-card sale-schedule-card">
+        <div class="sale-card-heading sale-card-heading-compact">
+          <div>
+            <div class="sale-card-kicker">Jadwal</div>
+          </div>
+        </div>
+        <div class="sale-field-grid sale-field-grid-2">
+          <label class="sale-input-field">
+            <span>Tanggal pengambilan</span>
+            <input id="fDate" type="date" value="${state.saleDate || ''}" required>
+          </label>
+          <label class="sale-input-field">
+            <span>Jam pengambilan</span>
+            <input id="fTime" type="time" value="${state.saleTime || ''}" required>
+          </label>
+        </div>
+      </section>
+
+      <section class="sale-form-card sale-product-card">
+        <div class="sale-card-heading">
+          <div>
+            <div class="sale-card-kicker">Produk</div>
+          </div>
+          <button id="manualItemBtn" class="sale-text-btn" type="button">+ Item baru</button>
+        </div>
+        <div class="sale-product-composer">
+          <div class="sale-qty-control" aria-label="Jumlah item">
+            <span class="sale-control-label">Qty</span>
+            <div class="sale-stepper">
+              <button id="qtyMinus" type="button" aria-label="Kurangi jumlah">−</button>
+              <input id="qtyStepper" type="number" value="${state.stepperQty}" min="1" inputmode="decimal" aria-label="Jumlah produk">
+              <button id="qtyPlus" type="button" aria-label="Tambah jumlah">+</button>
+            </div>
+          </div>
+          <div class="sale-search-wrap">
+            <label class="sale-control-label" for="scanInput">Cari atau scan produk</label>
+            <div class="sale-search-box">
+              <span class="sale-search-icon" aria-hidden="true">⌕</span>
+              <input id="scanInput" placeholder="Ketik nama atau scan barcode" autocomplete="off">
+            </div>
+            <div id="suggestList" class="sale-suggestions"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="sale-form-card sale-items-card">
+        <div class="sale-card-heading sale-card-heading-compact">
+          <div>
+            <div class="sale-card-kicker">Daftar pesanan</div>
+          </div>
+        </div>
+        <div id="linesList" class="sale-lines-list"></div>
+      </section>
+
+      <button id="adjustmentsBtn" class="sale-adjustments-trigger" type="button">
+        <span class="sale-adjustments-icon" aria-hidden="true">±</span>
+        <span class="sale-adjustments-copy">
+          <strong>Atur tambahan</strong>
+          <small>${adjustmentSummary.length ? escapeHtml(adjustmentSummary.join(' · ')) : 'Diskon, ongkir, pembayaran, dan catatan'}</small>
+        </span>
+        <span class="sale-adjustments-arrow" aria-hidden="true">›</span>
+      </button>
+
+      <div class="sale-form-bottom-space"></div>
     </div>
 
-    <div class="field" style="padding:12px 16px 0;display:flex;gap:12px;">
-      <div style="flex:1;"><label>Tanggal Pengambilan</label><input id="fDate" type="date" value="${state.saleDate || ''}" required></div>
-      <div style="flex:1;"><label>Jam Pengambilan</label><input id="fTime" type="time" value="${state.saleTime || ''}" required></div>
-    </div>
-
-    <div style="padding:14px 16px 0;display:flex;gap:8px;align-items:stretch;">
-      <div style="display:flex;align-items:center;border:1px solid var(--outline);border-radius:10px;overflow:hidden;flex-shrink:0;">
-        <button id="qtyMinus" style="width:38px;height:42px;border:none;background:var(--surface-dim);font-size:18px;font-weight:700;">-</button>
-        <input id="qtyStepper" type="number" value="${state.stepperQty}" style="width:44px;height:42px;border:none;text-align:center;font-size:15px;font-weight:700;">
-        <button id="qtyPlus" style="width:38px;height:42px;border:none;background:var(--surface-dim);font-size:18px;font-weight:700;">+</button>
+    <div class="sale-checkout">
+      <div class="sale-checkout-meta">
+        <span>${state.lines.length} item</span>
+        <span>${qtyLabel(totalQty)} qty</span>
+        <span>Subtotal ${rupiah(subtotal)}</span>
       </div>
-      <div style="position:relative;flex:1;">
-        <input id="scanInput" placeholder="Cari nama produk" autocomplete="off"
-          style="width:100%;height:42px;border:1px solid var(--outline);border-radius:10px;padding:0 12px;font-size:14.5px;box-sizing:border-box;">
-        <div id="suggestList" style="position:absolute;top:46px;left:0;right:0;background:#fff;border:1px solid var(--outline);border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.12);max-height:260px;overflow-y:auto;z-index:30;display:none;"></div>
+      <div class="sale-checkout-total">
+        <span>Total</span>
+        <strong>${rupiah(calc.total)}</strong>
       </div>
-    </div>
-    <div style="padding:6px 16px 0;text-align:right;">
-      <button id="manualItemBtn" style="background:none;border:none;color:var(--ink-soft);font-size:12px;text-decoration:underline;">+ Produk Baru  (jika pencarian belum ada)</button>
-    </div>
-
-    <div style="display:flex;align-items:center;padding:14px 16px 0;">
-      <div style="flex:1;font-size:15px;font-weight:700;">Item (${state.lines.length})</div>
-    </div>
-    <div id="linesList"></div>
-    <div style="padding:14px 16px;">
-      <button id="adjustmentsBtn" class="btn secondary" style="margin:0;">Atur Tambahan (Diskon, Ongkir, Lain-lain)</button>
-    </div>
-    <div style="height:230px;"></div>
-
-    <div class="sale-checkout" style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;background:#fff;border-top:1px solid var(--outline);padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 12px);">
-      <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:4px;">
-        <span>Item: ${state.lines.length}</span><span>Qty: ${qtyLabel(totalQty)}</span><span>Subtotal: ${rupiah(subtotal)}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
-        <span style="font-weight:700;">TOTAL</span>
-        <span style="font-size:26px;font-weight:800;">${rupiah(calc.total)}</span>
-      </div>
-      <button id="saveBtn" class="btn" style="margin:0;" ${state.lines.length ? '' : 'disabled'}>${mode === 'edit' ? 'Simpan Perubahan' : 'Simpan Nota'}</button>
+      <button id="saveBtn" class="btn" ${state.lines.length ? '' : 'disabled'}>${mode === 'edit' ? 'Simpan Perubahan' : 'Simpan Nota'}</button>
     </div>
   `;
 
@@ -192,23 +253,68 @@ function addProductToLines(root, state, product) {
 
 async function addManualItem(root, mode, state, onSave) {
   const line = await openSheet((body, close) => {
+    body.classList.add('sale-item-new-sheet');
     body.innerHTML = `
-      <div class="sheet-title">Item Bebas</div>
-      <div class="field"><label>Nama item</label><input id="mName" autofocus></div>
-      <div style="display:flex;gap:8px;">
-        <div class="field" style="flex:1;"><label>Satuan</label><input id="mUnit" placeholder="pcs, kg, box, ..." value="pcs"></div>
-        <div class="field" style="flex:1;"><label>Jumlah</label><input id="mQty" type="number" inputmode="decimal" value="${state.stepperQty}"></div>
+      <div class="sale-sheet-header">
+        <div>
+          <div class="sale-card-kicker">Item baru</div>
+          <div class="sheet-title">Tambahkan Item</div>
+          <p>Masukkan rincian produk yang belum tersedia.</p>
+        </div>
+        <button type="button" class="sale-sheet-close" id="mClose" aria-label="Tutup">×</button>
       </div>
-      <div class="field"><label>Harga satuan</label><input id="mPrice" type="number" inputmode="numeric"></div>
-      <div style="font-size:11px;color:var(--muted);padding:0 20px 8px;">Kalau nama ini belum ada di daftar produk, otomatis disimpan sebagai produk baru supaya bisa dicari/dipakai lagi lain kali.</div>
-      <button class="btn" id="mAdd">Tambahkan</button>
+
+      <div class="sale-item-edit-fields">
+        <label class="sale-sheet-field sale-item-name-field">
+          <span>Nama item</span>
+          <input id="mName" placeholder="Masukkan nama item" autofocus>
+        </label>
+
+        <div class="sale-item-edit-grid">
+          <label class="sale-sheet-field">
+            <span>Satuan</span>
+            <input id="mUnit" placeholder="pcs, kg, box, dus" value="pcs">
+          </label>
+          <label class="sale-sheet-field">
+            <span>Jumlah</span>
+            <input id="mQty" type="number" inputmode="decimal" min="0.01" step="any" value="${state.stepperQty}">
+          </label>
+        </div>
+
+        <label class="sale-sheet-field">
+          <span>Harga satuan</span>
+          <div class="sale-money-input"><b>Rp</b><input id="mPrice" type="number" inputmode="numeric" min="0" placeholder="0"></div>
+        </label>
+
+        <div class="sale-item-new-note">
+          Item baru otomatis disimpan ke daftar produk agar dapat digunakan kembali.
+        </div>
+      </div>
+
+      <div class="sale-item-total">
+        <span><small>Total item</small><strong>Jumlah harga</strong></span>
+        <strong id="mSubtotalPreview">${rupiah(0)}</strong>
+      </div>
+
+      <div class="sale-sheet-actions">
+        <button class="btn" id="mAdd" type="button">Tambahkan Item</button>
+      </div>
     `;
+    const qtyInput = body.querySelector('#mQty');
+    const priceInput = body.querySelector('#mPrice');
+    const preview = body.querySelector('#mSubtotalPreview');
+    const updatePreview = () => {
+      preview.textContent = rupiah((Number(qtyInput.value) || 0) * (Number(priceInput.value) || 0));
+    };
+    qtyInput.addEventListener('input', updatePreview);
+    priceInput.addEventListener('input', updatePreview);
+    body.querySelector('#mClose').onclick = () => close(undefined);
     body.querySelector('#mAdd').onclick = () => {
       const name = body.querySelector('#mName').value.trim();
       if (!name) return;
       const unit = body.querySelector('#mUnit').value.trim() || 'pcs';
-      const qty = Number(body.querySelector('#mQty').value) || 1;
-      const price = Number(body.querySelector('#mPrice').value) || 0;
+      const qty = Number(qtyInput.value) || 1;
+      const price = Number(priceInput.value) || 0;
       close({ productId: null, name, unit, qty, price });
     };
   });
@@ -246,18 +352,19 @@ function name_lower(s) {
 function drawLines(root, state) {
   const el = root.querySelector('#linesList');
   if (!state.lines.length) {
-    el.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13.5px;">Belum ada item. Cari/scan produk di atas untuk menambah.</div>`;
+    el.innerHTML = `<div class="sale-lines-empty"><span class="sale-lines-empty-icon" aria-hidden="true">+</span><strong>Belum ada item</strong><small>Cari atau scan produk di atas untuk menambahkannya.</small></div>`;
     return;
   }
   el.innerHTML = state.lines.map((l, i) => `
     <div class="item-line" data-i="${i}">
-      <div style="flex:1;min-width:0;">
+      <div class="il-copy">
         <div class="il-name">${escapeHtml(l.name)}</div>
         <div class="il-detail">${qtyLabel(l.qty)} ${escapeHtml(l.unit || '')} x @ ${rupiah(l.price)},-</div>
+        ${l.note ? `<div class="il-note">${escapeHtml(l.note)}</div>` : ''}
       </div>
-      <div style="text-align:right;">
+      <div class="il-actions">
         <div class="il-total">${rupiah(l.qty * l.price)}</div>
-        <button class="il-remove" data-i="${i}">Hapus</button>
+        <div><span class="il-edit-hint">Ketuk untuk ubah</span><button class="il-remove" data-i="${i}" type="button">Hapus</button></div>
       </div>
     </div>`).join('');
 
@@ -279,19 +386,53 @@ function drawLines(root, state) {
 async function editLine(root, state, index) {
   const line = state.lines[index];
   await openSheet((body, close) => {
+    body.classList.add('sale-item-edit-sheet');
     body.innerHTML = `
-      <div class="sheet-title">${escapeHtml(line.name)}</div>
-      <div class="field"><label>Nama Item</label><input id="eName" value="${escapeHtml(line.name)}"></div>
-      <div style="display:flex;gap:8px;">
-        <div class="field" style="flex:1;"><label>Satuan</label><input id="eUnit" value="${escapeHtml(line.unit || '')}" placeholder="pcs, kg, box, dus, ..."></div>
-        <div class="field" style="flex:1;"><label>Jumlah</label><input id="eQty" type="number" inputmode="decimal" value="${line.qty}"></div>
+      <div class="sale-sheet-header">
+        <div>
+          <div class="sale-card-kicker">Edit item</div>
+          <div class="sheet-title">${escapeHtml(line.name)}</div>
+          <p>Perbarui rincian item pada nota ini.</p>
+        </div>
+        <button type="button" class="sale-sheet-close" id="eClose" aria-label="Tutup">×</button>
       </div>
-      <div class="field"><label>Harga Satuan</label><input id="ePrice" type="number" inputmode="numeric" value="${Math.round(line.price)}"></div>
-      <div class="field"><label>Catatan Item (opsional)</label><input id="eNote" value="${escapeHtml(line.note || '')}" placeholder="mis. pedas level 2, tanpa bawang"></div>
-      <div class="total-box" style="margin:16px;">
-        <div class="total-row grand"><span>Jumlah Harga</span><span id="eSubtotalPreview">${rupiah(line.qty * line.price)}</span></div>
+
+      <div class="sale-item-edit-fields">
+        <label class="sale-sheet-field sale-item-name-field">
+          <span>Nama item</span>
+          <input id="eName" value="${escapeHtml(line.name)}" placeholder="Nama item">
+        </label>
+
+        <div class="sale-item-edit-grid">
+          <label class="sale-sheet-field">
+            <span>Satuan</span>
+            <input id="eUnit" value="${escapeHtml(line.unit || '')}" placeholder="pcs, kg, box, dus">
+          </label>
+          <label class="sale-sheet-field">
+            <span>Jumlah</span>
+            <input id="eQty" type="number" inputmode="decimal" min="0.01" step="any" value="${line.qty}">
+          </label>
+        </div>
+
+        <label class="sale-sheet-field">
+          <span>Harga satuan</span>
+          <div class="sale-money-input"><b>Rp</b><input id="ePrice" type="number" inputmode="numeric" min="0" value="${Math.round(line.price)}"></div>
+        </label>
+
+        <label class="sale-sheet-field">
+          <span>Catatan item <em>Opsional</em></span>
+          <textarea id="eNote" rows="2" placeholder="Contoh: pedas level 2, tanpa bawang">${escapeHtml(line.note || '')}</textarea>
+        </label>
       </div>
-      <button class="btn" id="eApply">Terapkan</button>
+
+      <div class="sale-item-total">
+        <span><small>Total item</small><strong>Jumlah harga</strong></span>
+        <strong id="eSubtotalPreview">${rupiah(line.qty * line.price)}</strong>
+      </div>
+
+      <div class="sale-sheet-actions">
+        <button class="btn" id="eApply" type="button">Terapkan Perubahan</button>
+      </div>
     `;
     const qtyInput = body.querySelector('#eQty');
     const priceInput = body.querySelector('#ePrice');
@@ -303,6 +444,7 @@ async function editLine(root, state, index) {
     }
     qtyInput.addEventListener('input', updatePreview);
     priceInput.addEventListener('input', updatePreview);
+    body.querySelector('#eClose').onclick = () => close(undefined);
     body.querySelector('#eApply').onclick = () => {
       const name = body.querySelector('#eName').value.trim();
       if (name) line.name = name;
@@ -352,47 +494,99 @@ async function pickCustomer(root, mode, state, onSave) {
 async function editAdjustments(root, mode, state, onSave) {
   const a = state.adjustments;
   await openSheet((body, close) => {
+    body.classList.add('sale-adjustments-sheet');
     body.innerHTML = `
-      <div class="sheet-title">Tambahan</div>
-
-      <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 0;">
-        <span style="font-weight:700;font-size:14px;">Diskon (opsional)</span>
-        <input type="checkbox" id="tDiscOn" ${a.discount.enabled ? 'checked' : ''}>
-      </label>
-      <div class="field" style="display:flex;gap:8px;align-items:center;">
-        <select id="tDiscMode" style="width:54px;flex:0 0 54px;border:none;font-size:14px;background:transparent;">
-          <option value="amount" ${a.discount.mode === 'amount' ? 'selected' : ''}>Rp</option>
-          <option value="percent" ${a.discount.mode === 'percent' ? 'selected' : ''}>%</option>
-        </select>
-        <input id="tDiscValue" type="tel" inputmode="numeric" value="${a.discount.value || ''}" placeholder="Masukkan nominal diskon" style="width:auto;min-width:0;flex:1;">
+      <div class="sale-sheet-header">
+        <div>
+          <div class="sheet-title">Atur Tambahan</div>
+          <p>Aktifkan hanya komponen yang diperlukan.</p>
+        </div>
+        <button type="button" class="sale-sheet-close" id="tClose" aria-label="Tutup">×</button>
       </div>
 
-      <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 0;">
-        <span style="font-weight:700;font-size:14px;">Ongkos Kirim</span>
-        <input type="checkbox" id="tShipOn" ${a.shipping.enabled ? 'checked' : ''}>
-      </label>
-      <div class="field"><input id="tShipAmount" type="number" inputmode="numeric" value="${a.shipping.amount || ''}" placeholder="0"></div>
+      <div class="sale-adjustment-list">
+        <section class="sale-adjustment-option" data-option="discount">
+          <label class="sale-option-toggle" for="tDiscOn">
+            <span><strong>Diskon</strong></span>
+            <input type="checkbox" id="tDiscOn" ${a.discount.enabled ? 'checked' : ''}>
+          </label>
+          <div class="sale-option-fields sale-discount-fields">
+            <label class="sale-sheet-field sale-sheet-select">
+              <span>Jenis</span>
+              <select id="tDiscMode">
+                <option value="amount" ${a.discount.mode === 'amount' ? 'selected' : ''}>Rupiah</option>
+                <option value="percent" ${a.discount.mode === 'percent' ? 'selected' : ''}>Persen</option>
+              </select>
+            </label>
+            <label class="sale-sheet-field">
+              <span>Nilai diskon</span>
+              <input id="tDiscValue" type="tel" inputmode="numeric" value="${a.discount.value || ''}" placeholder="0">
+            </label>
+          </div>
+        </section>
 
-      <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 0;">
-        <span style="font-weight:700;font-size:14px;">Lain-lain</span>
-        <input type="checkbox" id="tOtherOn" ${a.other.enabled ? 'checked' : ''}>
-      </label>
-      <div class="field" style="display:flex;gap:8px;">
-        <input id="tOtherLabel" value="${escapeHtml(a.other.label || '')}" placeholder="Label" style="flex:1;">
-        <input id="tOtherAmount" type="number" inputmode="numeric" value="${a.other.amount || ''}" placeholder="0" style="flex:1;">
+        <section class="sale-adjustment-option" data-option="shipping">
+          <label class="sale-option-toggle" for="tShipOn">
+            <span><strong>Ongkos kirim</strong></span>
+            <input type="checkbox" id="tShipOn" ${a.shipping.enabled ? 'checked' : ''}>
+          </label>
+          <div class="sale-option-fields">
+            <label class="sale-sheet-field">
+              <span>Nominal ongkir</span>
+              <div class="sale-money-input"><b>Rp</b><input id="tShipAmount" type="number" inputmode="numeric" value="${a.shipping.amount || ''}" placeholder="0"></div>
+            </label>
+          </div>
+        </section>
+
+        <section class="sale-adjustment-option" data-option="other">
+          <label class="sale-option-toggle" for="tOtherOn">
+            <span><strong>Biaya lain-lain</strong></span>
+            <input type="checkbox" id="tOtherOn" ${a.other.enabled ? 'checked' : ''}>
+          </label>
+          <div class="sale-option-fields sale-other-fields">
+            <label class="sale-sheet-field"><span>Nama biaya</span><input id="tOtherLabel" value="${escapeHtml(a.other.label || '')}" placeholder="Contoh: Biaya kemasan"></label>
+            <label class="sale-sheet-field"><span>Nominal</span><div class="sale-money-input"><b>Rp</b><input id="tOtherAmount" type="number" inputmode="numeric" value="${a.other.amount || ''}" placeholder="0"></div></label>
+          </div>
+        </section>
+
+        ${mode === 'create' ? `
+        <section class="sale-adjustment-option sale-payment-option">
+          <div class="sale-option-heading"><span><strong>Pembayaran awal</strong><small>Nominal yang dibayar sekarang</small></span></div>
+          <div class="sale-option-fields">
+            <label class="sale-sheet-field"><span>Bayar sekarang</span><div class="sale-money-input"><b>Rp</b><input id="tPayment" type="number" inputmode="numeric" value="${state.payment || ''}" placeholder="0"></div></label>
+          </div>
+        </section>` : ''}
+
+        <section class="sale-adjustment-option sale-note-option">
+          <div class="sale-option-fields">
+            <label class="sale-sheet-field"><span>Catatan <em>Opsional</em></span><textarea id="tNote" rows="3" placeholder="Tulis catatan untuk nota ini">${escapeHtml(state.note)}</textarea></label>
+          </div>
+        </section>
       </div>
 
-      ${mode === 'create' ? `
-      <div class="section-title">Pembayaran</div>
-      <div class="field"><label>Bayar Sekarang (Rp)</label><input id="tPayment" type="number" inputmode="numeric" value="${state.payment || ''}"></div>` : ''}
-
-      <div class="field"><label>Catatan (opsional)</label><textarea id="tNote" rows="2">${escapeHtml(state.note)}</textarea></div>
-
-      <button class="btn" id="tApply">Terapkan</button>
+      <div class="sale-sheet-actions">
+        <button class="btn" id="tApply" type="button">Terapkan</button>
+      </div>
     `;
     const discValue = body.querySelector('#tDiscValue');
     const discOn = body.querySelector('#tDiscOn');
     const discMode = body.querySelector('#tDiscMode');
+    const shipOn = body.querySelector('#tShipOn');
+    const otherOn = body.querySelector('#tOtherOn');
+    const syncOptionState = () => {
+      body.querySelector('[data-option="discount"]').classList.toggle('is-enabled', discOn.checked);
+      body.querySelector('[data-option="shipping"]').classList.toggle('is-enabled', shipOn.checked);
+      body.querySelector('[data-option="other"]').classList.toggle('is-enabled', otherOn.checked);
+      discMode.disabled = !discOn.checked;
+      discValue.disabled = !discOn.checked;
+      body.querySelector('#tShipAmount').disabled = !shipOn.checked;
+      body.querySelector('#tOtherLabel').disabled = !otherOn.checked;
+      body.querySelector('#tOtherAmount').disabled = !otherOn.checked;
+    };
+    discOn.onchange = syncOptionState;
+    shipOn.onchange = syncOptionState;
+    otherOn.onchange = syncOptionState;
+    syncOptionState();
     // Terima input kasir yang lazim: 10000, 10.000, Rp 10.000, atau 10,000.
     // Ketika nominal diisi, aktifkan checkbox agar nilai tidak terabaikan.
     const parseDiscount = () => {
@@ -409,12 +603,13 @@ async function editAdjustments(root, mode, state, onSave) {
       discValue.value = value || '';
       discValue.placeholder = discMode.value === 'amount' ? 'Nominal diskon' : 'Persentase diskon';
     };
+    body.querySelector('#tClose').onclick = () => close(undefined);
     body.querySelector('#tApply').onclick = () => {
       const discountValue = parseDiscount();
       state.adjustments = {
         discount: { enabled: discOn.checked, mode: discMode.value, value: discountValue },
-        shipping: { enabled: body.querySelector('#tShipOn').checked, amount: Number(body.querySelector('#tShipAmount').value) || 0 },
-        other: { enabled: body.querySelector('#tOtherOn').checked, label: body.querySelector('#tOtherLabel').value.trim(), amount: Number(body.querySelector('#tOtherAmount').value) || 0 },
+        shipping: { enabled: shipOn.checked, amount: Number(body.querySelector('#tShipAmount').value) || 0 },
+        other: { enabled: otherOn.checked, label: body.querySelector('#tOtherLabel').value.trim(), amount: Number(body.querySelector('#tOtherAmount').value) || 0 },
       };
       if (mode === 'create') state.payment = Number(body.querySelector('#tPayment').value) || 0;
       state.note = body.querySelector('#tNote').value;

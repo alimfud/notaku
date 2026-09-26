@@ -1,0 +1,901 @@
+/* Shared, page-scoped presentation for Nota Baru and Ubah Nota. */
+:is([data-page="sale-new"], [data-page="sale-edit"]) {
+  --sale-card-bg:color-mix(in srgb,var(--surface) 94%,#fff);
+  --sale-soft-bg:color-mix(in srgb,var(--surface-dim) 78%,#fff);
+  --sale-shadow:0 7px 22px rgba(73,29,48,.075);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-form {
+  width:100%;
+  max-width:720px;
+  margin:0 auto;
+  padding:18px 16px 0;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-form-card {
+  margin:0 0 14px;
+  padding:18px;
+  background:var(--sale-card-bg);
+  border:1px solid color-mix(in srgb,var(--outline) 85%,transparent);
+  border-radius:18px;
+  box-shadow:var(--sale-shadow);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-card-heading {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:5px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-card-heading-compact {
+  align-items:center;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-card-heading h2 {
+  margin:2px 0 0;
+  color:var(--ink);
+  font-size:17px;
+  line-height:1.25;
+  letter-spacing:-.2px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-card-heading h2 span {
+  color:var(--muted);
+  font-size:13px;
+  font-weight:500;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-card-kicker {
+  color:var(--primary);
+  font-size:10.5px;
+  font-weight:800;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-text-btn {
+  flex-shrink:0;
+  min-height:36px;
+  padding:7px 10px;
+  border:0;
+  border-radius:9px;
+  background:var(--primary-container);
+  color:var(--primary);
+  font-size:12.5px;
+  font-weight:700;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-field-grid {
+  display:grid;
+  gap:10px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-field-grid-2 {
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-input-field,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-sheet-field {
+  display:block;
+  min-width:0;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-input-field > span,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-sheet-field > span,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-control-label {
+  display:block;
+  margin:0 0 6px;
+  color:var(--ink-soft);
+  font-size:11.5px;
+  font-weight:700;
+  letter-spacing:.01em;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-input-field em,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-sheet-field em {
+  color:var(--muted);
+  font-size:10.5px;
+  font-style:normal;
+  font-weight:500;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-input-field input,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-sheet-field input,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-sheet-field select,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-sheet-field textarea {
+  width:100%;
+  min-height:46px;
+  padding:10px 12px;
+  border:1px solid var(--outline);
+  border-radius:11px;
+  outline:none;
+  background:var(--sale-soft-bg);
+  color:var(--ink);
+  font-family:inherit;
+  font-size:15px;
+  transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-input-field input:focus,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-sheet-field input:focus,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-sheet-field select:focus,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-sheet-field textarea:focus {
+  border-color:color-mix(in srgb,var(--primary) 58%,var(--outline));
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 12%,transparent);
+  background:var(--surface);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-address-field {
+  margin-top:10px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-helper {
+  margin:9px 1px 0;
+  color:var(--muted);
+  font-size:11.5px;
+  line-height:1.45;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-product-composer {
+  display:grid;
+  grid-template-columns:132px minmax(0,1fr);
+  gap:12px;
+  align-items:end;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-stepper {
+  display:grid;
+  grid-template-columns:40px 50px 40px;
+  min-height:46px;
+  overflow:hidden;
+  border:1px solid var(--outline);
+  border-radius:11px;
+  background:var(--sale-soft-bg);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-stepper button {
+  border:0;
+  background:transparent;
+  color:var(--primary);
+  font-size:20px;
+  font-weight:700;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-stepper button:first-child {
+  border-right:1px solid var(--outline);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-stepper button:last-child {
+  border-left:1px solid var(--outline);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-stepper input {
+  width:100%;
+  min-width:0;
+  border:0;
+  outline:none;
+  background:transparent;
+  color:var(--ink);
+  font-size:15px;
+  font-weight:800;
+  text-align:center;
+  -moz-appearance:textfield;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-stepper input::-webkit-inner-spin-button,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-stepper input::-webkit-outer-spin-button {
+  margin:0;
+  -webkit-appearance:none;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-search-wrap {
+  position:relative;
+  min-width:0;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-search-box {
+  display:flex;
+  align-items:center;
+  min-height:46px;
+  border:1px solid var(--outline);
+  border-radius:11px;
+  background:var(--sale-soft-bg);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-search-box:focus-within {
+  border-color:color-mix(in srgb,var(--primary) 58%,var(--outline));
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 12%,transparent);
+  background:var(--surface);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-search-icon {
+  padding-left:12px;
+  color:var(--primary);
+  font-size:21px;
+  line-height:1;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-search-box input {
+  width:100%;
+  min-width:0;
+  min-height:44px;
+  padding:0 12px 0 8px;
+  border:0;
+  outline:none;
+  background:transparent;
+  color:var(--ink);
+  font-size:15px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-suggestions {
+  position:absolute;
+  z-index:35;
+  top:72px;
+  right:0;
+  left:0;
+  display:none;
+  max-height:260px;
+  overflow-y:auto;
+  border:1px solid var(--outline);
+  border-radius:12px;
+  background:var(--surface);
+  box-shadow:0 12px 30px rgba(44,27,34,.16);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-suggestions .row {
+  padding:11px 12px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-subtotal {
+  color:var(--primary);
+  font-size:16px;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-items-card {
+  padding-bottom:8px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-lines-list {
+  margin:0 -18px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .item-line {
+  min-height:72px;
+  padding:13px 18px;
+  border-bottom:1px solid color-mix(in srgb,var(--outline) 78%,transparent);
+  background:transparent;
+  cursor:pointer;
+  transition:background .12s ease;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .item-line:hover {
+  background:color-mix(in srgb,var(--surface-dim) 55%,transparent);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .item-line:last-child {
+  border-bottom:0;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .item-line .il-copy {
+  flex:1;
+  min-width:0;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .item-line .il-name {
+  color:var(--ink);
+  font-size:14.5px;
+  font-weight:700;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .item-line .il-detail,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .item-line .il-note {
+  margin-top:3px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.4;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .item-line .il-note {
+  color:var(--ink-soft);
+  font-style:italic;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .item-line .il-actions {
+  flex-shrink:0;
+  text-align:right;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .item-line .il-total {
+  color:var(--ink);
+  font-size:14.5px;
+  font-variant-numeric:tabular-nums;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .il-edit-hint,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .il-remove {
+  display:inline-block;
+  margin-top:6px;
+  padding:3px 0 3px 8px;
+  color:var(--muted);
+  font-size:10.5px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .il-remove {
+  color:var(--danger);
+  cursor:pointer;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-lines-empty {
+  display:flex;
+  min-height:126px;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  color:var(--muted);
+  text-align:center;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-lines-empty-icon {
+  display:grid;
+  width:34px;
+  height:34px;
+  margin-bottom:8px;
+  place-items:center;
+  border-radius:50%;
+  background:var(--primary-container);
+  color:var(--primary);
+  font-size:20px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-lines-empty strong {
+  color:var(--ink-soft);
+  font-size:13px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-lines-empty small {
+  margin-top:3px;
+  font-size:11.5px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-adjustments-trigger {
+  display:flex;
+  width:100%;
+  min-height:70px;
+  align-items:center;
+  gap:12px;
+  padding:13px 15px;
+  border:1px solid color-mix(in srgb,var(--primary) 25%,var(--outline));
+  border-radius:16px;
+  background:var(--sale-card-bg);
+  box-shadow:var(--sale-shadow);
+  color:var(--ink);
+  text-align:left;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-adjustments-icon {
+  display:grid;
+  width:40px;
+  height:40px;
+  flex-shrink:0;
+  place-items:center;
+  border-radius:11px;
+  background:var(--primary-container);
+  color:var(--primary);
+  font-size:22px;
+  font-weight:800;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-adjustments-copy {
+  display:flex;
+  min-width:0;
+  flex:1;
+  flex-direction:column;
+  gap:3px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-adjustments-copy strong {
+  font-size:14.5px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-adjustments-copy small {
+  overflow:hidden;
+  color:var(--muted);
+  font-size:11.5px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-adjustments-arrow {
+  color:var(--primary);
+  font-size:27px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-form-bottom-space {
+  height:190px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-checkout {
+  position:fixed;
+  z-index:25;
+  bottom:0;
+  left:50%;
+  width:100%;
+  max-width:720px;
+  padding:11px 16px calc(env(safe-area-inset-bottom,0px) + 13px);
+  transform:translateX(-50%);
+  border-top:1px solid color-mix(in srgb,var(--outline) 86%,transparent);
+  background:color-mix(in srgb,var(--surface) 95%,#fff) !important;
+  box-shadow:0 -10px 30px rgba(50,28,36,.09);
+  backdrop-filter:blur(12px);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-checkout-meta {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:5px;
+  color:var(--muted);
+  font-size:11px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-checkout-total {
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  margin-bottom:9px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-checkout-total span {
+  color:var(--ink-soft);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-checkout-total strong {
+  color:var(--ink);
+  font-size:25px;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-.6px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-checkout .btn {
+  width:100%;
+  min-height:48px;
+  margin:0;
+}
+
+/* Form-related sheets use a compact right-side drawer instead of full width. */
+.sheet-backdrop:has(> .sheet > :is(.sale-adjustments-sheet, .sale-item-edit-sheet, .sale-item-new-sheet)) {
+  align-items:center;
+  justify-content:flex-end;
+  padding:12px 0;
+}
+
+.sheet:has(> :is(.sale-adjustments-sheet, .sale-item-edit-sheet, .sale-item-new-sheet)) {
+  width:min(340px,84vw);
+  max-width:none;
+  max-height:calc(100vh - 24px);
+  border-radius:18px 0 0 18px;
+  animation:saleDrawerIn .18s ease;
+}
+
+.sheet:has(> :is(.sale-adjustments-sheet, .sale-item-edit-sheet, .sale-item-new-sheet)) > .sheet-handle {
+  display:none;
+}
+
+@keyframes saleDrawerIn {
+  from { transform:translateX(28px); opacity:0; }
+  to { transform:translateX(0); opacity:1; }
+}
+
+/* Atur Tambahan sheet. openSheet copies data-page from its owner. */
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet {
+  padding:2px 16px 0;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-sheet-header {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  padding:4px 2px 14px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sheet-title {
+  padding:0;
+  margin-top:2px;
+  color:var(--ink);
+  font-size:21px;
+  letter-spacing:-.35px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-sheet-header p {
+  margin:5px 0 0;
+  color:var(--muted);
+  font-size:12px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-sheet-close {
+  display:grid;
+  width:38px;
+  height:38px;
+  flex-shrink:0;
+  place-items:center;
+  border:1px solid var(--outline);
+  border-radius:50%;
+  background:var(--surface-dim);
+  color:var(--ink-soft);
+  font-size:24px;
+  line-height:1;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-adjustment-list {
+  display:grid;
+  gap:10px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-adjustment-option {
+  overflow:hidden;
+  border:1px solid var(--outline);
+  border-radius:14px;
+  background:var(--sale-card-bg);
+  transition:border-color .15s ease,box-shadow .15s ease;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-adjustment-option.is-enabled {
+  border-color:color-mix(in srgb,var(--primary) 38%,var(--outline));
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 7%,transparent);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-option-toggle,
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-option-heading {
+  display:flex;
+  min-height:20px;
+  align-items:center;
+  justify-content:end;
+  gap:14px;
+  padding:5px 13px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-option-toggle > span,
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-option-heading > span {
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-option-toggle strong,
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-option-heading strong {
+  color:var(--ink);
+  font-size:14px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-option-toggle small,
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-option-heading small {
+  color:var(--muted);
+  font-size:11.5px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-option-toggle input[type="checkbox"] {
+  width:21px;
+  height:21px;
+  flex-shrink:0;
+  accent-color:var(--primary);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-option-fields {
+  padding:0 13px 13px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-discount-fields,
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-other-fields {
+  display:grid;
+  grid-template-columns:132px minmax(0,1fr);
+  gap:9px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-option-fields :disabled {
+  cursor:not-allowed;
+  opacity:.56;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-money-input {
+  display:flex;
+  min-height:46px;
+  align-items:center;
+  overflow:hidden;
+  border:1px solid var(--outline);
+  border-radius:11px;
+  background:var(--sale-soft-bg);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-money-input:focus-within {
+  border-color:color-mix(in srgb,var(--primary) 58%,var(--outline));
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 12%,transparent);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-money-input b {
+  padding-left:12px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-money-input input {
+  min-height:44px;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-sheet-field textarea {
+  min-height:78px;
+  resize:vertical;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-sheet-actions {
+  position:sticky;
+  bottom:0;
+  z-index:2;
+  margin:12px -16px 0;
+  padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 14px);
+  border-top:1px solid var(--outline);
+  background:color-mix(in srgb,var(--surface) 96%,#fff);
+  box-shadow:0 -8px 22px rgba(50,28,36,.08);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-sheet-actions .btn {
+  width:100%;
+  min-height:48px;
+  margin:0;
+}
+
+/* Edit Item and Item Baru sheets. */
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) {
+  padding:2px 16px 0;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-sheet-header {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  padding:4px 2px 14px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sheet-title {
+  max-width:min(340px,72vw);
+  overflow:hidden;
+  padding:0;
+  margin-top:2px;
+  color:var(--ink);
+  font-size:21px;
+  letter-spacing:-.35px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-sheet-header p {
+  margin:5px 0 0;
+  color:var(--muted);
+  font-size:12px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-sheet-close {
+  display:grid;
+  width:38px;
+  height:38px;
+  flex-shrink:0;
+  place-items:center;
+  border:1px solid var(--outline);
+  border-radius:50%;
+  background:var(--surface-dim);
+  color:var(--ink-soft);
+  font-size:24px;
+  line-height:1;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-item-edit-fields {
+  display:grid;
+  gap:11px;
+  padding:14px;
+  border:1px solid var(--outline);
+  border-radius:14px;
+  background:var(--sale-card-bg);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-item-edit-grid {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:10px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-money-input {
+  display:flex;
+  min-height:46px;
+  align-items:center;
+  overflow:hidden;
+  border:1px solid var(--outline);
+  border-radius:11px;
+  background:var(--sale-soft-bg);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-money-input:focus-within {
+  border-color:color-mix(in srgb,var(--primary) 58%,var(--outline));
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 12%,transparent);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-money-input b {
+  padding-left:12px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-money-input input {
+  min-height:44px;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-sheet-field textarea {
+  min-height:72px;
+  resize:vertical;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-item-total {
+  display:flex;
+  min-height:76px;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-top:11px;
+  padding:14px 16px;
+  border:1px solid color-mix(in srgb,var(--primary) 18%,var(--outline));
+  border-radius:14px;
+  background:color-mix(in srgb,var(--primary-container) 56%,var(--surface));
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-item-total > span {
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-item-total small {
+  color:var(--muted);
+  font-size:10.5px;
+  font-weight:700;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-item-total strong {
+  color:var(--ink);
+  font-size:15px;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) :is(#eSubtotalPreview, #mSubtotalPreview) {
+  color:var(--primary);
+  font-size:22px;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-.35px;
+  white-space:nowrap;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-sheet-actions {
+  position:sticky;
+  bottom:0;
+  z-index:2;
+  margin:12px -16px 0;
+  padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 14px);
+  border-top:1px solid var(--outline);
+  background:color-mix(in srgb,var(--surface) 96%,#fff);
+  box-shadow:0 -8px 22px rgba(50,28,36,.08);
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-sheet-actions .btn {
+  width:100%;
+  min-height:48px;
+  margin:0;
+}
+
+:is([data-page="sale-new"], [data-page="sale-edit"]).sale-item-new-sheet .sale-item-new-note {
+  padding:10px 11px;
+  border-radius:10px;
+  background:var(--primary-container);
+  color:var(--ink-soft);
+  font-size:11.5px;
+  line-height:1.45;
+}
+
+@media(max-width:560px) {
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-form {
+    padding:12px 10px 0;
+  }
+
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-form-card {
+    margin-bottom:10px;
+    padding:14px;
+    border-radius:15px;
+    box-shadow:0 4px 14px rgba(73,29,48,.055);
+  }
+
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-lines-list {
+    margin:0 -14px;
+  }
+
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .item-line {
+    padding-right:14px;
+    padding-left:14px;
+  }
+
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-product-composer {
+    grid-template-columns:118px minmax(0,1fr);
+    gap:8px;
+  }
+
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-stepper {
+    grid-template-columns:36px 44px 36px;
+  }
+}
+
+@media(max-width:390px) {
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-field-grid-2,
+  :is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-other-fields {
+    grid-template-columns:1fr;
+  }
+
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-product-composer {
+    grid-template-columns:1fr;
+  }
+
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-qty-control {
+    width:132px;
+  }
+
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-stepper {
+    grid-template-columns:40px 50px 40px;
+  }
+
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-checkout-meta {
+    font-size:10.5px;
+  }
+
+  :is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-discount-fields {
+    grid-template-columns:1fr;
+  }
+
+  :is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-item-edit-grid {
+    grid-template-columns:1fr;
+  }
+
+  :is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-item-total {
+    align-items:flex-end;
+  }
+}
+
+@media(min-width:800px) {
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-form {
+    padding-top:22px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-input-field input,
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-search-box,
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .item-line,
+  :is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-adjustment-option {
+    transition:none;
+  }
+
+  .sheet:has(> :is(.sale-adjustments-sheet, .sale-item-edit-sheet, .sale-item-new-sheet)) {
+    animation:none;
+  }
+}
