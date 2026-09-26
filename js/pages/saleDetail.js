@@ -9,6 +9,7 @@ import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, navigateBack } from '../app.js';
 import { shareAsText, buildShareText, createReceiptImage, createReceiptPdf, downloadReceiptFile, shareReceiptFile } from '../services/printerService.js';
 import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
+import { STATUS_LABEL } from '../services/saleCalculation.js';
 
 /**
  * PERFORMANCE FIX #4: Timeout & Loading UI
@@ -73,7 +74,8 @@ async function draw(root, saleId) {
 
   setTopbarActions([
     { icon: 'edit', title: 'Ubah Nota', onClick: () => navigate(`sale/${saleId}/edit`) },
-    { icon: 'share', title: 'Bagikan', onClick: () => showShareSheet(root, sale, items, settings, paidAmount, remaining) },
+    { icon: 'bluetoothPrint', title: 'Cetak Bluetooth', onClick: () => handleBluetoothPrint(sale, items, settings, paidAmount, remaining) },
+    { icon: 'payment', title: 'Tambah Pembayaran', onClick: () => handleAddPayment(root, saleId, remaining) },
     { icon: 'delete', title: 'Hapus', onClick: () => handleDelete(root, saleId) },
   ]);
 
@@ -81,6 +83,14 @@ async function draw(root, saleId) {
   const addressPhoneLine = [sale.customerAddress, phoneDisplay].filter(Boolean).join(' • ');
 
   root.innerHTML = `
+    <section class="sale-detail-overview">
+      <div class="sale-detail-overview-main">
+        <div class="sale-detail-kicker">NOTA</div>
+        <div class="sale-detail-invoice">${escapeHtml(sale.invoiceNumber)}</div>
+        <div class="sale-detail-overview-meta">${escapeHtml(sale.customerName)} · ${dateShort(sale.saleDate)} ${escapeHtml(sale.saleTime || '')}</div>
+        <span class="payment-badge sale-detail-status" data-status="${displayStatus}">${STATUS_LABEL[displayStatus] || displayStatus}</span>
+      </div>
+    </section>
     ${sale.autoMarkedPaid ? `
       <div class="receipt-alert">
         <div class="receipt-alert-text"><b>Pelunasan otomatis</b> dicatat pada tanggal pengambilan setelah lewat 2 hari. Pembayaran ini ikut dihitung dalam laporan.</div>
@@ -127,7 +137,7 @@ async function draw(root, saleId) {
       </div>
     </div>
     ${payments.length ? `
-      <div class="section-title">Riwayat Pembayaran <span class="sale-detail-payment-hint">(ketuk untuk koreksi)</span></div>
+      <div class="sale-detail-section-heading"><div><span>PEMBAYARAN</span><h3>Riwayat pembayaran</h3></div><small>Ketuk untuk koreksi</small></div>
       <div class="sale-detail-payment-list list">
         ${payments.map((p) => `
           <button class="sale-detail-payment-row row" data-pid="${p.id}">
@@ -173,12 +183,14 @@ async function draw(root, saleId) {
 
 async function handleAddPayment(root, saleId, remaining) {
   const result = await openSheet((body, close) => {
+    body.classList.add('sale-detail-payment-sheet');
     body.innerHTML = `
-      <div class="sheet-title">Tambah Pembayaran</div>
-      <div class="sale-detail-payment-help">Sisa saat ini: ${rupiah(remaining)}</div>
-      <div class="field"><label>Jumlah Bayar</label><input id="pAmount" type="number" inputmode="numeric" autofocus></div>
-      <button class="btn" id="pSave">Simpan</button>
+      <div class="sale-detail-sheet-header"><div><small>PEMBAYARAN</small><div class="sheet-title">Tambah Pembayaran</div></div><button class="sale-detail-sheet-close" id="paymentClose" type="button" aria-label="Tutup">×</button></div>
+      <div class="sale-detail-payment-summary"><span>Sisa tagihan</span><strong>${rupiah(remaining)}</strong></div>
+      <label class="sale-detail-sheet-field"><span>Jumlah bayar</span><div><b>Rp</b><input id="pAmount" type="number" inputmode="numeric" min="1" placeholder="0" autofocus></div></label>
+      <div class="sale-detail-sheet-footer"><button class="btn" id="pSave" type="button">Simpan Pembayaran</button></div>
     `;
+    body.querySelector('#paymentClose').onclick = () => close(undefined);
     body.querySelector('#pSave').onclick = () => {
       const amount = Number(body.querySelector('#pAmount').value) || 0;
       if (amount <= 0) return;
@@ -282,29 +294,26 @@ function receiptLogoMarkup(settings) {
 }
 
 async function showShareSheet(root, sale, items, settings, paidAmount, remaining) {
-  const { isConnected, currentDeviceInfo } = await import('../services/printing/bluetoothPrinter.js');
-  const btConnected = isConnected ? isConnected() : false;
-  const btInfo = currentDeviceInfo ? currentDeviceInfo() : null;
   const hasPhone = !!sale.customerPhone;
 
   const result = await openSheet((body, close) => {
+    body.classList.add('sale-detail-share-sheet');
     body.innerHTML = `
-      <div class="sheet-title">Bagikan Nota</div>
+      <div class="sale-detail-sheet-header"><div><small>KIRIM &amp; SIMPAN</small><div class="sheet-title">Bagikan Nota</div></div><button class="sale-detail-sheet-close" id="shareClose" type="button" aria-label="Tutup">×</button></div>
+      <div class="sale-detail-share-options">
       ${hasPhone ? `<button class="settings-tile" id="chatWa"><div class="icon-box">💚</div><div class="settings-body"><div class="settings-title">Chat WA ${escapeHtml(sale.customerPhone)}</div><div class="settings-sub">Buka WhatsApp langsung ke nomor pelanggan</div></div></button>` : ''}
-      <button class="settings-tile" id="btPrint"><div class="icon-box">🔵</div><div class="settings-body"><div class="settings-title">Cetak via Bluetooth</div><div class="settings-sub">${btConnected ? 'Tersambung: ' + escapeHtml(btInfo.name) : (settings.btPrinterId ? 'Tersimpan — akan coba sambung ulang' : 'Belum ada printer tersambung')}</div></div></button>
       <button class="settings-tile" id="shareImage"><div class="icon-box">🖼️</div><div class="settings-body"><div class="settings-title">Bagikan sebagai Gambar</div></div></button>
       <button class="settings-tile" id="shareText"><div class="icon-box">💬</div><div class="settings-body"><div class="settings-title">Bagikan sebagai Teks</div></div></button>
       <button class="settings-tile" id="doPrint"><div class="icon-box">🖨️</div><div class="settings-body"><div class="settings-title">Simpan PDF</div></div></button>
+      </div>
     `;
+    body.querySelector('#shareClose').onclick = () => close(undefined);
     const chatBtn = body.querySelector('#chatWa');
     if (chatBtn) chatBtn.onclick = () => close('chatwa');
-    body.querySelector('#btPrint').onclick = () => close('bluetooth');
     body.querySelector('#shareText').onclick = () => close('text');
     body.querySelector('#shareImage').onclick = () => close('image');
     body.querySelector('#doPrint').onclick = () => close('print');
   });
-
-  if (result === 'bluetooth') { await handleBluetoothPrint(sale, items, settings, paidAmount, remaining); return; }
 
   if (result === 'chatwa') {
     const waNumber = toWhatsAppNumber(sale.customerPhone);
