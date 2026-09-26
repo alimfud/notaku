@@ -11,8 +11,17 @@ export async function render(root) {
   setPageTitle('Produk');
   setTopbarActions([]);
   root.innerHTML = `
-    <div class="products-layout-1 search-row"><input class="search-input" id="pSearch" placeholder="Cari produk"></div>
-    <div id="pList" class="list"></div>
+    <div class="products-page">
+      <div class="products-heading">
+        <div><span>Katalog</span><h2>Daftar produk</h2></div>
+        <small id="productCount">0 produk</small>
+      </div>
+      <div class="products-search">
+        <span aria-hidden="true">⌕</span>
+        <input id="pSearch" placeholder="Cari nama produk" autocomplete="off">
+      </div>
+      <div id="pList" class="list"></div>
+    </div>
     <button class="fab" id="fabAdd" aria-label="Tambah produk">+</button>
   `;
   let debounce;
@@ -27,6 +36,8 @@ export async function render(root) {
 async function drawList(root, search) {
   const products = await getAllProducts({ search });
   const el = root.querySelector('#pList');
+  const count = root.querySelector('#productCount');
+  if (count) count.textContent = `${products.length} produk`;
   if (!products.length) {
     el.innerHTML = `<div class="empty-state"><p>Belum ada produk.</p></div>`;
     return;
@@ -48,26 +59,59 @@ async function drawList(root, search) {
 async function openForm(root, existing, search = '') {
   let imageData = safeProductImage(existing?.imageData);
   const result = await openSheet((body, close) => {
+    body.classList.add('product-form-sheet');
     body.innerHTML = `
-      <div class="sheet-title">${existing ? 'Ubah Produk' : 'Produk Baru'}</div>
-      <div class="field product-photo-field"><label for="fPhoto">Foto produk (opsional)</label><img id="fPhotoPreview" class="product-photo-preview ${imageData ? '' : 'hidden'}" ${imageData ? `src="${imageData}"` : ''} alt="Preview foto produk"><input id="fPhoto" type="file" accept="image/jpeg,image/png,image/webp"><button type="button" class="btn small secondary ${imageData ? '' : 'hidden'}" id="fRemovePhoto">Hapus foto</button><p class="product-photo-hint">JPG, PNG, atau WebP. Foto diperkecil otomatis.</p></div>
-      <div class="field"><label>Nama Produk</label><input id="fName" value="${existing ? escapeHtml(existing.name) : ''}" autofocus></div>
-      <div class="field"><label>Kategori</label><input id="fCategory" value="${existing ? escapeHtml(existing.category) : ''}"></div>
-      <div class="field"><label>Satuan (pcs/kg/dus)</label><input id="fUnit" value="${existing ? escapeHtml(existing.unit) : 'pcs'}"></div>
-      <div class="field"><label>Harga Jual</label><input id="fPrice" type="number" inputmode="numeric" value="${existing ? Math.round(existing.price) : ''}"></div>
-      <div class="field"><label>Modal (opsional)</label><input id="fCost" type="number" inputmode="numeric" value="${existing && existing.cost ? Math.round(existing.cost) : ''}"></div>
-      <div class="field"><label>Stok (opsional)</label><input id="fStock" type="number" inputmode="decimal" value="${existing && existing.stock ? existing.stock : ''}"></div>
-      <button class="btn" id="fSave">Simpan</button>
-      ${existing ? `<button class="btn danger" id="fDelete">Hapus Produk</button>` : ''}
+      <div class="product-sheet-header">
+        <div class="sheet-title">${existing ? 'Ubah Produk' : 'Produk Baru'}</div>
+        <button type="button" class="product-sheet-close" id="productClose" aria-label="Tutup">×</button>
+      </div>
+
+      <div class="product-form-fields">
+        <div class="product-photo-field">
+          <span>Foto produk <em>Opsional</em></span>
+          <div class="product-photo-editor">
+            <div id="fPhotoEmpty" class="product-photo-empty ${imageData ? 'hidden' : ''}">Foto</div>
+            <img id="fPhotoPreview" class="product-photo-preview ${imageData ? '' : 'hidden'}" ${imageData ? `src="${imageData}"` : ''} alt="Preview foto produk">
+            <div class="product-photo-actions">
+              <input id="fPhoto" type="file" accept="image/jpeg,image/png,image/webp">
+              <button type="button" class="btn small ghost ${imageData ? '' : 'hidden'}" id="fRemovePhoto">Hapus foto</button>
+            </div>
+          </div>
+        </div>
+
+        <label class="product-field">
+          <span>Nama produk</span>
+          <input id="fName" value="${existing ? escapeHtml(existing.name) : ''}" placeholder="Masukkan nama produk" autofocus>
+        </label>
+
+        <div class="product-field-grid">
+          <label class="product-field"><span>Kategori</span><input id="fCategory" value="${existing ? escapeHtml(existing.category) : ''}" placeholder="Contoh: Makanan"></label>
+          <label class="product-field"><span>Satuan</span><input id="fUnit" value="${existing ? escapeHtml(existing.unit) : 'pcs'}" placeholder="pcs, kg, dus"></label>
+        </div>
+
+        <div class="product-field-grid">
+          <label class="product-field"><span>Harga jual</span><div class="product-money-input"><b>Rp</b><input id="fPrice" type="number" inputmode="numeric" min="0" value="${existing ? Math.round(existing.price) : ''}" placeholder="0"></div></label>
+          <label class="product-field"><span>Modal <em>Opsional</em></span><div class="product-money-input"><b>Rp</b><input id="fCost" type="number" inputmode="numeric" min="0" value="${existing && existing.cost ? Math.round(existing.cost) : ''}" placeholder="0"></div></label>
+        </div>
+
+        <label class="product-field"><span>Stok <em>Opsional</em></span><input id="fStock" type="number" inputmode="decimal" step="any" value="${existing && existing.stock ? existing.stock : ''}" placeholder="0"></label>
+      </div>
+
+      <div class="product-sheet-actions ${existing ? 'has-delete' : ''}">
+        ${existing ? `<button class="btn danger" id="fDelete" type="button">Hapus</button>` : ''}
+        <button class="btn" id="fSave" type="button">${existing ? 'Simpan Perubahan' : 'Simpan Produk'}</button>
+      </div>
     `;
     const saveButton = body.querySelector('#fSave');
     const photoInput = body.querySelector('#fPhoto');
     const removePhoto = body.querySelector('#fRemovePhoto');
     const showPhoto = () => {
       const preview = body.querySelector('#fPhotoPreview');
+      const empty = body.querySelector('#fPhotoEmpty');
       if (imageData) preview.src = imageData;
       else preview.removeAttribute('src');
       preview.classList.toggle('hidden', !imageData);
+      empty.classList.toggle('hidden', !!imageData);
       removePhoto.classList.toggle('hidden', !imageData);
     };
     photoInput.onchange = async () => {
@@ -79,6 +123,7 @@ async function openForm(root, existing, search = '') {
       finally { saveButton.disabled = photoInput.disabled = removePhoto.disabled = false; photoInput.value = ''; }
     };
     removePhoto.onclick = () => { imageData = ''; photoInput.value = ''; showPhoto(); };
+    body.querySelector('#productClose').onclick = () => close(undefined);
     body.querySelector('#fSave').onclick = async () => {
       saveButton.disabled = true;
       try {

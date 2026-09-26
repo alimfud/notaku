@@ -1,4 +1,44 @@
 /* customers: edit only these scoped rules for this page and its sheets. */
-[data-page="customers"] .customers-layout-1 { padding-top:16px; }
-[data-page="customers"] .row-meta { text-align: left; }
-[data-page="customers"] .field { text-align: left; text-align-last: auto; }
+#pageRoot[data-page="customers"] { width:100%; max-width:720px; margin:0 auto; padding-bottom:110px; }
+[data-page="customers"] .customers-page { padding:16px; }
+[data-page="customers"] .customers-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:10px; }
+[data-page="customers"] .customers-heading span { color:var(--primary); font-size:10.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+[data-page="customers"] .customers-heading h2 { margin:2px 0 0; color:var(--ink); font-size:18px; }
+[data-page="customers"] .customers-heading small { color:var(--muted); font-size:11px; }
+[data-page="customers"] .customers-search { display:flex; min-height:42px; align-items:center; margin-bottom:12px; border:1px solid var(--outline); border-radius:10px; background:var(--surface); box-shadow:0 4px 14px rgba(73,29,48,.04); }
+[data-page="customers"] .customers-search:focus-within { border-color:color-mix(in srgb,var(--primary) 55%,var(--outline)); box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 10%,transparent); }
+[data-page="customers"] .customers-search > span { padding-left:11px; color:var(--primary); font-size:20px; }
+[data-page="customers"] .customers-search input { width:100%; min-height:40px; padding:0 11px 0 7px; border:0; outline:none; background:transparent; color:var(--ink); font-size:14px; }
+[data-page="customers"] .customers-list { display:grid; gap:8px; }
+[data-page="customers"] .customer-card { display:flex; width:100%; min-width:0; align-items:center; gap:11px; padding:11px; border:1px solid var(--outline); border-radius:12px; background:var(--surface); box-shadow:0 4px 14px rgba(73,29,48,.045); color:var(--ink); font:inherit; text-align:left; cursor:pointer; }
+[data-page="customers"] .customer-card:active { transform:scale(.99); }
+[data-page="customers"] .customer-card .avatar { width:40px; height:40px; background:var(--primary-container); color:var(--primary); }
+[data-page="customers"] .customer-card:nth-child(3n+2) .avatar { background:#f3ddcf; color:#8a4d2e; }
+[data-page="customers"] .customer-card:nth-child(3n+3) .avatar { background:#e2d9ed; color:#654b7b; }
+[data-page="customers"] .customer-card-body { min-width:0; flex:1; }
+[data-page="customers"] .customer-name { overflow:hidden; font-size:14px; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
+[data-page="customers"] .customer-contact { margin-top:2px; color:var(--ink-soft); font-size:11.5px; }
+[data-page="customers"] .customer-address { overflow:hidden; margin-top:2px; color:var(--muted); font-size:10.5px; text-overflow:ellipsis; white-space:nowrap; }
+[data-page="customers"] .customer-chevron { color:var(--muted); font-size:24px; font-weight:300; }
+
+/* Compact left drawer for customer create/edit. */
+.sheet-backdrop:has(> .sheet > .customer-form-sheet) { align-items:center; justify-content:flex-start; padding:12px 0; }
+.sheet:has(> .customer-form-sheet) { width:min(350px,86vw); max-width:none; max-height:calc(100vh - 24px); border-radius:0 18px 18px 0; animation:customerDrawerIn .18s ease; }
+.sheet:has(> .customer-form-sheet) > .sheet-handle { display:none; }
+@keyframes customerDrawerIn { from { transform:translateX(-28px); opacity:0; } to { transform:translateX(0); opacity:1; } }
+[data-page="customers"].customer-form-sheet { padding:2px 12px 0; }
+[data-page="customers"].customer-form-sheet .customer-sheet-header { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:3px 1px 8px; }
+[data-page="customers"].customer-form-sheet .customer-sheet-header small { color:var(--primary); font-size:9.5px; font-weight:800; letter-spacing:.08em; }
+[data-page="customers"].customer-form-sheet .sheet-title { padding:1px 0 0; color:var(--ink); font-size:19px; letter-spacing:-.35px; }
+[data-page="customers"].customer-form-sheet .customer-sheet-close { display:grid; width:32px; height:32px; flex-shrink:0; place-items:center; border:1px solid var(--outline); border-radius:50%; background:var(--surface-dim); color:var(--ink-soft); font-size:20px; }
+[data-page="customers"].customer-form-sheet .customer-form-fields { display:grid; gap:7px; padding:10px; border:1px solid var(--outline); border-radius:10px; background:var(--surface); }
+[data-page="customers"].customer-form-sheet .customer-field { display:block; min-width:0; }
+[data-page="customers"].customer-form-sheet .customer-field > span { display:block; margin-bottom:3px; color:var(--ink-soft); font-size:10.5px; font-weight:700; }
+[data-page="customers"].customer-form-sheet .customer-field em { color:var(--muted); font-size:9.5px; font-style:normal; font-weight:500; }
+[data-page="customers"].customer-form-sheet :is(input,textarea) { width:100%; min-height:38px; padding:8px 9px; border:1px solid var(--outline); border-radius:8px; outline:none; background:var(--surface-dim); color:var(--ink); font:13.5px var(--font); resize:none; }
+[data-page="customers"].customer-form-sheet :is(input,textarea):focus { border-color:color-mix(in srgb,var(--primary) 58%,var(--outline)); box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 11%,transparent); }
+[data-page="customers"].customer-form-sheet .customer-sheet-actions { position:sticky; bottom:0; z-index:2; display:flex; gap:7px; margin:8px -12px 0; padding:8px 12px calc(env(safe-area-inset-bottom,0px) + 9px); border-top:1px solid var(--outline); background:color-mix(in srgb,var(--surface) 96%,#fff); box-shadow:0 -8px 22px rgba(50,28,36,.08); }
+[data-page="customers"].customer-form-sheet .customer-sheet-actions .btn { width:100%; min-height:42px; margin:0; padding:10px; }
+[data-page="customers"].customer-form-sheet .customer-sheet-actions.has-delete .danger { width:auto; flex:0 0 72px; }
+@media(max-width:390px) { [data-page="customers"] .customers-page { padding:12px 10px; } }
+@media(prefers-reduced-motion:reduce) { .sheet:has(> .customer-form-sheet) { animation:none; } }
