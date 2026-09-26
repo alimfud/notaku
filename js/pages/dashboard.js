@@ -25,11 +25,15 @@ export async function render(root) {
       <section class="dashboard-hero"><div class="dashboard-label">Nilai pesanan</div><small class="dashboard-period">7 hari terakhir · ${orderPeriodLabel}</small><div class="dashboard-revenue">${rupiah(orders.revenue)}</div><div class="dashboard-hero-bottom"><div><span>Nota dibuat</span><strong>${orders.transactionCount} nota</strong></div><div><span>Pembayaran masuk</span><strong>${rupiah(orders.received)}</strong></div></div></section>
       <section class="dashboard-attention"><div class="dashboard-card-heading"><div><span>RINGKASAN</span><h3>Perlu perhatian</h3></div><small>${periodLabel}</small></div><button data-go="home"><span><b>Jadwal pengambilan</b><small>Pesanan belum selesai</small></span><strong>${pickupThisWeek.length}<i>›</i></strong></button><button data-go="reports"><span><b>Belum lunas</b><small>Piutang pada periode ini</small></span><strong>${rupiah(report.totalReceivables)}<i>›</i></strong></button></section>
     </div>
-    <div class="dashboard-section"><span>MENU</span><h3>Akses cepat</h3></div>
+    <div class="dashboard-section"><h3>Akses cepat</h3></div>
     <div class="dashboard-shortcuts">${[['customers','Pelanggan','users'],['expenses','Pengeluaran','wallet'],['reports','Laporan','chart'],['settings','Pengaturan','settings']].map(([route, label, icon]) => `<button data-go="${route}"><span class="dashboard-shortcut-icon">${shortcutIcon(icon)}</span>${label}</button>`).join('')}</div>
-    ${dailyChart(orders.daily, { compact: true, dateBasis: 'created', periodLabel: orderPeriodLabel })}
-    <div class="dashboard-section-row"><div><span>TERDEKAT</span><h3>Jadwal pengambilan</h3></div><button data-go="home">Lihat semua <i>›</i></button></div>
+    
+	
+    
+	<div class="dashboard-section-row"><div><h3>Jadwal pengambilan</h3></div><button data-go="home">Lihat semua <i>›</i></button></div>
     <div class="dashboard-orders">${upcoming.length ? upcoming.map(s => `<button class="row" data-go="sale/${escapeHtml(s.sale.id)}"><span class="avatar">${escapeHtml(initials(s.sale.customerName))}</span><span class="row-body"><span class="row-title">${escapeHtml(s.sale.customerName)}</span><span class="row-meta">${escapeHtml(s.sale.invoiceNumber)} · ${dateShort(s.sale.saleDate)} ${escapeHtml(s.sale.saleTime || '')}</span></span><span class="row-trailing"><span class="row-money">${rupiah(s.sale.total)}</span><span class="payment-badge" data-status="${s.displayStatus}">${STATUS_LABEL[s.displayStatus]}</span></span><span class="dashboard-row-arrow" aria-hidden="true">›</span></button>`).join('') : '<div class="empty-state"><p>Belum ada jadwal pengambilan mendatang.<br>Mulai dengan membuat nota baru.</p></div>'}</div>
+	
+	${dailyChart(orders.daily, { compact: true, dateBasis: 'created', periodLabel: orderPeriodLabel })}
   `;
   root.querySelectorAll('[data-go]').forEach(button => button.onclick = () => navigate(button.dataset.go));
   wireBusinessCharts(root);

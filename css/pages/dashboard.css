@@ -6,7 +6,7 @@
 [data-page="dashboard"] .dashboard-primary-action { display:flex; min-height:40px; flex-shrink:0; align-items:center; gap:6px; padding:8px 12px; border:0; border-radius:11px; background:var(--ink); color:#fff; font:700 12px var(--font); box-shadow:0 6px 16px rgba(20,21,26,.18); cursor:pointer; }
 [data-page="dashboard"] .dashboard-primary-action span { font-size:18px; font-weight:400; line-height:1; }
 [data-page="dashboard"] .dashboard-overview { display:grid; gap:10px; }
-[data-page="dashboard"] .dashboard-hero { min-width:0; overflow:hidden; padding:19px; border-radius:16px; background:linear-gradient(125deg,#245740 0%,var(--primary) 55%,#4b8268 100%); box-shadow:0 9px 24px rgba(47,107,79,.2); color:#fff; }
+[data-page="dashboard"] .dashboard-hero { min-width:0; overflow:hidden; padding:19px; border-radius:16px; background:linear-gradient(310deg, #a53b5a 0%, #491d30 55%, #3f1a2a 100%); box-shadow:0px 0px 6px 3px rgb(73 29 48 / 50%); color:#fff; }
 [data-page="dashboard"] .dashboard-label { color:#d8eee2; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
 [data-page="dashboard"] .dashboard-period { display:block; margin-top:4px; color:rgba(255,255,255,.7); font-size:10.5px; line-height:1.45; }
 [data-page="dashboard"] .dashboard-revenue { margin:8px 0 17px; overflow-wrap:anywhere; font-size:clamp(25px,7vw,34px); font-weight:800; letter-spacing:-1px; font-variant-numeric:tabular-nums; }
@@ -14,7 +14,7 @@
 [data-page="dashboard"] .dashboard-hero-bottom div { min-width:0; }
 [data-page="dashboard"] .dashboard-hero-bottom span { display:block; color:rgba(255,255,255,.68); font-size:10.5px; }
 [data-page="dashboard"] .dashboard-hero-bottom strong { display:block; margin-top:3px; overflow-wrap:anywhere; color:#fff; font-size:13.5px; font-variant-numeric:tabular-nums; }
-[data-page="dashboard"] .dashboard-attention { padding:13px 14px 5px; border:1px solid var(--outline); border-radius:14px; background:var(--surface); box-shadow:0 5px 17px rgba(73,29,48,.05); }
+[data-page="dashboard"] .dashboard-attention { padding:13px 14px 5px; border:1px solid var(--outline); border-radius:14px; background:#ffe8d4; box-shadow:0 5px 17px rgba(73,29,48,.05); }
 [data-page="dashboard"] .dashboard-card-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; padding:0 1px 6px; }
 [data-page="dashboard"] .dashboard-card-heading span,
 [data-page="dashboard"] .dashboard-section > span,
