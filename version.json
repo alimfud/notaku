@@ -1,4 +1,4 @@
 {
-  "version": "1.6.6",
-  "notes": "Navigasi dan pembacaan data dipercepat dengan cache sesi, pemanasan halaman, dan app shell lokal tanpa menunggu jaringan."
+  "version": "1.7.0",
+  "notes": "NotaKu kini tersedia sebagai aplikasi Android mandiri dengan aset offline, Bluetooth BLE native, dan pembaruan melalui GitHub Releases."
 }

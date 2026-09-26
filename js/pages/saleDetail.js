@@ -9,6 +9,7 @@ import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, navigateBack } from '../app.js';
 import { shareAsText, buildShareText, createReceiptImage, createReceiptPdf, downloadReceiptFile, shareReceiptFile } from '../services/printerService.js';
 import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
+import { isNativeApp } from '../native.js';
 
 /**
  * PERFORMANCE FIX #4: Timeout & Loading UI
@@ -343,12 +344,18 @@ async function showFileShare(file, waNumber, isPdf) {
       <button class="btn secondary" id="fileShare">Bagikan ${isPdf ? 'PDF' : 'Gambar'}</button>
       <button class="btn secondary" id="fileSave">Simpan ${isPdf ? 'PDF' : 'Gambar'}</button>`;
     const wa = body.querySelector('#fileWa');
-    if (wa) wa.onclick = () => {
-      downloadReceiptFile(file);
+    if (wa) wa.onclick = async () => {
+      await downloadReceiptFile(file);
       window.open(`https://wa.me/${waNumber}`, '_blank', 'noopener');
       close();
     };
-    body.querySelector('#fileSave').onclick = () => { downloadReceiptFile(file); toast('File nota diunduh'); close(); };
+    body.querySelector('#fileSave').onclick = async () => {
+      try {
+        await downloadReceiptFile(file);
+        toast(isNativeApp() ? 'File nota disimpan di folder Documents/NotaKu' : 'File nota diunduh');
+        close();
+      } catch (e) { toast(e.message || 'Gagal menyimpan file nota.'); }
+    };
     body.querySelector('#fileShare').onclick = async () => {
       try {
         const status = await shareReceiptFile(file);

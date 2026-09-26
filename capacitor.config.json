@@ -1,0 +1,20 @@
+{
+  "appId": "id.notaku.app",
+  "appName": "NotaKu",
+  "webDir": "web",
+  "backgroundColor": "#f7e8df",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#f7e8df"
+  },
+  "plugins": {
+    "BluetoothLe": {
+      "displayStrings": {
+        "scanning": "Mencari printer...",
+        "cancel": "Batal",
+        "availableDevices": "Printer tersedia",
+        "noDeviceFound": "Printer tidak ditemukan"
+      }
+    }
+  }
+}

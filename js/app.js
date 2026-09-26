@@ -1,4 +1,6 @@
 // app.js — bootstrap aplikasi & router SPA.
+import { APP_VERSION } from './version.js';
+import { isNativeApp, openExternalUrl } from './native.js';
 //
 // Kenapa hash router + dynamic import per halaman?
 // - Hash router (#/rute) tidak perlu konfigurasi server apa pun — cocok untuk
@@ -76,9 +78,35 @@ export function navigateBack() {
   }
 }
 
+function isNewerVersion(candidate, current) {
+  const left = String(candidate).split('.').map((part) => Number.parseInt(part, 10) || 0);
+  const right = String(current).split('.').map((part) => Number.parseInt(part, 10) || 0);
+  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
+    if ((left[index] || 0) > (right[index] || 0)) return true;
+    if ((left[index] || 0) < (right[index] || 0)) return false;
+  }
+  return false;
+}
+
 export async function checkForUpdate(silent = true) {
   const { toast } = await import('./ui/toast.js');
   try {
+    if (isNativeApp()) {
+      const res = await fetch('https://api.github.com/repos/alimfud/notaku/releases/latest', {
+        cache: 'no-store',
+        headers: { Accept: 'application/vnd.github+json' },
+      });
+      if (!res.ok) throw new Error('GitHub HTTP ' + res.status);
+      const release = await res.json();
+      const latestVersion = String(release.tag_name || '').replace(/^v/i, '');
+      if (latestVersion && isNewerVersion(latestVersion, APP_VERSION)) {
+        toast(`NotaKu ${latestVersion} tersedia di GitHub. Membuka halaman unduhan...`);
+        setTimeout(() => openExternalUrl(release.html_url), 700);
+      } else if (!silent) {
+        toast('Aplikasi Android sudah versi terbaru (' + APP_VERSION + ')');
+      }
+      return;
+    }
     // cache: 'no-store' memaksa browser mengambil langsung dari jaringan
     // tanpa lewat HTTP cache — tidak perlu trik query-string "?t=..." lagi
     // (yang sebelumnya justru memicu bug di sw.js, sudah diperbaiki juga).
@@ -160,6 +188,7 @@ window.addEventListener('hashchange', handleRouteChange);
 
 // ---------------- Service worker + update check ----------------
 function registerServiceWorker() {
+  if (isNativeApp()) return;
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('./sw.js').then((reg) => {
     reg.addEventListener('updatefound', () => {
@@ -179,7 +208,7 @@ function registerServiceWorker() {
   if (!window.location.hash) window.location.hash = '#/dashboard';
   await handleRouteChange();
   registerServiceWorker();
-  import('./installPrompt.js').then(({ initInstallPrompt }) => initInstallPrompt());
+  if (!isNativeApp()) import('./installPrompt.js').then(({ initInstallPrompt }) => initInstallPrompt());
   runBackgroundChecks();
   warmNavigation();
 

@@ -1,5 +1,35 @@
 // One DOM capture for image, PDF, and Bluetooth output.
 import { rupiah } from '../format.js';
+import { isNativeApp } from '../native.js';
+
+function nativePlugin(name) {
+  return isNativeApp() ? window.Capacitor?.Plugins?.[name] : null;
+}
+
+async function fileToBase64(file) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function writeNativeFile(file, directory) {
+  const filesystem = nativePlugin('Filesystem');
+  if (!filesystem) throw new Error('Penyimpanan Android tidak tersedia.');
+  if (directory === 'DOCUMENTS') {
+    const permission = await filesystem.requestPermissions();
+    if (permission.publicStorage === 'denied') throw new Error('Izin penyimpanan ditolak.');
+  }
+  return filesystem.writeFile({
+    path: `NotaKu/${file.name.replace(/[^A-Za-z0-9._-]/g, '_')}`,
+    data: await fileToBase64(file),
+    directory,
+    recursive: true,
+  });
+}
 
 export function buildShareText(data) {
   let text = `${data.storeName}\n${data.invoiceNumber} - ${data.dateLabel}\nKepada: ${data.customerName}\n\n`;
@@ -18,6 +48,11 @@ export function buildShareText(data) {
 
 export async function shareAsText(data) {
   const text = buildShareText(data);
+  const nativeShare = nativePlugin('Share');
+  if (nativeShare) {
+    await nativeShare.share({ title: `Nota ${data.invoiceNumber}`, text, dialogTitle: 'Bagikan nota' });
+    return 'shared';
+  }
   if (navigator.share) {
     try {
       await navigator.share({ title: `Nota ${data.invoiceNumber}`, text });
@@ -90,7 +125,11 @@ export async function createReceiptPdf(element, invoiceNumber, paperSize) {
   return new File([pdf.output('blob')], filename(invoiceNumber, 'pdf'), { type: 'application/pdf' });
 }
 
-export function downloadReceiptFile(file) {
+export async function downloadReceiptFile(file) {
+  if (isNativeApp()) {
+    await writeNativeFile(file, 'DOCUMENTS');
+    return 'saved';
+  }
   const url = URL.createObjectURL(file);
   const a = document.createElement('a');
   a.href = url;
@@ -99,9 +138,16 @@ export function downloadReceiptFile(file) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60000);
+  return 'downloaded';
 }
 
 export async function shareReceiptFile(file) {
+  const nativeShare = nativePlugin('Share');
+  if (nativeShare) {
+    const saved = await writeNativeFile(file, 'CACHE');
+    await nativeShare.share({ title: file.name, files: [saved.uri], dialogTitle: 'Bagikan nota' });
+    return 'shared';
+  }
   if (navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: file.name });
@@ -110,6 +156,6 @@ export async function shareReceiptFile(file) {
       if (e.name === 'AbortError') return 'cancelled';
     }
   }
-  downloadReceiptFile(file);
+  await downloadReceiptFile(file);
   return 'downloaded';
 }

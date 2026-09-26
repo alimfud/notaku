@@ -1,4 +1,12 @@
-# NotaKu Web
+# NotaKu Web + Android
+
+## Aplikasi Android
+
+NotaKu sekarang memiliki proyek Android berbasis Capacitor. Seluruh aset aplikasi dibundel di dalam APK, sehingga aplikasi tidak membuka GitHub Pages sebagai tab browser dan tetap dapat dipakai offline. Bluetooth BLE, berbagi nota, penyimpanan PDF/gambar, ikon, serta splash screen memakai integrasi Android native.
+
+APK dapat dibangun otomatis dan dirilis melalui GitHub Actions. Petunjuk build, penandatanganan, dan update ada di [docs/ANDROID.md](docs/ANDROID.md).
+
+## Versi web
 
 Versi web (JavaScript murni, tanpa build tools) dari NotaKu. Logika bisnis
 (kalkulasi nota, status pembayaran, penomoran invoice, laporan, backup/restore,
