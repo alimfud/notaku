@@ -9,7 +9,6 @@ import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, navigateBack } from '../app.js';
 import { shareAsText, buildShareText, createReceiptImage, createReceiptPdf, downloadReceiptFile, shareReceiptFile } from '../services/printerService.js';
 import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
-import { STATUS_LABEL } from '../services/saleCalculation.js';
 
 /**
  * PERFORMANCE FIX #4: Timeout & Loading UI
@@ -28,18 +27,12 @@ export async function render(root, params) {
   setPageTitle('Detail Nota');
   const saleId = params[0];
   
-  // Tampilkan loading UI dulu
+  // Identitas aplikasi tampil tenang tanpa spinner bundar berulang.
   root.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:1em;color:#999;">
-      <div style="width:40px;height:40px;border:3px solid #f0f0f0;border-top:3px solid #791e38;border-radius:50%;animation:spin 1s linear infinite;"></div>
-      <p>Memuat detail nota...</p>
+    <div class="sale-detail-loading" role="status" aria-label="Menyiapkan nota">
+      <img src="icons/icon-192.png" alt="">
+      <span>Menyiapkan nota</span>
     </div>
-    <style>
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    </style>
   `;
   
   try {
@@ -83,14 +76,6 @@ async function draw(root, saleId) {
   const addressPhoneLine = [sale.customerAddress, phoneDisplay].filter(Boolean).join(' • ');
 
   root.innerHTML = `
-    <section class="sale-detail-overview">
-      <div class="sale-detail-overview-main">
-        <div class="sale-detail-kicker">NOTA</div>
-        <div class="sale-detail-invoice">${escapeHtml(sale.invoiceNumber)}</div>
-        <div class="sale-detail-overview-meta">${escapeHtml(sale.customerName)} · ${dateShort(sale.saleDate)} ${escapeHtml(sale.saleTime || '')}</div>
-        <span class="payment-badge sale-detail-status" data-status="${displayStatus}">${STATUS_LABEL[displayStatus] || displayStatus}</span>
-      </div>
-    </section>
     ${sale.autoMarkedPaid ? `
       <div class="receipt-alert">
         <div class="receipt-alert-text"><b>Pelunasan otomatis</b> dicatat pada tanggal pengambilan setelah lewat 2 hari. Pembayaran ini ikut dihitung dalam laporan.</div>

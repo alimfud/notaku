@@ -83,7 +83,12 @@
 
 <div id="sheetRoot"></div>
 <div id="toast"></div>
-<div id="loadingOverlay" class="hidden"><div class="spinner"></div></div>
+<div id="loadingOverlay" class="hidden" role="status" aria-live="polite" aria-label="Sedang memproses">
+  <div class="loading-mark" aria-hidden="true">
+    <img src="icons/icon-192.png" alt="">
+    <span>NotaKu</span>
+  </div>
+</div>
 
 <script type="module" src="js/app.js"></script>
 </body>
