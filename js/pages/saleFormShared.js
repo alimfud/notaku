@@ -257,9 +257,7 @@ async function addManualItem(root, mode, state, onSave) {
     body.innerHTML = `
       <div class="sale-sheet-header">
         <div>
-          <div class="sale-card-kicker">Item baru</div>
-          <div class="sheet-title">Tambahkan Item</div>
-          <p>Masukkan rincian produk yang belum tersedia.</p>
+          <div class="sheet-title">Item Baru</div>
         </div>
         <button type="button" class="sale-sheet-close" id="mClose" aria-label="Tutup">×</button>
       </div>
@@ -286,13 +284,10 @@ async function addManualItem(root, mode, state, onSave) {
           <div class="sale-money-input"><b>Rp</b><input id="mPrice" type="number" inputmode="numeric" min="0" placeholder="0"></div>
         </label>
 
-        <div class="sale-item-new-note">
-          Item baru otomatis disimpan ke daftar produk agar dapat digunakan kembali.
-        </div>
       </div>
 
       <div class="sale-item-total">
-        <span><small>Total item</small><strong>Jumlah harga</strong></span>
+        <strong>Jumlah harga</strong>
         <strong id="mSubtotalPreview">${rupiah(0)}</strong>
       </div>
 
@@ -390,9 +385,7 @@ async function editLine(root, state, index) {
     body.innerHTML = `
       <div class="sale-sheet-header">
         <div>
-          <div class="sale-card-kicker">Edit item</div>
-          <div class="sheet-title">${escapeHtml(line.name)}</div>
-          <p>Perbarui rincian item pada nota ini.</p>
+          <div class="sheet-title">Edit Item</div>
         </div>
         <button type="button" class="sale-sheet-close" id="eClose" aria-label="Tutup">×</button>
       </div>
@@ -426,7 +419,7 @@ async function editLine(root, state, index) {
       </div>
 
       <div class="sale-item-total">
-        <span><small>Total item</small><strong>Jumlah harga</strong></span>
+        <strong>Jumlah harga</strong>
         <strong id="eSubtotalPreview">${rupiah(line.qty * line.price)}</strong>
       </div>
 
@@ -461,18 +454,30 @@ async function editLine(root, state, index) {
 async function pickCustomer(root, mode, state, onSave) {
   const customers = await getAllCustomers();
   const selected = await openSheet((body, close) => {
+    body.classList.add('sale-customer-picker-sheet');
     body.innerHTML = `
-      <div class="sheet-title">Pilih Pelanggan</div>
-      <div class="field"><input id="custSearch" placeholder="Cari nama pelanggan" autofocus></div>
-      <button class="row" id="cashOpt"><div class="avatar" style="background:var(--primary);">C</div><div class="row-body"><div class="row-title">CASH</div><div class="row-meta">Kosongkan data (isi manual)</div></div></button>
-      <div id="custList" class="list"></div>
+      <div class="sale-sheet-header">
+        <div class="sheet-title">Pilih Pelanggan</div>
+        <button type="button" class="sale-sheet-close" id="custClose" aria-label="Tutup">×</button>
+      </div>
+
+      <label class="sale-sheet-field sale-customer-search">
+        <span>Cari pelanggan</span>
+        <input id="custSearch" placeholder="Ketik nama pelanggan" autofocus>
+      </label>
+
+      <button class="row sale-customer-option sale-cash-option" id="cashOpt" type="button">
+        <div class="avatar">C</div>
+        <div class="row-body"><div class="row-title">CASH</div><div class="row-meta">Isi data pelanggan secara manual</div></div>
+      </button>
+      <div id="custList" class="list sale-customer-list"></div>
     `;
     const listEl = body.querySelector('#custList');
     function drawList(filter) {
       const f = filter.toLowerCase();
       const rows = customers.filter((c2) => c2.name.toLowerCase().includes(f));
       listEl.innerHTML = rows.map((c2) => `
-        <button class="row" data-id="${c2.id}">
+        <button class="row sale-customer-option" data-id="${c2.id}" type="button">
           <div class="avatar">${c2.name[0]?.toUpperCase() || '?'}</div>
           <div class="row-body"><div class="row-title">${escapeHtml(c2.name)}</div>${c2.phone ? `<div class="row-meta">${escapeHtml(c2.phone)}</div>` : ''}</div>
         </button>`).join('');
@@ -481,6 +486,7 @@ async function pickCustomer(root, mode, state, onSave) {
       });
     }
     drawList('');
+    body.querySelector('#custClose').onclick = () => close(undefined);
     body.querySelector('#custSearch').oninput = (e) => drawList(e.target.value);
     body.querySelector('#cashOpt').onclick = () => close(cashCustomer());
   });
