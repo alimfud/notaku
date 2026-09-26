@@ -13,7 +13,7 @@
 .business-columns { height:155px; display:flex; justify-content:center; align-items:flex-end; gap:2px; }
 .business-columns>span { width:9px; max-width:30%; border-radius:3px 3px 0 0; }
 .business-day-label { display:block; background:#fff7ed; font-size:10px; padding-top:9px; }
-.business-chart-detail { font-size:14px; font-weight:bold line-height:1.6; color:var(--primary); margin:14px 0 14px; overflow-wrap:anywhere; text-align:center;}
+.business-chart-detail { font-size:14px; font-weight:bold; line-height:1.6; color:var(--primary); margin:14px 0 14px; overflow-wrap:anywhere; text-align:center;}
 .business-chart-empty { color:var(--muted); font-size:12px; }
 .business-donut-layout { display:flex; align-items:center; gap:24px; margin-top:18px; }
 .business-donut { flex-shrink:0; width:140px; height:140px; border-radius:50%; display:grid; place-items:center; }
