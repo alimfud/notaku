@@ -21,7 +21,7 @@
   .summary-value { font-size:clamp(19px,3.6vw,27px); overflow-wrap:anywhere; }
   .summary-block { min-width:20%; }
   .search-input { background:#fff8f0; border:1px solid var(--outline); padding:13px 14px; }
-  .chip { background:#f9efe4; border-radius:10px; padding:9px 14px; }
+  .chip { background:#f9efe4; border-radius:10px; padding:6px 9px; }
   .chip.active { background:var(--primary); border-color:var(--primary); }
   .avatar { background:#e4cde3; color:#73466d; }
   .row { color:var(--ink); }
