@@ -123,7 +123,7 @@ async function draw(root, saleId) {
       </div>
     </div>
     ${payments.length ? `
-      <div class="sale-detail-section-heading"><div><span>PEMBAYARAN</span><h3>Riwayat pembayaran</h3></div><small>${payments.length} catatan</small></div>
+      <div class="sale-detail-section-heading"><div><h3>Riwayat pembayaran</h3></div><small>${payments.length} catatan</small></div>
       <div class="sale-detail-payment-list list">
         ${payments.map((p, index) => `
           <button class="sale-detail-payment-row row" data-pid="${p.id}">
