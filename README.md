@@ -2,8 +2,8 @@
 
 NotaKu adalah aplikasi kasir dan nota penjualan yang tersedia sebagai aplikasi Android mandiri dan versi web/PWA. Data toko disimpan lokal di perangkat melalui IndexedDB sehingga fitur inti tetap dapat dipakai tanpa koneksi internet.
 
-- **Versi saat ini:** v1.7.3
-- **APK Android:** [Unduh NotaKu v1.7.3](https://github.com/alimfud/notaku/releases/download/v1.7.3/NotaKu-v1.7.3.apk)
+- **Versi saat ini:** v1.7.4
+- **APK Android:** [Unduh NotaKu v1.7.4](https://github.com/alimfud/notaku/releases/download/v1.7.4/NotaKu-v1.7.4.apk)
 - **Riwayat rilis:** [GitHub Releases](https://github.com/alimfud/notaku/releases)
 
 ## Untuk pengguna Android

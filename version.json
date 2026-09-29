@@ -1,4 +1,4 @@
 {
-  "version": "1.7.3",
-  "notes": "perbaikan detail nota dan juga font size di perkecil sedikit untuk versi androidnya"
+  "version": "1.7.4",
+  "notes": "Perbaikan filter Bulan Ini pada layar kecil dan penyederhanaan sinkronisasi versi."
 }
