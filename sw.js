@@ -18,7 +18,7 @@
 // disimpan lokal dan di-precache, termasuk logo bawaan. Fitur inti (lihat/buat/ubah nota, produk,
 // pelanggan, laporan, cetak, backup lokal) semuanya tetap jalan offline.
 
-const CACHE_VERSION = 'notaku-web-v1.7.1-android-1'; // naikkan setiap rilis
+const CACHE_VERSION = 'notaku-web-v1.7.1-payments-ui-3'; // naikkan setiap rilis
 
 const CORE_ASSETS = [
   './',
@@ -140,6 +140,27 @@ self.addEventListener('fetch', (event) => {
           status: 503,
           headers: { 'Content-Type': 'application/json' },
         }))
+    );
+    return;
+  }
+
+  // Di localhost kode sedang aktif diedit. Ambil halaman, JS, dan CSS dari
+  // server terlebih dahulu agar perubahan tidak tertahan cache Service Worker.
+  // Jika XAMPP sedang mati/tidak terjangkau, cache tetap menjadi fallback.
+  const localDevelopment = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
+  const liveAsset = event.request.mode === 'navigate' || event.request.destination === 'script' || event.request.destination === 'style';
+  if (localDevelopment && liveAsset) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' }).then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, copy));
+        }
+        return res;
+      }).catch(() => caches.match(event.request).then((cached) => cached || new Response('', {
+        status: 504,
+        statusText: 'XAMPP tidak aktif dan aset belum tersedia di cache',
+      })))
     );
     return;
   }

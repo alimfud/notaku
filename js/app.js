@@ -212,7 +212,10 @@ window.addEventListener('hashchange', handleRouteChange);
 function registerServiceWorker() {
   if (isNativeApp()) return;
   if (!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.register('./sw.js').then((reg) => {
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
+    // Saat development localhost, paksa pemeriksaan sw.js setiap aplikasi dibuka
+    // supaya perubahan UI tidak tertahan oleh cache versi sebelumnya.
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') reg.update().catch(() => {});
     reg.addEventListener('updatefound', () => {
       const nw = reg.installing;
       nw.addEventListener('statechange', () => {

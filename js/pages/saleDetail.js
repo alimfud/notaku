@@ -123,15 +123,17 @@ async function draw(root, saleId) {
       </div>
     </div>
     ${payments.length ? `
-      <div class="sale-detail-section-heading"><div><span>PEMBAYARAN</span><h3>Riwayat pembayaran</h3></div><small>Ketuk untuk koreksi</small></div>
+      <div class="sale-detail-section-heading"><div><span>PEMBAYARAN</span><h3>Riwayat pembayaran</h3></div><small>${payments.length} catatan</small></div>
       <div class="sale-detail-payment-list list">
-        ${payments.map((p) => `
+        ${payments.map((p, index) => `
           <button class="sale-detail-payment-row row" data-pid="${p.id}">
-            <div class="row-body">
-              <div class="sale-detail-payment-amount">${rupiah(p.amount)}</div>
-              <div class="row-meta">${p.paymentDate} • ${p.paymentTime}${p.note ? ' • ' + escapeHtml(p.note) : ''}</div>
-            </div>
-            <span class="sale-detail-payment-edit">✎</span>
+            <span class="sale-detail-payment-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h4"/></svg></span>
+            <span class="sale-detail-payment-body">
+              <span class="sale-detail-payment-label">Pembayaran ${index + 1}</span>
+              <span class="sale-detail-payment-meta">${dateShort(p.paymentDate)} · ${escapeHtml(p.paymentTime || '')}</span>
+              ${p.note ? `<span class="sale-detail-payment-note">${escapeHtml(p.note)}</span>` : ''}
+            </span>
+            <span class="sale-detail-payment-trailing"><strong>${rupiah(p.amount)}</strong><i aria-hidden="true">›</i></span>
           </button>`).join('')}
       </div>` : ''}
     <div class="sale-detail-actions">
@@ -195,17 +197,23 @@ async function handleAddPayment(root, saleId, remaining) {
 
 async function handleEditPayment(root, saleId, payment) {
   const result = await openSheet((body, close) => {
+    body.classList.add('sale-detail-payment-edit-sheet');
     body.innerHTML = `
-      <div class="sheet-title">Koreksi Pembayaran</div>
-      <div class="field"><label>Jumlah Bayar</label><input id="pAmount" type="number" inputmode="numeric" value="${Math.round(payment.amount)}" autofocus></div>
-      <div class="sale-detail-payment-datetime field">
-        <div class="sale-detail-payment-field"><label>Tanggal</label><input id="pDate" type="date" value="${payment.paymentDate}"></div>
-        <div class="sale-detail-payment-field"><label>Jam</label><input id="pTime" type="time" value="${payment.paymentTime}"></div>
+      <div class="sale-detail-sheet-header"><div><small>PEMBAYARAN</small><div class="sheet-title">Koreksi Pembayaran</div></div><button class="sale-detail-sheet-close" id="paymentEditClose" type="button" aria-label="Tutup">×</button></div>
+      <div class="sale-detail-payment-edit-fields">
+        <label class="sale-detail-sheet-field"><span>Jumlah bayar</span><div><b>Rp</b><input id="pAmount" type="number" inputmode="numeric" min="1" value="${Math.round(payment.amount)}" autofocus></div></label>
+        <div class="sale-detail-payment-datetime">
+          <label class="sale-detail-sheet-field"><span>Tanggal</span><div><input id="pDate" type="date" value="${payment.paymentDate}"></div></label>
+          <label class="sale-detail-sheet-field"><span>Jam</span><div><input id="pTime" type="time" value="${payment.paymentTime}"></div></label>
+        </div>
+        <label class="sale-detail-sheet-field"><span>Catatan <em>Opsional</em></span><div><input id="pNote" value="${escapeHtml(payment.note || '')}" placeholder="Tambahkan catatan"></div></label>
       </div>
-      <div class="field"><label>Catatan (opsional)</label><input id="pNote" value="${escapeHtml(payment.note || '')}"></div>
-      <button class="btn" id="pSave">Simpan Perubahan</button>
-      <button class="btn danger" id="pDelete">Hapus Pembayaran Ini</button>
+      <div class="sale-detail-sheet-footer has-delete">
+        <button class="btn danger" id="pDelete" type="button">Hapus</button>
+        <button class="btn" id="pSave" type="button">Simpan Perubahan</button>
+      </div>
     `;
+    body.querySelector('#paymentEditClose').onclick = () => close(undefined);
     body.querySelector('#pSave').onclick = () => {
       const amount = Number(body.querySelector('#pAmount').value) || 0;
       if (amount <= 0) { toast('Jumlah harus lebih dari 0'); return; }
