@@ -4,6 +4,7 @@ import test from 'node:test';
 const writes = [];
 const savedFiles = [];
 const shares = [];
+const updates = [];
 
 globalThis.window = {
   Capacitor: {
@@ -37,6 +38,12 @@ globalThis.window = {
       Share: {
         share: async (options) => shares.push(options),
       },
+      AppUpdater: {
+        downloadAndInstall: async (options) => {
+          updates.push(options);
+          return { installerOpened: true };
+        },
+      },
     },
   },
 };
@@ -44,6 +51,7 @@ Object.defineProperty(globalThis, 'navigator', { value: {}, configurable: true }
 
 const bluetooth = await import('../js/services/printing/bluetoothPrinter.js');
 const printer = await import('../js/services/printerService.js');
+const native = await import('../js/native.js');
 
 test('bridge Bluetooth Android memilih karakteristik, mengikuti MTU, dan menulis ESC/POS', async () => {
   const device = await bluetooth.scanAndConnect();
@@ -70,4 +78,16 @@ test('simpan dan bagikan file memakai Filesystem native', async () => {
   assert.equal(await printer.shareReceiptFile(file), 'shared');
   assert.equal(savedFiles.at(-1).directory, 'CACHE');
   assert.match(shares.at(-1).files[0], /^content:\/\/notaku\//);
+});
+
+test('pembaruan Android mengunduh APK melalui updater native', async () => {
+  const result = await native.downloadAndInstallUpdate(
+    'https://github.com/alimfud/notaku/releases/download/v1.7.1/NotaKu-v1.7.1.apk',
+    '1.7.1',
+  );
+  assert.equal(result.installerOpened, true);
+  assert.deepEqual(updates.at(-1), {
+    url: 'https://github.com/alimfud/notaku/releases/download/v1.7.1/NotaKu-v1.7.1.apk',
+    version: '1.7.1',
+  });
 });

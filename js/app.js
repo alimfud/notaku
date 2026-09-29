@@ -1,6 +1,6 @@
 // app.js — bootstrap aplikasi & router SPA.
 import { APP_VERSION } from './version.js';
-import { isNativeApp, openExternalUrl } from './native.js';
+import { downloadAndInstallUpdate, isNativeApp, openExternalUrl } from './native.js';
 //
 // Kenapa hash router + dynamic import per halaman?
 // - Hash router (#/rute) tidak perlu konfigurasi server apa pun — cocok untuk
@@ -100,8 +100,30 @@ export async function checkForUpdate(silent = true) {
       const release = await res.json();
       const latestVersion = String(release.tag_name || '').replace(/^v/i, '');
       if (latestVersion && isNewerVersion(latestVersion, APP_VERSION)) {
-        toast(`NotaKu ${latestVersion} tersedia di GitHub. Membuka halaman unduhan...`);
-        setTimeout(() => openExternalUrl(release.html_url), 700);
+        const apk = Array.isArray(release.assets)
+          ? release.assets.find((asset) => /\.apk$/i.test(asset?.name || '') && asset?.browser_download_url)
+          : null;
+        if (!apk) {
+          toast(`NotaKu ${latestVersion} tersedia, tetapi APK tidak ditemukan di rilis GitHub.`);
+          setTimeout(() => openExternalUrl(release.html_url), 900);
+          return;
+        }
+        const { confirmDialog } = await import('./ui/dialog.js');
+        const accepted = await confirmDialog({
+          title: `Pembaruan NotaKu ${latestVersion}`,
+          message: 'APK baru akan diunduh langsung, lalu Android meminta konfirmasi pemasangan. Data nota dan pengaturan tetap tersimpan.',
+          confirmLabel: 'Unduh & Update',
+          cancelLabel: 'Nanti',
+        });
+        if (!accepted) return;
+        toast(`Mengunduh NotaKu ${latestVersion}...`);
+        try {
+          await downloadAndInstallUpdate(apk.browser_download_url, latestVersion);
+          toast('Unduhan selesai. Lanjutkan pemasangan pada layar Android.');
+        } catch (updateError) {
+          console.error('[downloadAndInstallUpdate]', updateError);
+          toast('Pembaruan belum dapat dipasang. Pastikan izin instal aplikasi untuk NotaKu sudah aktif.');
+        }
       } else if (!silent) {
         toast('Aplikasi Android sudah versi terbaru (' + APP_VERSION + ')');
       }
@@ -209,6 +231,7 @@ function registerServiceWorker() {
   await handleRouteChange();
   registerServiceWorker();
   if (!isNativeApp()) import('./installPrompt.js').then(({ initInstallPrompt }) => initInstallPrompt());
+  if (isNativeApp()) setTimeout(() => checkForUpdate(true), 1500);
   runBackgroundChecks();
   warmNavigation();
 

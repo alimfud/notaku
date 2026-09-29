@@ -1,4 +1,4 @@
 {
-  "version": "1.7.0",
-  "notes": "NotaKu kini tersedia sebagai aplikasi Android mandiri dengan aset offline, Bluetooth BLE native, dan pembaruan melalui GitHub Releases."
+  "version": "1.7.1",
+  "notes": "Aplikasi Android kini dapat memperbarui APK langsung dari GitHub tanpa menghapus data, dengan ukuran teks Android yang lebih nyaman dibaca."
 }

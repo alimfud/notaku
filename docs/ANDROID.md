@@ -15,7 +15,11 @@ APK debug berada di `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Rilis dan pembaruan lewat GitHub
 
-Workflow `.github/workflows/android-apk.yml` membangun APK pada setiap push ke `main`. Tag `v...` (contoh `v1.7.0`) membangun APK release bertanda tangan dan memasangnya ke GitHub Releases. Tombol **Cek Pembaruan** di aplikasi Android membuka rilis terbaru jika versinya berbeda.
+Workflow `.github/workflows/android-apk.yml` membangun APK pada setiap push ke `main`. Tag `v...` (contoh `v1.7.1`) membangun APK release bertanda tangan dan memasangnya ke GitHub Releases. Aplikasi memeriksa rilis terbaru saat dibuka dan tombol **Cek Pembaruan** dapat dipakai untuk pemeriksaan manual. Jika ada versi baru, NotaKu mengunduh APK langsung lalu membuka pemasang Android untuk memperbarui aplikasi tanpa menghapus data.
+
+Pada penggunaan pertama updater, Android meminta izin **Instal aplikasi tidak dikenal** untuk NotaKu. Setiap pembaruan tetap menampilkan konfirmasi pemasangan milik Android; instalasi sepenuhnya tanpa konfirmasi hanya tersedia bagi aplikasi sistem/perangkat terkelola.
+
+Tampilan Android memakai pembesaran teks WebView 110% agar tulisan tidak tampak lebih kecil daripada versi browser. Seluruh halaman, data, dan aturan tampilan tetap berasal dari HTML/JS/CSS yang sama.
 
 Empat GitHub Actions secret wajib untuk rilis:
 

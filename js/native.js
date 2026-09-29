@@ -10,3 +10,12 @@ export async function openExternalUrl(url) {
   }
   window.open(url, '_blank', 'noopener,noreferrer');
 }
+
+export async function downloadAndInstallUpdate(url, version) {
+  const updater = window.Capacitor?.Plugins?.AppUpdater
+    || window.Capacitor?.registerPlugin?.('AppUpdater');
+  if (!isNativeApp() || !updater?.downloadAndInstall) {
+    throw new Error('Updater Android tidak tersedia');
+  }
+  return updater.downloadAndInstall({ url, version });
+}
