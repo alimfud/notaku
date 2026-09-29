@@ -45,9 +45,9 @@ Perubahan yang dipush ke `main` langsung tersedia untuk versi web, tetapi APK ya
 Workflow GitHub Actions di `.github/workflows/android-apk.yml` bekerja sebagai berikut:
 
 - Push ke `main` membuat APK debug sebagai artefak build.
-- Tag `v...` membuat APK release bertanda tangan dan menerbitkannya ke GitHub Releases.
+- Rilis APK dilakukan dari halaman GitHub Actions dan otomatis membuat tag, APK bertanda tangan, serta GitHub Release.
 
-Sebelum membuat tag, naikkan nomor versi secara konsisten pada:
+Sebelum membuat rilis, naikkan nomor versi secara konsisten pada:
 
 - `js/version.js`
 - `version.json`
@@ -55,17 +55,9 @@ Sebelum membuat tag, naikkan nomor versi secara konsisten pada:
 - `android/app/build.gradle` (`versionCode` harus selalu bertambah)
 - `sw.js` (`CACHE_VERSION`)
 
-Contoh rilis v1.7.3:
+Setelah perubahan versi sudah di-commit dan di-push ke `main`, buka **Actions** → **Android APK** → **Run workflow**. Pilih `main`, isi **release_version** dengan format seperti `v1.7.4`, lalu klik **Run workflow**.
 
-```powershell
-git add .
-git commit -m "release: prepare NotaKu v1.7.3"
-git push origin main
-git tag -a v1.7.3 -m "NotaKu v1.7.3"
-git push origin v1.7.3
-```
-
-Setelah workflow selesai, APK muncul di halaman [GitHub Releases](https://github.com/alimfud/notaku/releases). Aplikasi NotaKu versi sebelumnya akan mendeteksi tag tersebut sebagai pembaruan.
+Setelah workflow selesai, APK muncul di halaman [GitHub Releases](https://github.com/alimfud/notaku/releases). Aplikasi NotaKu versi sebelumnya akan mendeteksi rilis tersebut sebagai pembaruan.
 
 > Penting: jangan kehilangan `android/notaku-release.jks`. APK pembaruan harus memakai kunci penandatanganan yang sama agar Android dapat memperbarui aplikasi lama tanpa menghapus data.
 
