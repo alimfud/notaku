@@ -9,9 +9,9 @@
 .receipt .receipt-item{padding:8px 0;border-bottom:1px solid var(--outline);}
 .receipt .ri-top{display:flex;justify-content:space-between;gap:12px;font-size:14.5px;font-weight:600;}
 .receipt .ri-bottom{display:flex;font-size:13px;color:var(--ink-soft);margin-top:2px;min-height:18px;gap:4px;}
-.receipt .ri-bottom .ri-qty{flex:0 0 calc(33.333% - 4px);min-width:0;overflow-wrap:anywhere;}
+.receipt .ri-bottom .ri-qty{flex:0 0 calc(33.333% - 4px);min-width:0;text-align:center;overflow-wrap:anywhere;}
 /* Price values align at the right edge of the middle column. */
-.receipt .ri-bottom .ri-price{flex:0 0 calc(33.333% - 4px);min-width:0;text-align:right;overflow-wrap:anywhere;}
+.receipt .ri-bottom .ri-price{flex:0 0 calc(33.333% - 4px);min-width:0;text-align:start;overflow-wrap:anywhere;}
 .receipt .receipt-totals{margin-top:6px;}
 .receipt .receipt-totals .tr{display:flex;justify-content:space-between;font-size:14px;padding:3px 0;}
 .receipt .receipt-totals .tr.grand{font-size:21px;font-weight:800;padding:7px 0;}
