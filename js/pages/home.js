@@ -40,7 +40,13 @@ export async function render(root) {
 
   root.querySelectorAll('.chip').forEach((c) => {
     c.classList.toggle('active', c.dataset.f === _dateFilter);
-    c.onclick = () => { _dateFilter = c.dataset.f; renderList(root); };
+    c.onclick = () => {
+      _dateFilter = c.dataset.f;
+      root.querySelectorAll('.chip').forEach((chip) => {
+        chip.classList.toggle('active', chip.dataset.f === _dateFilter);
+      });
+      renderList(root);
+    };
   });
 
   let debounce;

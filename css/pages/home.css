@@ -9,3 +9,17 @@
 [data-page="home"] .field { text-align: left; text-align-last: auto; }
 [data-page="home"] .nota-date { display: inline-block; }
 [data-page="home"] .nota-invoice { display: inline-block; overflow-wrap: anywhere; }
+
+@media (max-width: 340px) {
+  [data-page="home"] .chip-scroll {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  [data-page="home"] .chip {
+    width: 100%;
+    padding-inline: 10px;
+    text-align: center;
+  }
+}
