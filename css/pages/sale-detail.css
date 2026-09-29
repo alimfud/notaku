@@ -91,6 +91,30 @@
 [data-page="sale-detail"] .sale-detail-payment-trailing strong { color:var(--primary); font-size:12.5px; font-variant-numeric:tabular-nums; white-space:nowrap; }
 [data-page="sale-detail"] .sale-detail-payment-trailing i { color:var(--muted); font-size:21px; font-style:normal; font-weight:300; }
 
+/* Payment details stay available without competing with the receipt total. */
+[data-page="sale-detail"] .receipt .receipt-totals .receipt-payment-detail,
+[data-page="sale-detail"] .receipt .receipt-totals .receipt-payment-detail.receipt-balance {
+  color:var(--muted);
+  font-size:12px;
+  font-weight:500;
+}
+[data-page="sale-detail"] .sale-detail-section-heading span { color:var(--muted); font-weight:650; }
+[data-page="sale-detail"] .sale-detail-section-heading h3 { color:var(--ink-soft); font-size:13px; font-weight:600; }
+[data-page="sale-detail"] .sale-detail-section-heading small { background:var(--surface-dim); color:var(--muted); font-weight:500; }
+[data-page="sale-detail"] .sale-detail-payment-row {
+  border-color:color-mix(in srgb,var(--outline) 65%,transparent);
+  background:color-mix(in srgb,var(--surface-dim) 48%,var(--surface));
+  box-shadow:none;
+}
+[data-page="sale-detail"] .sale-detail-payment-row:active { background:var(--surface-dim); }
+[data-page="sale-detail"] .sale-detail-payment-icon { width:30px; height:30px; flex-basis:30px; border-radius:9px; background:var(--surface-dim); color:var(--muted); }
+[data-page="sale-detail"] .sale-detail-payment-icon svg { width:16px; height:16px; }
+[data-page="sale-detail"] .sale-detail-payment-label { color:var(--ink-soft); font-size:11.5px; font-weight:600; }
+[data-page="sale-detail"] .sale-detail-payment-meta { color:var(--muted); }
+[data-page="sale-detail"] .sale-detail-payment-note { color:var(--muted); }
+[data-page="sale-detail"] .sale-detail-payment-trailing strong { color:var(--ink-soft); font-size:11.5px; font-weight:600; }
+[data-page="sale-detail"] .sale-detail-payment-trailing i { color:color-mix(in srgb,var(--muted) 65%,transparent); }
+
 [data-page="sale-detail"] .sale-detail-actions {
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));

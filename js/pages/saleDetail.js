@@ -108,8 +108,8 @@ async function draw(root, saleId) {
           ${sale.shippingAmount > 0 ? `<div class="tr"><span>Ongkos Kirim</span><span>+${rupiah(sale.shippingAmount)}</span></div>` : ''}
           ${sale.otherAmount > 0 ? `<div class="tr"><span>${escapeHtml(sale.otherLabel || 'Lain-lain')}</span><span>+${rupiah(sale.otherAmount)}</span></div>` : ''}
           <div class="tr grand"><span>TOTAL</span><span>${rupiah(sale.total)}</span></div>
-          <div class="tr"><span>BAYAR</span><span>${rupiah(paidAmount)}</span></div>
-          <div class="tr receipt-balance ${remaining > 0 ? 'receipt-balance--due' : 'receipt-balance--paid'}">
+          <div class="tr receipt-payment-detail"><span>BAYAR</span><span>${rupiah(paidAmount)}</span></div>
+          <div class="tr receipt-payment-detail receipt-balance ${remaining > 0 ? 'receipt-balance--due' : 'receipt-balance--paid'}">
             <span>${remaining > 0 ? 'SISA' : 'KEMBALI'}</span><span>${rupiah(Math.abs(remaining))}</span>
           </div>
         </div>
