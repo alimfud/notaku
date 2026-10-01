@@ -37,7 +37,7 @@ jobs:
         run: |
           [[ "$RELEASE_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
           expected_version="${RELEASE_VERSION#v}"
-          actual_version="$(node --input-type=module -e \"import fs from 'node:fs'; console.log(JSON.parse(fs.readFileSync('version.json', 'utf8')).version)\")"
+          actual_version="$(node --input-type=module -e "import fs from 'node:fs'; console.log(JSON.parse(fs.readFileSync('version.json', 'utf8')).version)")"
           [[ "$actual_version" == "$expected_version" ]]
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             git fetch --tags --force
