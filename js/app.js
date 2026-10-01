@@ -1,6 +1,5 @@
 // app.js — bootstrap aplikasi & router SPA.
 import { APP_VERSION } from './version.js';
-import { downloadAndInstallUpdate, isNativeApp, openExternalUrl } from './native.js';
 //
 // Kenapa hash router + dynamic import per halaman?
 // - Hash router (#/rute) tidak perlu konfigurasi server apa pun — cocok untuk
@@ -85,57 +84,9 @@ export function navigateBack() {
   }
 }
 
-function isNewerVersion(candidate, current) {
-  const left = String(candidate).split('.').map((part) => Number.parseInt(part, 10) || 0);
-  const right = String(current).split('.').map((part) => Number.parseInt(part, 10) || 0);
-  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
-    if ((left[index] || 0) > (right[index] || 0)) return true;
-    if ((left[index] || 0) < (right[index] || 0)) return false;
-  }
-  return false;
-}
-
 export async function checkForUpdate(silent = true) {
   const { toast } = await import('./ui/toast.js');
   try {
-    if (isNativeApp()) {
-      const res = await fetch('https://api.github.com/repos/alimfud/notaku/releases/latest', {
-        cache: 'no-store',
-        headers: { Accept: 'application/vnd.github+json' },
-      });
-      if (!res.ok) throw new Error('GitHub HTTP ' + res.status);
-      const release = await res.json();
-      const latestVersion = String(release.tag_name || '').replace(/^v/i, '');
-      if (latestVersion && isNewerVersion(latestVersion, APP_VERSION)) {
-        const apk = Array.isArray(release.assets)
-          ? release.assets.find((asset) => /\.apk$/i.test(asset?.name || '') && asset?.browser_download_url)
-          : null;
-        if (!apk) {
-          toast(`NotaKu ${latestVersion} tersedia, tetapi APK tidak ditemukan di rilis GitHub.`);
-          setTimeout(() => openExternalUrl(release.html_url), 900);
-          return;
-        }
-        const { confirmDialog } = await import('./ui/dialog.js');
-        const accepted = await confirmDialog({
-          title: `Pembaruan NotaKu ${latestVersion}`,
-          message: 'APK baru akan diunduh langsung, lalu Android meminta konfirmasi pemasangan. Data nota dan pengaturan tetap tersimpan.',
-          confirmLabel: 'Unduh & Update',
-          cancelLabel: 'Nanti',
-        });
-        if (!accepted) return;
-        toast(`Mengunduh NotaKu ${latestVersion}...`);
-        try {
-          await downloadAndInstallUpdate(apk.browser_download_url, latestVersion);
-          toast('Unduhan selesai. Lanjutkan pemasangan pada layar Android.');
-        } catch (updateError) {
-          console.error('[downloadAndInstallUpdate]', updateError);
-          toast('Pembaruan belum dapat dipasang. Pastikan izin instal aplikasi untuk NotaKu sudah aktif.');
-        }
-      } else if (!silent) {
-        toast('Aplikasi Android sudah versi terbaru (' + APP_VERSION + ')');
-      }
-      return;
-    }
     // cache: 'no-store' memaksa browser mengambil langsung dari jaringan
     // tanpa lewat HTTP cache — tidak perlu trik query-string "?t=..." lagi
     // (yang sebelumnya justru memicu bug di sw.js, sudah diperbaiki juga).
@@ -217,12 +168,10 @@ window.addEventListener('hashchange', handleRouteChange);
 
 // ---------------- Service worker + update check ----------------
 function registerServiceWorker() {
-  if (isNativeApp()) return;
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
-    // Saat development localhost, paksa pemeriksaan sw.js setiap aplikasi dibuka
-    // supaya perubahan UI tidak tertahan oleh cache versi sebelumnya.
-    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') reg.update().catch(() => {});
+    // Selalu periksa service worker saat aplikasi dibuka, termasuk domain produksi.
+    reg.update().catch(() => {});
     reg.addEventListener('updatefound', () => {
       const nw = reg.installing;
       nw.addEventListener('statechange', () => {
@@ -240,8 +189,7 @@ function registerServiceWorker() {
   if (!window.location.hash) window.location.hash = '#/dashboard';
   await handleRouteChange();
   registerServiceWorker();
-  if (!isNativeApp()) import('./installPrompt.js').then(({ initInstallPrompt }) => initInstallPrompt());
-  if (isNativeApp()) setTimeout(() => checkForUpdate(true), 1500);
+  import('./installPrompt.js').then(({ initInstallPrompt }) => initInstallPrompt());
   runBackgroundChecks();
   warmNavigation();
   scheduleAutomaticStatusRollover();

@@ -18,7 +18,7 @@
 // disimpan lokal dan di-precache, termasuk logo bawaan. Fitur inti (lihat/buat/ubah nota, produk,
 // pelanggan, laporan, cetak, backup lokal) semuanya tetap jalan offline.
 
-const CACHE_VERSION = 'notaku-web-v1.7.6'; // dibuat otomatis dari version.json
+const CACHE_VERSION = 'notaku-web-v1.7.7'; // dibuat otomatis dari version.json
 
 const CORE_ASSETS = [
   './',
@@ -54,7 +54,6 @@ const CORE_ASSETS = [
   './js/db.js',
   './js/format.js',
   './js/version.js',
-  './js/native.js',
   './js/installPrompt.js',
   './js/pages/createSale.js',
   './js/pages/createSaleOrDetail.js',
@@ -145,12 +144,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Di localhost kode sedang aktif diedit. Ambil halaman, JS, dan CSS dari
-  // server terlebih dahulu agar perubahan tidak tertahan cache Service Worker.
-  // Jika XAMPP sedang mati/tidak terjangkau, cache tetap menjadi fallback.
-  const localDevelopment = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
+  // Halaman, JS, dan CSS selalu diambil dari jaringan dahulu. Ini membuat
+  // perubahan yang sudah di-push langsung terlihat tanpa membersihkan cache;
+  // cache tetap menjadi fallback ketika offline.
   const liveAsset = event.request.mode === 'navigate' || event.request.destination === 'script' || event.request.destination === 'style';
-  if (localDevelopment && liveAsset) {
+  if (liveAsset) {
     event.respondWith(
       fetch(event.request, { cache: 'no-store' }).then((res) => {
         if (res.ok) {
@@ -160,7 +158,7 @@ self.addEventListener('fetch', (event) => {
         return res;
       }).catch(() => caches.match(event.request).then((cached) => cached || new Response('', {
         status: 504,
-        statusText: 'XAMPP tidak aktif dan aset belum tersedia di cache',
+        statusText: 'Offline dan aset belum tersedia di cache',
       })))
     );
     return;

@@ -1,4 +1,4 @@
 {
-  "version": "1.7.6",
-  "notes": "Pelunasan dan selesai otomatis mulai 1 hari setelah pengambilan; transaksi pembayaran atomik dan cache pengecekan yang ringan."
+  "version": "1.7.7",
+  "notes": "Kembali ke versi web/PWA dengan pembaruan CSS dan JavaScript yang lebih langsung."
 }

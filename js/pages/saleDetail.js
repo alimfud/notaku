@@ -9,7 +9,6 @@ import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, navigateBack } from '../app.js';
 import { shareAsText, buildShareText, createReceiptImage, createReceiptPdf, downloadReceiptFile, shareReceiptFile } from '../services/printerService.js';
 import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
-import { isNativeApp } from '../native.js';
 
 /**
  * PERFORMANCE FIX #4: Timeout & Loading UI
@@ -360,7 +359,7 @@ async function showFileShare(file, waNumber, isPdf) {
     body.querySelector('#fileSave').onclick = async () => {
       try {
         await downloadReceiptFile(file);
-        toast(isNativeApp() ? 'File nota disimpan di folder Documents/NotaKu' : 'File nota diunduh');
+        toast('File nota diunduh');
         close();
       } catch (e) { toast(e.message || 'Gagal menyimpan file nota.'); }
     };

@@ -10,8 +10,6 @@ if (!/^\d+\.\d+\.\d+$/.test(version)) {
   throw new Error(`Versi di version.json tidak valid: ${version || '(kosong)'}`);
 }
 
-const [major, minor, patch] = version.split('.').map(Number);
-const versionCode = major * 10000 + minor * 100 + patch;
 const changes = [];
 
 async function syncText(relativePath, update) {
@@ -47,14 +45,8 @@ await syncText('sw.js', (source) => source.replace(
   `const CACHE_VERSION = 'notaku-web-v${version}';`,
 ));
 
-await syncText('android/app/build.gradle', (source) => source
-  .replace(/versionCode\s+\d+/, `versionCode ${versionCode}`)
-  .replace(/versionName\s+"[^"]+"/, `versionName "${version}"`));
-
 await syncText('README.md', (source) => source
-  .replace(/\*\*Versi saat ini:\*\* v\d+\.\d+\.\d+/, `**Versi saat ini:** v${version}`)
-  .replace(/\*\*APK Android:\*\* \[Unduh NotaKu v\d+\.\d+\.\d+\]\([^\n]+\)/,
-    `**APK Android:** [Unduh NotaKu v${version}](https://github.com/alimfud/notaku/releases/download/v${version}/NotaKu-v${version}.apk)`));
+  .replace(/\*\*Versi saat ini:\*\* v\d+\.\d+\.\d+/, `**Versi saat ini:** v${version}`));
 
 if (checkOnly && changes.length) {
   throw new Error(`Metadata versi belum sinkron dengan version.json: ${changes.join(', ')}`);

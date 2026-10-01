@@ -1,5 +1,5 @@
 // bluetoothPrinter.js — cetak langsung ke printer thermal via Bluetooth
-// memakai bridge native Android (Capacitor) atau Web Bluetooth API (BLE/GATT).
+// memakai Web Bluetooth API (BLE/GATT).
 //
 // ============================== BATASAN PENTING ==============================
 // Web Bluetooth API browser HANYA bisa bicara dengan printer BLUETOOTH LOW
@@ -32,29 +32,10 @@ const KNOWN_PROFILES = [
 let _device = null;
 let _server = null;
 let _writeChar = null;
-let _nativeProfile = null;
 let _mtu = 180; // ukuran potongan tulis per chunk (aman untuk sebagian besar BLE stack)
 
-function nativeBle() {
-  if (!window.Capacitor?.isNativePlatform?.()) return null;
-  return window.Capacitor?.Plugins?.BluetoothLe || null;
-}
-
 function isSupported() {
-  return !!nativeBle() || (typeof navigator !== 'undefined' && !!navigator.bluetooth);
-}
-
-function findNativeWritableCharacteristic(services) {
-  for (const profile of KNOWN_PROFILES) {
-    const service = services.find((candidate) => candidate.uuid.toLowerCase() === profile.service);
-    const characteristic = service?.characteristics?.find((candidate) => candidate.uuid.toLowerCase() === profile.write);
-    if (characteristic) return { service: service.uuid, characteristic: characteristic.uuid, properties: characteristic.properties };
-  }
-  for (const service of services) {
-    const characteristic = service.characteristics?.find((candidate) => candidate.properties?.write || candidate.properties?.writeWithoutResponse);
-    if (characteristic) return { service: service.uuid, characteristic: characteristic.uuid, properties: characteristic.properties };
-  }
-  return null;
+  return typeof navigator !== 'undefined' && !!navigator.bluetooth;
 }
 
 async function findWritableCharacteristic(server) {
@@ -84,47 +65,11 @@ export async function scanAndConnect() {
   if (!isSupported()) {
     throw new Error('Perangkat ini tidak mendukung Bluetooth langsung. Gunakan "Simpan PDF" sebagai alternatif.');
   }
-  const ble = nativeBle();
-  if (ble) {
-    await ble.initialize({ androidNeverForLocation: true });
-    const device = await ble.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: KNOWN_PROFILES.map((profile) => profile.service),
-    });
-    return connectToNativeDevice(device);
-  }
   const device = await navigator.bluetooth.requestDevice({
     acceptAllDevices: true,
     optionalServices: KNOWN_PROFILES.map((p) => p.service),
   });
   return connectToDevice(device);
-}
-
-async function connectToNativeDevice(device) {
-  const ble = nativeBle();
-  await ble.connect({ deviceId: device.deviceId });
-  const result = await ble.getServices({ deviceId: device.deviceId });
-  const profile = findNativeWritableCharacteristic(result.services || []);
-  if (!profile) {
-    await ble.disconnect({ deviceId: device.deviceId }).catch(() => {});
-    throw new Error(`Printer "${device.name || 'tanpa nama'}" tersambung tapi tidak dikenali sebagai printer thermal yang didukung.`);
-  }
-  _device = { id: device.deviceId, name: device.name || 'Printer Bluetooth' };
-  _nativeProfile = profile;
-  _server = { connected: true };
-  _writeChar = { properties: profile.properties || {} };
-  try {
-    const mtuResult = await ble.getMtu({ deviceId: device.deviceId });
-    _mtu = Math.max(20, Math.min(180, Number(mtuResult.value) - 3));
-  } catch (e) {
-    _mtu = 20;
-  }
-  ble.addListener?.(`disconnected|${device.deviceId}`, () => {
-    _server = null;
-    _writeChar = null;
-    _nativeProfile = null;
-  });
-  return { id: _device.id, name: _device.name };
 }
 
 async function connectToDevice(device) {
@@ -149,15 +94,6 @@ async function connectToDevice(device) {
 /** Coba sambung ulang ke printer yang PERNAH dipilih sebelumnya, TANPA dialog pemilih. */
 export async function reconnectSaved(savedDeviceId) {
   if (!isSupported() || !savedDeviceId) return null;
-  const ble = nativeBle();
-  if (ble) {
-    try {
-      await ble.initialize({ androidNeverForLocation: true });
-      return await connectToNativeDevice({ deviceId: savedDeviceId, name: 'Printer Bluetooth' });
-    } catch (e) {
-      return null;
-    }
-  }
   if (!navigator.bluetooth.getDevices) return null; // browser lama tidak dukung reconnect diam-diam
   try {
     const devices = await navigator.bluetooth.getDevices();
@@ -179,29 +115,15 @@ export function currentDeviceInfo() {
 }
 
 export function disconnect() {
-  const nativeDeviceId = _nativeProfile && _device?.id;
-  if (nativeDeviceId) nativeBle()?.disconnect({ deviceId: nativeDeviceId }).catch(() => {});
   try { _server?.disconnect(); } catch (e) { /* noop */ }
-  _device = null; _server = null; _writeChar = null; _nativeProfile = null; _mtu = 180;
-}
-
-function bytesToHex(bytes) {
-  return Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+  _device = null; _server = null; _writeChar = null; _mtu = 180;
 }
 
 async function writeBytes(bytes) {
   if (!_writeChar) throw new Error('Printer belum tersambung.');
   for (let i = 0; i < bytes.length; i += _mtu) {
     const chunk = bytes.slice(i, i + _mtu);
-    if (_nativeProfile) {
-      const method = _nativeProfile.properties?.writeWithoutResponse ? 'writeWithoutResponse' : 'write';
-      await nativeBle()[method]({
-        deviceId: _device.id,
-        service: _nativeProfile.service,
-        characteristic: _nativeProfile.characteristic,
-        value: bytesToHex(chunk),
-      });
-    } else if (_writeChar.properties.writeWithoutResponse) {
+    if (_writeChar.properties.writeWithoutResponse) {
       await _writeChar.writeValueWithoutResponse(chunk);
     } else {
       await _writeChar.writeValue(chunk);

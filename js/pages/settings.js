@@ -9,7 +9,6 @@ import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, checkForUpdate } from '../app.js';
 import { APP_VERSION } from '../version.js';
 import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
-import { isNativeApp } from '../native.js';
 
 export async function render(root, params) {
   const sub = params[0];
@@ -47,7 +46,7 @@ function renderHub(root) {
       <div class="settings-spacer"></div>
       ${tile('☁️', 'Backup / Restore', 'Cadangkan data & impor database lama', 'settings/backup')}
     </div>
-    <div class="settings-version">NotaKu ${isNativeApp() ? 'Android' : 'Web'} v${APP_VERSION}</div>
+    <div class="settings-version">NotaKu Web v${APP_VERSION}</div>
     <div class="settings-update-action">
       <button class="btn small secondary" id="btnCheckUpdate">Cek Pembaruan</button>
     </div>
