@@ -11,9 +11,12 @@ function orderDate(sale) {
   return Number.isNaN(created.getTime()) ? '' : dbDate(created);
 }
 
-export async function generateReport(period) {
+export async function generateReport(period, referenceDate = new Date()) {
   await applyAutomaticStatusRules();
   const now = new Date();
+  const selected = referenceDate instanceof Date && !Number.isNaN(referenceDate.getTime())
+    ? new Date(referenceDate)
+    : new Date(now);
   let start, end, label;
 
   if (period === 'orders-last7') {
@@ -31,10 +34,18 @@ export async function generateReport(period) {
     start = todayDbDate();
     end = dbDate(lastDay);
     label = '7 Hari';
+  } else if (period === 'year') {
+    const year = Math.min(selected.getFullYear(), now.getFullYear());
+    start = `${year}-01-01`;
+    end = year === now.getFullYear() ? todayDbDate() : `${year}-12-31`;
+    label = `Tahun ${year}`;
   } else {
-    start = dbDate(new Date(now.getFullYear(), now.getMonth(), 1));
-    end = todayDbDate();
-    label = 'Bulan Ini';
+    const year = selected.getFullYear();
+    const month = selected.getMonth();
+    const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
+    start = dbDate(new Date(year, month, 1));
+    end = isCurrentMonth ? todayDbDate() : dbDate(new Date(year, month + 1, 0));
+    label = `${MONTH_LABELS_ID[month]} ${year}`;
   }
 
   const saleDateKey = period === 'orders-last7' ? orderDate : sale => sale.saleDate;
@@ -71,27 +82,41 @@ export async function generateReport(period) {
     agg.amount += item.subtotal;
     productAgg.set(key, agg);
   }
-  const topProducts = [...productAgg.values()].sort((a, b) => b.qty - a.qty).slice(0, 10);
+  const soldProducts = [...productAgg.values()].sort((a, b) => b.qty - a.qty || b.amount - a.amount || String(a.name || '').localeCompare(String(b.name || '')));
+  const topProducts = soldProducts.slice(0, 10);
 
   const activeIds = new Set(allSales.map(s => s.id));
   const periodPayments = allPayments.filter(p => activeIds.has(p.saleId) && p.paymentDate >= start && p.paymentDate <= end);
   const received = periodPayments.reduce((sum, p) => sum + p.amount, 0);
-  const days = new Map();
+  const activity = new Map();
+  const chartGranularity = period === 'year' ? 'month' : 'day';
   const cursor = new Date(start + 'T12:00:00');
   while (dbDate(cursor) <= end) {
-    days.set(dbDate(cursor), { date: dbDate(cursor), revenue: 0, expenses: 0, received: 0, count: 0 });
+    const date = dbDate(cursor);
+    const key = chartGranularity === 'month' ? date.slice(0, 7) : date;
+    if (!activity.has(key)) {
+      activity.set(key, {
+        date: chartGranularity === 'month' ? `${key}-01` : key,
+        label: chartGranularity === 'month' ? `${MONTH_LABELS_ID[cursor.getMonth()]} ${cursor.getFullYear()}` : '',
+        revenue: 0,
+        expenses: 0,
+        received: 0,
+        count: 0,
+      });
+    }
     cursor.setDate(cursor.getDate() + 1);
   }
   const statusBreakdown = { PAID: 0, PARTIAL: 0, UNPAID: 0, OVERPAID: 0 };
   for (const sale of sales) {
-    const day = days.get(saleDateKey(sale));
+    const saleDate = saleDateKey(sale);
+    const day = activity.get(chartGranularity === 'month' ? saleDate.slice(0, 7) : saleDate);
     day.revenue += sale.total;
     day.count++;
     statusBreakdown[computeDisplayStatus(sale, paidBySale.get(sale.id) || 0)]++;
   }
-  for (const payment of periodPayments) days.get(payment.paymentDate).received += payment.amount;
-  for (const expense of periodExpenses) days.get(expense.expenseDate).expenses += expense.amount;
-  return { periodLabel: label, start, end, received, daily: [...days.values()], statusBreakdown, revenue, expenseTotal, netIncome: revenue - expenseTotal, expenseCount: periodExpenses.length, transactionCount, totalReceivables, topProducts };
+  for (const payment of periodPayments) activity.get(chartGranularity === 'month' ? payment.paymentDate.slice(0, 7) : payment.paymentDate).received += payment.amount;
+  for (const expense of periodExpenses) activity.get(chartGranularity === 'month' ? expense.expenseDate.slice(0, 7) : expense.expenseDate).expenses += expense.amount;
+  return { periodLabel: label, start, end, received, daily: [...activity.values()], chartGranularity, statusBreakdown, revenue, expenseTotal, netIncome: revenue - expenseTotal, expenseCount: periodExpenses.length, transactionCount, totalReceivables, topProducts, soldProducts };
 }
 
 /** Ringkasan bulanan satu tahun untuk mini grafik finansial Dashboard. */

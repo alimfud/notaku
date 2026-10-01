@@ -6,16 +6,40 @@ const series = [
   { key: 'expenses', label: ' || Pengeluaran', color: '#d68b3b' },
 ];
 
-export function dailyChart(days, { compact = false, dateBasis = 'pickup', periodLabel = '' } = {}) {
+function activityLinePath(days, key, ceiling) {
+  if (!days.length) return '';
+  const points = days.map((day, index) => ({
+    x: (index + .5) / days.length * 100,
+    y: 153 - Math.max(0, day[key]) / ceiling * 148,
+  }));
+  let path = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const previous = points[Math.max(0, index - 1)];
+    const current = points[index];
+    const next = points[index + 1];
+    const after = points[Math.min(points.length - 1, index + 2)];
+    const control1X = current.x + (next.x - previous.x) / 6;
+    const control1Y = current.y + (next.y - previous.y) / 6;
+    const control2X = next.x - (after.x - current.x) / 6;
+    const control2Y = next.y - (after.y - current.y) / 6;
+    path += ` C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${next.x.toFixed(2)} ${next.y.toFixed(2)}`;
+  }
+  return path;
+}
+
+export function dailyChart(days, { compact = false, dateBasis = 'pickup', periodLabel = '', granularity = 'day' } = {}) {
   const visible = compact ? series.slice(0, 2) : series;
   const max = Math.max(0, ...days.flatMap(d => visible.map(s => d[s.key])));
   const ceiling = max > 0 ? Math.ceil(max / 10 ** Math.floor(Math.log10(max))) * 10 ** Math.floor(Math.log10(max)) : 1;
-  const detail = d => `${dateShort(d.date)} · ${d.count} nota · ${visible.map(s => `${s.label}: ${rupiah(d[s.key])}`).join(' · ')}`;
-  return `<section class="business-chart"><div class="business-chart-heading"><h3>Aktivitas per tanggal</h3><p>${periodLabel ? `${escapeHtml(periodLabel)}<br>` : ''}${dateBasis === 'created' ? 'Nilai nota mengikuti tanggal dibuat. Nota impor memakai tanggal nota dari data asal.' : 'Nilai nota mengikuti tanggal pengambilan.'}</p></div>
+  const itemLabel = d => granularity === 'month' ? d.label : dateShort(d.date);
+  const axisLabel = d => granularity === 'month' ? d.date.slice(5, 7) : `${d.date.slice(8)}/${d.date.slice(5, 7)}`;
+  const detail = d => `${itemLabel(d)} · ${d.count} nota · ${visible.map(s => `${s.label}: ${rupiah(d[s.key])}`).join(' · ')}`;
+  const linePaths = visible.map((item, index) => `<path d="${activityLinePath(days, item.key, ceiling)}" style="--activity-line:${item.color};--activity-delay:${index * 130}ms"/>`).join('');
+  return `<section class="business-chart"><div class="business-chart-heading"><h3>Aktivitas per ${granularity === 'month' ? 'bulan' : 'tanggal'}</h3><p>${periodLabel ? `${escapeHtml(periodLabel)}<br>` : ''}${dateBasis === 'created' ? 'Nilai nota mengikuti tanggal dibuat. Nota impor memakai tanggal nota dari data asal.' : 'Nilai nota mengikuti tanggal pengambilan.'}</p></div>
     <div class="business-legend">${visible.map(s => `<span><i style="background:${s.color}"></i>${s.label}</span>`).join('')}</div>
     ${max ? '' : '<p class="business-chart-empty">Belum ada nilai transaksi pada periode ini.</p>'}
     <div class="business-plot"><div class="business-axis"><span>${max ? compactMoney(ceiling) : 'Rp0'}</span><span>${max ? compactMoney(ceiling / 2) : ''}</span><span>0</span></div>
-      <div class="business-bars-scroll"><div class="business-bars" style="--day-count:${Math.max(1, days.length)}">${days.map(d => `<button type="button" class="business-day" data-chart-detail="${escapeHtml(detail(d))}" aria-label="${escapeHtml(detail(d))}"><span class="business-columns">${visible.map(s => `<span style="height:${Math.max(0, d[s.key]) / ceiling * 100}%;background:${s.color}"></span>`).join('')}</span><span class="business-day-label">${d.date.slice(8)}/${d.date.slice(5, 7)}</span></button>`).join('')}</div></div></div>
+      <div class="business-bars-scroll"><div class="business-chart-canvas"><svg class="business-activity-lines" viewBox="0 0 100 155" preserveAspectRatio="none" aria-hidden="true">${linePaths}</svg><div class="business-bars" style="--day-count:${Math.max(1, days.length)}">${days.map(d => `<button type="button" class="business-day" data-chart-detail="${escapeHtml(detail(d))}" aria-label="${escapeHtml(detail(d))}"><span class="business-columns">${visible.map((s, index) => { const value = Math.max(0, d[s.key]); return `<span class="business-column-3d ${value ? '' : 'is-zero'}" style="--column-height:${value / ceiling * 100}%;--column-color:${s.color};--column-delay:${index * 60}ms"><i></i></span>`; }).join('')}</span><span class="business-day-label">${axisLabel(d)}</span></button>`).join('')}</div></div></div></div>
     <p class="business-chart-detail" aria-live="polite">Ketuk batang untuk melihat nominal.</p>
     <p class="business-chart-note">Pembayaran mengikuti tanggal bayar, termasuk pelunasan otomatis pada tanggal pengambilan. Pengeluaran mengikuti tanggal pencatatan.</p></section>`;
 }

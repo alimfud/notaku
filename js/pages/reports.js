@@ -6,37 +6,160 @@ import { rupiah, qtyLabel, escapeHtml, dateShort } from '../format.js';
 import { dailyChart, statusChart, wireBusinessCharts } from '../ui/businessCharts.js';
 import { setPageTitle, setTopbarActions } from '../app.js';
 
-let _period = 'week';
+let _period = 'year';
+let reportView = 'period';
 let reportRequest = 0;
+let selectedMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let selectedYear = new Date().getFullYear();
+let availableMonths = [];
+let availableYears = [selectedYear];
+
+const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+function groupMonthlyByYear(months) {
+  const groups = new Map();
+
+  months.forEach((month) => {
+    const year = month.monthKey.slice(0, 4);
+    const group = groups.get(year) || {
+      year,
+      revenue: 0,
+      count: 0,
+      months: [],
+    };
+
+    group.revenue += month.revenue;
+    group.count += month.count;
+    group.months.push(month);
+    groups.set(year, group);
+  });
+
+  return [...groups.values()];
+}
 
 export async function render(root) {
   setPageTitle('Laporan');
   setTopbarActions([]);
   root.innerHTML = `
-    <div class="reports-layout-1 chip-scroll">
-      <button class="chip" data-p="today">Hari Ini</button>
-      <button class="chip" data-p="week">7 Hari</button>
-      <button class="chip" data-p="month">Bulan Ini</button>
+    <div class="reports-view-tabs" role="tablist" aria-label="Bagian laporan">
+      <button type="button" role="tab" data-report-view="period">Periode</button>
+      <button type="button" role="tab" data-report-view="overall">Keseluruhan</button>
     </div>
-    <div class="reports-layout-2" id="reportBody"></div>
-    <div class="section-title">Omset Keseluruhan</div>
-    <div class="reports-layout-3" id="allTimeBody"></div>
+    <section class="reports-view-panel" data-report-panel="period" role="tabpanel">
+      <div class="reports-layout-1 chip-scroll">
+        <button class="chip" data-p="today">Hari Ini</button>
+        <button class="chip" data-p="week">7 Hari</button>
+        <button class="chip" data-p="month">Bulanan</button>
+        <button class="chip" data-p="year">Tahunan</button>
+      </div>
+      <div class="reports-layout-2" id="reportBody"></div>
+    </section>
+    <section class="reports-view-panel" data-report-panel="overall" role="tabpanel">
+      <div class="reports-overall-heading">
+        <span>RINGKASAN USAHA</span>
+        <h2>Keseluruhan</h2>
+        <p>Akumulasi seluruh transaksi dan rincian setiap tahun.</p>
+      </div>
+      <div class="reports-layout-3" id="allTimeBody"></div>
+    </section>
   `;
+  root.querySelectorAll('[data-report-view]').forEach((button) => {
+    button.onclick = () => {
+      reportView = button.dataset.reportView;
+      updateReportView(root);
+    };
+  });
   root.querySelectorAll('.chip').forEach((c) => {
     c.classList.toggle('active', c.dataset.p === _period);
     c.onclick = () => { _period = c.dataset.p; drawReport(root); };
   });
+  updateReportView(root);
   await drawReport(root);
-  await drawAllTime(root);
+  const allTimeData = await generateAllTimeSummary();
+  availableMonths = allTimeData.monthlyBreakdown.map((month) => month.monthKey);
+  const earliestDataYear = availableMonths.length ? Number(availableMonths[availableMonths.length - 1].slice(0, 4)) : selectedYear;
+  availableYears = Array.from({ length: selectedYear - earliestDataYear + 1 }, (_, index) => selectedYear - index);
+  await drawAllTime(root, allTimeData);
+  updateReportView(root);
+}
+
+function updateReportView(root) {
+  root.querySelectorAll('[data-report-view]').forEach((button) => {
+    const active = button.dataset.reportView === reportView;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', String(active));
+  });
+  root.querySelectorAll('[data-report-panel]').forEach((panel) => {
+    panel.hidden = panel.dataset.reportPanel !== reportView;
+  });
+}
+
+function periodNavigator() {
+  if (_period !== 'month' && _period !== 'year') return '';
+
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const earliestMonth = availableMonths[availableMonths.length - 1] || currentMonthKey;
+
+  if (_period === 'month') {
+    const monthKey = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}`;
+    const label = `${monthNames[selectedMonth.getMonth()]} ${selectedMonth.getFullYear()}`;
+    return `
+      <div class="reports-period-nav" aria-label="Pilih bulan laporan">
+        <button type="button" data-period-shift="-1" ${monthKey <= earliestMonth ? 'disabled' : ''} aria-label="Bulan sebelumnya">&#8249;</button>
+        <label class="reports-period-picker">
+          <strong>${label}</strong><small>Ketuk untuk memilih bulan</small>
+          <input type="month" data-period-picker value="${monthKey}" min="${earliestMonth}" max="${currentMonthKey}" aria-label="Pilih bulan laporan">
+        </label>
+        <button type="button" data-period-shift="1" ${monthKey >= currentMonthKey ? 'disabled' : ''} aria-label="Bulan berikutnya">&#8250;</button>
+      </div>`;
+  }
+
+  const earliestYear = availableYears[availableYears.length - 1] || selectedYear;
+  return `
+    <div class="reports-period-nav" aria-label="Pilih tahun laporan">
+      <button type="button" data-period-shift="-1" ${selectedYear <= earliestYear ? 'disabled' : ''} aria-label="Tahun sebelumnya">&#8249;</button>
+      <label class="reports-period-picker">
+        <strong>${selectedYear}</strong><small>Ketuk untuk memilih tahun</small>
+        <select data-period-picker aria-label="Pilih tahun laporan">
+          ${availableYears.map((year) => `<option value="${year}" ${year === selectedYear ? 'selected' : ''}>${year}</option>`).join('')}
+        </select>
+      </label>
+      <button type="button" data-period-shift="1" ${selectedYear >= now.getFullYear() ? 'disabled' : ''} aria-label="Tahun berikutnya">&#8250;</button>
+    </div>`;
+}
+
+function wirePeriodNavigator(root) {
+  root.querySelectorAll('[data-period-shift]').forEach((button) => {
+    button.onclick = () => {
+      const shift = Number(button.dataset.periodShift);
+      if (_period === 'month') selectedMonth = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + shift, 1);
+      if (_period === 'year') selectedYear += shift;
+      drawReport(root);
+    };
+  });
+
+  const picker = root.querySelector('[data-period-picker]');
+  if (!picker) return;
+  picker.onchange = () => {
+    if (_period === 'month' && picker.value) {
+      const [year, month] = picker.value.split('-').map(Number);
+      selectedMonth = new Date(year, month - 1, 1);
+    }
+    if (_period === 'year') selectedYear = Number(picker.value);
+    drawReport(root);
+  };
 }
 
 async function drawReport(root) {
   const request = ++reportRequest;
   root.querySelectorAll('.chip').forEach((c) => c.classList.toggle('active', c.dataset.p === _period));
-  const data = await generateReport(_period);
+  const referenceDate = _period === 'month' ? selectedMonth : new Date(selectedYear, 0, 1);
+  const data = await generateReport(_period, referenceDate);
   if (request !== reportRequest || root.dataset.page !== 'reports') return;
   const el = root.querySelector('#reportBody');
   el.innerHTML = `
+    ${periodNavigator()}
     <p class="business-period">${dateShort(data.start)} – ${dateShort(data.end)}<br>Nilai nota berdasarkan tanggal pengambilan.</p>
     <div class="reports-layout-4">
       <div class="reports-layout-5">
@@ -56,25 +179,52 @@ async function drawReport(root) {
       <div class="reports-layout-6">Piutang Periode Ini (Belum Lunas)</div>
       <div class="reports-layout-8">${rupiah(data.totalReceivables)}</div>
     </div>
-    ${dailyChart(data.daily)}
+    ${dailyChart(data.daily, { granularity: data.chartGranularity })}
     ${statusChart(data.statusBreakdown)}
-    <div class="reports-layout-10">Produk Terlaris (${data.periodLabel})</div>
-    ${data.topProducts.length ? data.topProducts.map((p) => `
-      <div class="reports-layout-11">
-        <div>
-          <div class="reports-layout-12">${escapeHtml(p.name)}</div>
-          <div class="row-meta">${qtyLabel(p.qty)} terjual</div>
+    <div class="reports-product-sections">
+      <details class="reports-product-card">
+        <summary>
+          <span><strong>Produk Terlaris</strong><small>10 produk teratas &middot; ${data.periodLabel}</small></span>
+          <span class="reports-product-summary-count">${data.topProducts.length}<i aria-hidden="true">&#8250;</i></span>
+        </summary>
+        <div class="reports-product-list">
+          ${data.topProducts.length ? data.topProducts.map((product, index) => `
+            <div class="reports-product-row">
+              <span class="reports-product-rank">${index + 1}</span>
+              <div class="reports-product-info">
+                <strong>${escapeHtml(product.name)}</strong>
+                <small>${qtyLabel(product.qty)} terjual</small>
+              </div>
+              <strong class="reports-product-amount">${rupiah(product.amount)}</strong>
+            </div>`).join('') : `<div class="reports-layout-14">Belum ada penjualan pada periode ini.</div>`}
         </div>
-        <div class="reports-layout-13">${rupiah(p.amount)}</div>
-      </div>`).join('') : `<div class="reports-layout-14">Belum ada penjualan pada periode ini.</div>`}
+      </details>
+      <details class="reports-product-card">
+        <summary>
+          <span><strong>Semua Produk Terjual</strong><small>Seluruh produk pada periode ini</small></span>
+          <span class="reports-product-summary-count">${data.soldProducts.length}<i aria-hidden="true">&#8250;</i></span>
+        </summary>
+        <div class="reports-product-list">
+          ${data.soldProducts.length ? data.soldProducts.map((product) => `
+            <div class="reports-product-row">
+              <div class="reports-product-info">
+                <strong>${escapeHtml(product.name)}</strong>
+                <small>${qtyLabel(product.qty)} terjual</small>
+              </div>
+              <strong class="reports-product-amount">${rupiah(product.amount)}</strong>
+            </div>`).join('') : `<div class="reports-layout-14">Belum ada penjualan pada periode ini.</div>`}
+        </div>
+      </details>
+    </div>
   `;
+  wirePeriodNavigator(root);
   wireBusinessCharts(el);
 }
 
-async function drawAllTime(root) {
-  const data = await generateAllTimeSummary();
+async function drawAllTime(root, data) {
   const el = root.querySelector('#allTimeBody');
   if (!el) return;
+  const yearlyBreakdown = groupMonthlyByYear(data.monthlyBreakdown);
 
   const statusRows = [
     ['PAID', 'var(--status-lunas)'],
@@ -82,6 +232,7 @@ async function drawAllTime(root) {
     ['UNPAID', 'var(--status-unpaid)'],
     ['OVERPAID', 'var(--status-overpaid)'],
   ];
+  const totalStatusCount = statusRows.reduce((total, [key]) => total + data.statusBreakdown[key].count, 0);
 
   el.innerHTML = `
     <div class="reports-layout-15">
@@ -90,7 +241,7 @@ async function drawAllTime(root) {
       <div class="reports-layout-18">${data.totalTransactions} nota tercatat</div>
     </div>
 
-    <div class="reports-layout-19">
+    <div class="reports-summary-grid">
       <div class="reports-layout-20">
         <div class="reports-layout-21">Sudah Diterima (tercatat)</div>
         <div class="reports-layout-22">${rupiah(data.totalPaidCollected)}</div>
@@ -99,31 +250,56 @@ async function drawAllTime(root) {
         <div class="reports-layout-21">Piutang Belum Lunas</div>
         <div class="reports-layout-23">${rupiah(data.totalReceivables)}</div>
       </div>
+      <div class="reports-layout-20"><div class="reports-layout-21">Total Pengeluaran</div><div class="reports-layout-23">${rupiah(data.totalExpenses)}</div><div class="row-meta">${data.totalExpenseCount} catatan</div></div>
+      <div class="reports-layout-20"><div class="reports-layout-21">Sisa Omzet</div><div class="reports-layout-24">${rupiah(data.netIncome)}</div></div>
     </div>
-    <div class="reports-layout-19"><div class="reports-layout-20"><div class="reports-layout-21">Total Pengeluaran</div><div class="reports-layout-23">${rupiah(data.totalExpenses)}</div><div class="row-meta">${data.totalExpenseCount} catatan</div></div><div class="reports-layout-20"><div class="reports-layout-21">Sisa Omzet</div><div class="reports-layout-24">${rupiah(data.netIncome)}</div></div></div>
 
     <div class="reports-layout-10">Rincian per Status Pembayaran</div>
     <div class="reports-layout-25">
+      <div class="reports-status-overview" role="img" aria-label="Proporsi status pembayaran dari ${totalStatusCount} nota">
+        ${statusRows.map(([key, color]) => {
+          const count = data.statusBreakdown[key].count;
+          return count ? `<span style="flex:${count};background:${color}"></span>` : '';
+        }).join('')}
+      </div>
       ${statusRows.map(([key, color]) => `
         <div class="reports-layout-26">
           <div class="reports-layout-27">
-            <span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;"></span>
+            <span class="reports-status-dot" style="background:${color};"></span>
             <span class="reports-layout-28">${STATUS_LABEL[key]}</span>
-            <span class="reports-layout-29">(${data.statusBreakdown[key].count} nota)</span>
+            <span class="reports-layout-29">${data.statusBreakdown[key].count} nota &middot; ${totalStatusCount ? Math.round(data.statusBreakdown[key].count / totalStatusCount * 100) : 0}%</span>
           </div>
           <div class="reports-layout-30">${rupiah(data.statusBreakdown[key].amount)}</div>
         </div>`).join('')}
-      ${data.autoMarkedCount > 0 ? `<div class="reports-layout-31">${data.autoMarkedCount} di antaranya ditandai LUNAS otomatis (mulai 1 hari setelah tanggal pengambilan).</div>` : ''}
+      ${data.autoMarkedCount > 0 ? `<div class="reports-layout-31"><strong>${data.autoMarkedCount} nota</strong> ditandai lunas otomatis, mulai 1 hari setelah tanggal pengambilan.</div>` : ''}
     </div>
 
-    <div class="reports-layout-10">Rincian per Bulan</div>
-    ${data.monthlyBreakdown.length ? data.monthlyBreakdown.map((m) => `
-      <div class="reports-layout-11">
-        <div>
-          <div class="reports-layout-28">${m.label}</div>
-          <div class="row-meta">${m.count} nota</div>
-        </div>
-        <div class="reports-layout-30">${rupiah(m.revenue)}</div>
-      </div>`).join('') : `<div class="reports-layout-14">Belum ada data.</div>`}
+    <div class="reports-layout-10">Rincian per Tahun</div>
+    ${yearlyBreakdown.length ? `
+      <div class="reports-year-groups">
+        ${yearlyBreakdown.map((year, index) => `
+          <details class="reports-year-card" ${index === 0 ? 'open' : ''}>
+            <summary class="reports-year-summary">
+              <span class="reports-year-heading">
+                <strong>${year.year}</strong>
+                <small>${year.count} nota &middot; ${year.months.length} bulan aktif</small>
+              </span>
+              <span class="reports-year-value">
+                <strong>${rupiah(year.revenue)}</strong>
+                <span class="reports-year-chevron" aria-hidden="true">&#8250;</span>
+              </span>
+            </summary>
+            <div class="reports-year-months">
+              ${year.months.map((month) => `
+                <div class="reports-month-row">
+                  <div>
+                    <div class="reports-month-name">${month.label.replace(` ${year.year}`, '')}</div>
+                    <div class="row-meta">${month.count} nota</div>
+                  </div>
+                  <div class="reports-month-value">${rupiah(month.revenue)}</div>
+                </div>`).join('')}
+            </div>
+          </details>`).join('')}
+      </div>` : `<div class="reports-layout-14">Belum ada data.</div>`}
   `;
 }
