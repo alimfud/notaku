@@ -23,7 +23,7 @@ export async function render(root) {
     <div class="dashboard-heading"><div><p class="dashboard-kicker">${escapeHtml(settings.storeName || 'Toko Saya')}</p><h2>${greeting}!</h2><p class="dashboard-date">${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p></div><button class="dashboard-primary-action" data-go="sale/new"><span>+</span> Nota baru</button></div>
     <div class="dashboard-overview">
       <section class="dashboard-hero"><div class="dashboard-label">Nilai pesanan</div><small class="dashboard-period">7 hari terakhir · ${orderPeriodLabel}</small><div class="dashboard-revenue">${rupiah(orders.revenue)}</div>${annualMiniChart(annual)}<div class="dashboard-hero-bottom"><div><span>Nota dibuat</span><strong>${orders.transactionCount} nota</strong></div><div><span>Pembayaran masuk</span><strong>${rupiah(orders.received)}</strong></div></div></section>
-      <section class="dashboard-attention"><div class="dashboard-card-heading"><div><span>RINGKASAN</span><h3>Perlu perhatian</h3></div><small>${periodLabel}</small></div><button data-go="home"><span><b>Jadwal pengambilan</b><small>Pesanan belum selesai</small></span><strong>${pickupThisWeek.length}<i>›</i></strong></button><button data-go="reports"><span><b>Belum lunas</b><small>Piutang pada periode ini</small></span><strong>${rupiah(report.totalReceivables)}<i>›</i></strong></button></section>
+      <section class="dashboard-attention"><div class="dashboard-card-heading"><div><span>RINGKASAN</span><h3>Perlu perhatian</h3></div><small>${periodLabel}</small></div><div class="dashboard-attention-list"><button data-go="home"><span class="dashboard-attention-icon">${shortcutIcon('calendar')}</span><span class="dashboard-attention-copy"><b>Jadwal Pickup</b><small>Pesanan belum selesai</small></span><strong>${pickupThisWeek.length}<i>›</i></strong></button><button data-go="reports"><span class="dashboard-attention-icon">${shortcutIcon('wallet')}</span><span class="dashboard-attention-copy"><b>Belum Lunas</b><small>Piutang periode ini</small></span><strong>${rupiah(report.totalReceivables)}<i>›</i></strong></button></div></section>
     </div>
     <div class="dashboard-section"><h3>Akses cepat</h3></div>
     <div class="dashboard-shortcuts">${[['customers','Pelanggan','users'],['expenses','Pengeluaran','wallet'],['reports','Laporan','chart'],['settings','Pengaturan','settings']].map(([route, label, icon]) => `<button data-go="${route}"><span class="dashboard-shortcut-icon">${shortcutIcon(icon)}</span>${label}</button>`).join('')}</div>
@@ -91,6 +91,7 @@ function shortcutIcon(name) {
   const paths = {
     users: '<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M17 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/>',
     wallet: '<rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 8h18M16 13h5M16 16h1"/>',
+    calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9h18M8 3v4M16 3v4M8 13h3M8 17h6"/>',
     chart: '<path d="M4 20V10M12 20V4M20 20v-7"/>',
     settings: '<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/>'
   };
