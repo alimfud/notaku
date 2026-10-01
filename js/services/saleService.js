@@ -5,6 +5,7 @@ import { uid, dbDate, timeLabel, todayDbDate } from '../format.js';
 import { calculateSubtotal, computeAdjustments, defaultAdjustments, resolveStatus } from './saleCalculation.js';
 import { generateAndAdvance } from './invoiceNumber.js';
 import { saveCustomer } from './customerService.js';
+import { isSettlementDue, settlementChanges } from './automaticSettlement.js';
 
 export class AppError extends Error {
   constructor(message) {
@@ -75,7 +76,7 @@ export async function createSale({ customer, lines, adjustments = null, discount
       status,
       isDeleted: 0,
       completed: 0,        // penanda "sudah selesai dikerjakan/diambil" — beda dari status pembayaran
-      autoMarkedPaid: 0,   // true kalau LUNAS ini hasil aturan otomatis (2 hari lewat tgl pengambilan), bukan input manual
+      autoMarkedPaid: 0,   // LUNAS otomatis 1 hari setelah tanggal pengambilan
       autoLunasOverridden: 0, // true kalau user pernah membatalkan status LUNAS otomatis -> aturan tidak berlaku lagi utk nota ini
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
@@ -308,164 +309,46 @@ export async function setCompleted(saleId, completed) {
   await db.put('sales', sale);
 }
 
-/**
- * Aturan otomatis: setelah lewat minimal 2 hari dari TANGGAL PENGAMBILAN dan
- * nota telah mendapat status LUNAS OTOMATIS, nota ikut ditandai SELESAI.
- * Termasuk nota LUNAS otomatis lama yang belum ikut ditandai selesai.
- */
-/**
- * PERFORMANCE FIX #2b: Batch processing untuk applyAutoCompleteRule
- * Sama seperti FIX #2, tapi untuk marking sebagai complete
- */
-export async function applyAutoCompleteRule() {
-  const sales = (await db.getAll('sales')).filter(s => !s.isDeleted && !s.completed && s.autoMarkedPaid);
-  const allPayments = await db.getAll('payments'); // Query sekali
-  
-  // Map: saleId → total paid
-  const paidBySale = new Map();
-  for (const p of allPayments) {
-    paidBySale.set(p.saleId, (paidBySale.get(p.saleId) || 0) + p.amount);
-  }
-
-  const todayMs = Date.parse(todayDbDate() + 'T00:00:00Z');
-  const salesToUpdate = [];
-  
-  for (const candidate of sales) {
-    const paid = paidBySale.get(candidate.id) || 0;
-    const status = resolveStatus(candidate.total, paid);
-    const daysPast = Math.floor((todayMs - Date.parse(candidate.saleDate + 'T00:00:00Z')) / 86400000);
-    
-    if (daysPast >= 2 && ['PAID', 'OVERPAID'].includes(status)) {
-      candidate.status = status;
-      candidate.completed = 1;
-      candidate.autoCompleted = 1;
-      candidate.updatedAt = new Date().toISOString();
-      salesToUpdate.push(candidate);
-    }
-  }
-
-  // Batch update
-  if (salesToUpdate.length) {
-    await db.bulkPut('sales', salesToUpdate);
-  }
-  
-  return salesToUpdate.length;
-}
-
-/**
- * Aturan otomatis: kalau sudah lewat >= 2 hari dari TANGGAL PENGAMBILAN dan
- * nota belum lunas, anggap LUNAS (asumsi: pelanggan sudah bayar saat ambil,
- * tokonya cuma lupa mencatat). Dipanggil saat aplikasi dibuka (lihat app.js).
- * Nota yang PERNAH dibatalkan manual oleh user (autoLunasOverridden) tidak
- * akan disentuh lagi oleh aturan ini selamanya — keputusan manual dihormati.
- */
-/**
- * PERFORMANCE FIX #2: Batch processing untuk applyAutoLunasRule
- * Sebelumnya: N+1 query pattern → 100+ query untuk 100 nota (SANGAT LAMBAT)
- * Sesudah: 2 query (getAll sales + getAll payments) + batch update (FAST)
- */
-export async function applyAutoLunasRule() {
-  const sales = (await db.getAll('sales')).filter(s => !s.isDeleted && !s.autoLunasOverridden && !s.autoPaymentRecorded);
-  const allPayments = await db.getAll('payments'); // Query sekali untuk SEMUA pembayaran
-  
-  // Bikin Map: saleId → [payments] untuk lookup O(1)
-  const paymentsBySale = new Map();
-  for (const p of allPayments) {
-    if (!paymentsBySale.has(p.saleId)) {
-      paymentsBySale.set(p.saleId, []);
-    }
-    paymentsBySale.get(p.saleId).push(p);
-  }
-
-  const todayMs = Date.parse(todayDbDate() + 'T00:00:00Z');
-  const salesToUpdate = [];
-  const paymentsToAdd = [];
-  
-  for (const candidate of sales) {
-    if (!(todayMs - Date.parse(candidate.saleDate + 'T00:00:00Z') >= 2 * 86400000)) continue;
-    
-    const payments = paymentsBySale.get(candidate.id) || [];
-    const paid = payments.reduce((sum, p) => sum + p.amount, 0);
-    const remaining = candidate.total - paid;
-    
-    const now = new Date().toISOString();
-    const id = `auto-lunas:${candidate.id}`;
-    const recorded = payments.find(p => p.id === id);
-    
-    if (recorded || remaining <= 0.5) {
-      if (!candidate.autoMarkedPaid) continue;
-      // Update nota
-      candidate.autoPaymentRecorded = 1;
-      candidate.status = resolveStatus(candidate.total, paid);
-      candidate.updatedAt = now;
-      salesToUpdate.push(candidate);
-    } else {
-      // Update nota
-      candidate.autoMarkedPaid = 1;
-      candidate.autoPaymentRecorded = 1;
-      candidate.status = 'PAID';
-      candidate.completed = 1;
-      candidate.autoCompleted = candidate.completed ? (candidate.autoCompleted || 0) : 1;
-      candidate.updatedAt = now;
-      salesToUpdate.push(candidate);
-      
-      // Tambah pembayaran otomatis
-      paymentsToAdd.push({
-        id,
-        saleId: candidate.id,
-        amount: remaining,
-        paymentDate: candidate.saleDate,
-        paymentTime: candidate.saleTime || '00:00',
-        note: 'Pelunasan otomatis saat pengambilan',
-        isAutomatic: true,
-        createdAt: now,
-      });
-    }
-  }
-
-  // Tulis SEMUA perubahan dalam batch transaction (sangat cepat)
-  if (salesToUpdate.length) {
-    await db.bulkPut('sales', salesToUpdate);
-  }
-  if (paymentsToAdd.length) {
-    await db.bulkPut('payments', paymentsToAdd);
-  }
-  
-  return salesToUpdate.length;
-}
-
-// Serialize concurrent page/background checks to avoid stale overlapping writes.
+// One run for payment + completion; never reuse an old changed-count as a new event.
 let automaticStatusRun = null;
-let lastAutoStatusTime = 0;
-const AUTO_STATUS_CACHE_DURATION_MS = 30000; // Cache selama 30 detik
+let lastSuccessfulCheck = null;
+let autoCacheGeneration = 0;
+const AUTO_STATUS_CACHE_DURATION_MS = 30000;
 
-/**
- * PERFORMANCE FIX #1: Memoization cache untuk applyAutomaticStatusRules
- * Sebelumnya: Setiap render halaman → baca DB (lambat 3-5 detik)
- * Sesudah: Cache 30 detik → langsung return dari cache (instan!)
- */
 export function applyAutomaticStatusRules() {
+  if (automaticStatusRun) return automaticStatusRun;
+  const today = todayDbDate();
   const now = Date.now();
-  
-  // Kalau cache masih segar (< 30 detik), return tanpa buat query baru
-  if (automaticStatusRun && (now - lastAutoStatusTime) < AUTO_STATUS_CACHE_DURATION_MS) {
-    return automaticStatusRun;
+  const revision = db.salePaymentRevision();
+  if (lastSuccessfulCheck &&
+      lastSuccessfulCheck.day === today &&
+      lastSuccessfulCheck.revision === revision &&
+      lastSuccessfulCheck.generation === autoCacheGeneration &&
+      now - lastSuccessfulCheck.time >= 0 &&
+      now - lastSuccessfulCheck.time < AUTO_STATUS_CACHE_DURATION_MS) {
+    return Promise.resolve(0);
   }
-
-  // Cache expired atau belum ada, buat transaksi baru
-  automaticStatusRun = (async () => {
-    const paid = await applyAutoLunasRule();
-    const completed = await applyAutoCompleteRule();
-    return paid + completed;
-  })();
-  
-  lastAutoStatusTime = now;
+  const generation = autoCacheGeneration;
+  automaticStatusRun = db.mutateSettlementBatch(
+    sale => isSettlementDue(sale, today),
+    (sales, payments) => settlementChanges(sales, payments, today, new Date().toISOString()),
+  ).then(changed => {
+    lastSuccessfulCheck = { day: today, revision: db.salePaymentRevision(), generation, time: Date.now() };
+    return changed;
+  }).catch(error => {
+    lastSuccessfulCheck = null; // a failed run must be retryable immediately
+    throw error;
+  }).finally(() => { automaticStatusRun = null; });
   return automaticStatusRun;
 }
 
-// Fungsi untuk reset cache (optional, bisa dipanggil kalau ada perubahan manual)
+// Compatibility for callers: both rules now commit as a single atomic batch.
+export function applyAutoLunasRule() { return applyAutomaticStatusRules(); }
+export function applyAutoCompleteRule() { return applyAutomaticStatusRules(); }
+
 export function invalidateAutoStatusCache() {
-  lastAutoStatusTime = 0;
+  autoCacheGeneration++;
+  lastSuccessfulCheck = null;
 }
 
 /** Batalkan status LUNAS otomatis (user tahu kalau nota itu SUNGGUH belum dibayar). */

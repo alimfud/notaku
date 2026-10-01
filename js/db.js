@@ -37,6 +37,45 @@ function invalidateStores(storeNames, notify = false) {
   if (notify) _cacheChannel?.postMessage(storeNames);
 }
 
+// No database read: used to expire derived caches after local or cross-tab writes.
+export function salePaymentRevision() {
+  return `${_storeVersions.get('sales') || 0}:${_storeVersions.get('payments') || 0}`;
+}
+
+/** Batch read/modify/write while holding one shared sales/payments lock.
+ * Skips reading payments when no sale is due; no cache invalidation on a no-op.
+ */
+export async function mutateSettlementBatch(selectSale, updater) {
+  const t = await tx(['sales', 'payments'], 'readwrite');
+  return new Promise((resolve, reject) => {
+    let changed = 0, failure;
+    const salesRequest = t.objectStore('sales').getAll();
+    salesRequest.onsuccess = () => {
+      try {
+        const sales = salesRequest.result.filter(selectSale);
+        if (!sales.length) return;
+        const paymentsRequest = t.objectStore('payments').getAll();
+        paymentsRequest.onsuccess = () => {
+          try {
+            const result = updater(sales, paymentsRequest.result);
+            changed = result.sales.length;
+            if (!changed) return;
+            invalidateStores(['sales', 'payments']);
+            for (const sale of result.sales) t.objectStore('sales').put(sale);
+            for (const payment of result.payments) t.objectStore('payments').put(payment);
+          } catch (error) { failure = error; t.abort(); }
+        };
+      } catch (error) { failure = error; t.abort(); }
+    };
+    t.oncomplete = () => {
+      if (changed) invalidateStores(['sales', 'payments'], true);
+      resolve(changed);
+    };
+    t.onabort = () => reject(failure || t.error || new Error('Pelunasan otomatis dibatalkan.'));
+    t.onerror = () => reject(failure || t.error);
+  });
+}
+
 _cacheChannel?.addEventListener('message', (event) => {
   if (Array.isArray(event.data)) invalidateStores(event.data, false);
 });

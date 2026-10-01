@@ -67,10 +67,10 @@ async function draw(root, saleId) {
   const phoneDisplay = displayPhone(sale.customerPhone, settings);
 
   setTopbarActions([
-    { icon: 'edit', title: 'Ubah Nota', onClick: () => navigate(`sale/${saleId}/edit`) },
-    { icon: 'bluetoothPrint', title: 'Cetak Bluetooth', onClick: () => handleBluetoothPrint(sale, items, settings, paidAmount, remaining) },
-    { icon: 'payment', title: 'Tambah Pembayaran', onClick: () => handleAddPayment(root, saleId, remaining) },
-    { icon: 'delete', title: 'Hapus', onClick: () => handleDelete(root, saleId) },
+    { icon: 'edit', label: 'Edit', title: 'Ubah Nota', onClick: () => navigate(`sale/${saleId}/edit`) },
+    { icon: 'bluetoothPrint', label: 'Print', title: 'Cetak Bluetooth', onClick: () => handleBluetoothPrint(sale, items, settings, paidAmount, remaining) },
+    { icon: 'payment', label: 'Bayar', title: 'Tambah Pembayaran', onClick: () => handleAddPayment(root, saleId, remaining) },
+    { icon: 'delete', label: 'Hapus', title: 'Hapus', onClick: () => handleDelete(root, saleId) },
   ]);
 
   const footerResolved = resolveFooterNote(settings.footerNote);
@@ -79,12 +79,12 @@ async function draw(root, saleId) {
   root.innerHTML = `
     ${sale.autoMarkedPaid ? `
       <div class="receipt-alert">
-        <div class="receipt-alert-text"><b>Pelunasan otomatis</b> dicatat pada tanggal pengambilan setelah lewat 2 hari. Pembayaran ini ikut dihitung dalam laporan.</div>
+        <div class="receipt-alert-text"><b>Pelunasan otomatis</b> dicatat pada tanggal pengambilan mulai 1 hari setelahnya. Pembayaran ini ikut dihitung dalam laporan.</div>
         <button id="revertAutoBtn" class="receipt-alert-action">Batalkan</button>
       </div>` : ''}
     ${sale.autoCompleted ? `
       <div class="receipt-alert receipt-alert--completed">
-        <div class="receipt-alert-text">Ditandai <b>SELESAI otomatis</b> setelah 2 hari dari tanggal pengambilan dan LUNAS otomatis. "Tandai Belum Selesai" juga membatalkan LUNAS otomatis jika status tersebut masih aktif.</div>
+        <div class="receipt-alert-text">Ditandai <b>SELESAI otomatis</b> mulai 1 hari setelah tanggal pengambilan dan LUNAS otomatis. "Tandai Belum Selesai" juga membatalkan LUNAS otomatis jika status tersebut masih aktif.</div>
       </div>` : ''}
     <div class="sale-detail-receipt-wrap">
       <div class="receipt" id="receiptCapture">

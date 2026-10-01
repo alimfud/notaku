@@ -56,6 +56,13 @@ export function setTopbarActions(actions) {
     btn.className = 'icon-btn';
     btn.title = action.title || '';
     btn.innerHTML = ICONS[action.icon] || '';
+    if (action.label) {
+      btn.classList.add('topbar-action-btn');
+      const label = document.createElement('span');
+      label.className = 'topbar-action-label';
+      label.textContent = action.label;
+      btn.appendChild(label);
+    }
     btn.onclick = action.onClick;
     topbarActionsEl.appendChild(btn);
   }
@@ -237,6 +244,7 @@ function registerServiceWorker() {
   if (isNativeApp()) setTimeout(() => checkForUpdate(true), 1500);
   runBackgroundChecks();
   warmNavigation();
+  scheduleAutomaticStatusRollover();
 
   // Ulangi pengecekan tiap kali aplikasi kembali aktif (mis. HP dibuka lagi
   // setelah dikunci) — ini bagian dari pendekatan "catch-up" untuk aturan
@@ -265,17 +273,31 @@ function warmNavigation() {
   else setTimeout(warm, 0);
 }
 
-async function runBackgroundChecks() {
+// Only one timer at midnight; no repeated full-database polling while idle.
+function scheduleAutomaticStatusRollover() {
+  const nextDay = new Date();
+  nextDay.setHours(24, 0, 1, 0);
+  setTimeout(async () => {
+    await refreshAutomaticStatuses();
+    scheduleAutomaticStatusRollover();
+  }, Math.max(1000, nextDay.getTime() - Date.now()));
+}
+
+async function refreshAutomaticStatuses() {
   try {
     const { applyAutomaticStatusRules } = await import('./services/saleService.js');
     const changed = await applyAutomaticStatusRules();
     if (changed > 0) {
       const { route } = parseHash();
-      if (route === 'home' || route === 'dashboard') handleRouteChange(); // refresh tampilan aktif
+      if (route === 'home' || route === 'dashboard' || route === 'reports') await handleRouteChange();
     }
   } catch (e) {
     console.error('[runBackgroundChecks] auto-lunas/auto-complete', e);
   }
+}
+
+async function runBackgroundChecks() {
+  await refreshAutomaticStatuses();
 
   try {
     const { checkScheduleOnAppOpen } = await import('./services/driveBackupService.js');

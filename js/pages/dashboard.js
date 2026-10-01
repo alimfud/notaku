@@ -1,6 +1,6 @@
 import { getAllSaleSummaries } from '../services/saleService.js';
 import { getSettings } from '../services/settingsService.js';
-import { generateReport } from '../services/reportService.js';
+import { generateReport, generateAnnualTrend } from '../services/reportService.js';
 import { dailyChart, wireBusinessCharts } from '../ui/businessCharts.js';
 import { rupiah, dateShort, escapeHtml, initials } from '../format.js';
 import { STATUS_LABEL } from '../services/saleCalculation.js';
@@ -9,7 +9,7 @@ import { navigate, setPageTitle, setTopbarActions } from '../app.js';
 export async function render(root) {
   setPageTitle('NotaKu');
   setTopbarActions([]);
-  const [summaries, settings, report, orders] = await Promise.all([getAllSaleSummaries(), getSettings(), generateReport('week'), generateReport('orders-last7')]);
+  const [summaries, settings, report, orders, annual] = await Promise.all([getAllSaleSummaries(), getSettings(), generateReport('week'), generateReport('orders-last7'), generateAnnualTrend()]);
   if (root.dataset.page !== 'dashboard') return;
   const { start, end } = report;
   const periodLabel = `${dateShort(start)} – ${dateShort(end)}`;
@@ -22,7 +22,7 @@ export async function render(root) {
   root.innerHTML = `
     <div class="dashboard-heading"><div><p class="dashboard-kicker">${escapeHtml(settings.storeName || 'Toko Saya')}</p><h2>${greeting}!</h2><p class="dashboard-date">${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p></div><button class="dashboard-primary-action" data-go="sale/new"><span>+</span> Nota baru</button></div>
     <div class="dashboard-overview">
-      <section class="dashboard-hero"><div class="dashboard-label">Nilai pesanan</div><small class="dashboard-period">7 hari terakhir · ${orderPeriodLabel}</small><div class="dashboard-revenue">${rupiah(orders.revenue)}</div><div class="dashboard-hero-bottom"><div><span>Nota dibuat</span><strong>${orders.transactionCount} nota</strong></div><div><span>Pembayaran masuk</span><strong>${rupiah(orders.received)}</strong></div></div></section>
+      <section class="dashboard-hero"><div class="dashboard-label">Nilai pesanan</div><small class="dashboard-period">7 hari terakhir · ${orderPeriodLabel}</small><div class="dashboard-revenue">${rupiah(orders.revenue)}</div>${annualMiniChart(annual)}<div class="dashboard-hero-bottom"><div><span>Nota dibuat</span><strong>${orders.transactionCount} nota</strong></div><div><span>Pembayaran masuk</span><strong>${rupiah(orders.received)}</strong></div></div></section>
       <section class="dashboard-attention"><div class="dashboard-card-heading"><div><span>RINGKASAN</span><h3>Perlu perhatian</h3></div><small>${periodLabel}</small></div><button data-go="home"><span><b>Jadwal pengambilan</b><small>Pesanan belum selesai</small></span><strong>${pickupThisWeek.length}<i>›</i></strong></button><button data-go="reports"><span><b>Belum lunas</b><small>Piutang pada periode ini</small></span><strong>${rupiah(report.totalReceivables)}<i>›</i></strong></button></section>
     </div>
     <div class="dashboard-section"><h3>Akses cepat</h3></div>
@@ -37,6 +37,50 @@ export async function render(root) {
   `;
   root.querySelectorAll('[data-go]').forEach(button => button.onclick = () => navigate(button.dataset.go));
   wireBusinessCharts(root);
+}
+
+function annualMiniChart({ year, monthly }) {
+  const keys = ['revenue', 'expenses', 'profit'];
+  const values = monthly.flatMap((month) => keys.map((key) => month[key]));
+  const minimum = Math.min(0, ...values);
+  const maximum = Math.max(1, ...values);
+  const range = maximum - minimum || 1;
+  const pointsFor = (key) => monthly.map((month, index) => ({
+    x: 5 + index * (190 / 11),
+    y: 72 - ((month[key] - minimum) / range) * 62,
+  }));
+  const pathFor = (points) => {
+    let path = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+    for (let index = 0; index < points.length - 1; index += 1) {
+      const previous = points[Math.max(0, index - 1)];
+      const current = points[index];
+      const next = points[index + 1];
+      const after = points[Math.min(points.length - 1, index + 2)];
+      const control1X = current.x + (next.x - previous.x) / 6;
+      const control1Y = current.y + (next.y - previous.y) / 6;
+      const control2X = next.x - (after.x - current.x) / 6;
+      const control2Y = next.y - (after.y - current.y) / 6;
+      path += ` C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${next.x.toFixed(2)} ${next.y.toFixed(2)}`;
+    }
+    return path;
+  };
+  const series = keys.map((key, index) => {
+    const points = pointsFor(key);
+    const dots = points.map((point, month) => `<circle cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(2)}" r="${month === new Date().getMonth() ? '2.3' : '1.25'}"/>`).join('');
+    return `<g class="dashboard-finance-series dashboard-finance-${key}" style="--series-delay:${index * 180}ms"><path d="${pathFor(points)}"/>${dots}</g>`;
+  }).join('');
+  const revenuePeak = Math.max(1, ...monthly.map((month) => month.revenue));
+  const volume = monthly.map((month, index) => {
+    const height = Math.max(3, month.revenue / revenuePeak * 27);
+    const x = 5 + index * (190 / 11) - 3.5;
+    const y = 77 - height;
+    const right = x + 7;
+    return `<g class="dashboard-finance-volume-column" style="--volume-delay:${index * 42}ms"><rect class="dashboard-volume-front" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="7" height="${height.toFixed(2)}"/><path class="dashboard-volume-top" d="M ${x.toFixed(2)} ${y.toFixed(2)} l 2.4 -2.4 h 7 l -2.4 2.4 z"/><path class="dashboard-volume-side" d="M ${right.toFixed(2)} ${y.toFixed(2)} l 2.4 -2.4 v ${height.toFixed(2)} l -2.4 2.4 z"/><circle class="dashboard-volume-spark" cx="${(x + 4.7).toFixed(2)}" cy="${(y - 3).toFixed(2)}" r="1.15" style="--spark-delay:${700 + index * 75}ms"/></g>`;
+  }).join('');
+  const revenue = monthly.reduce((sum, month) => sum + month.revenue, 0);
+  const expenses = monthly.reduce((sum, month) => sum + month.expenses, 0);
+  const profit = revenue - expenses;
+  return `<div class="dashboard-annual-visual" role="img" aria-label="Grafik tahun ${year}. Pemasukan ${rupiah(revenue)}, pengeluaran ${rupiah(expenses)}, laba ${rupiah(profit)}"><svg class="dashboard-finance-lines" viewBox="0 0 200 80" preserveAspectRatio="none" aria-hidden="true"><g class="dashboard-finance-volume">${volume}</g><line class="dashboard-finance-floor" x1="0" y1="78" x2="200" y2="78"/>${series}</svg></div>`;
 }
 
 function shortcutIcon(name) {

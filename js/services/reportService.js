@@ -94,6 +94,26 @@ export async function generateReport(period) {
   return { periodLabel: label, start, end, received, daily: [...days.values()], statusBreakdown, revenue, expenseTotal, netIncome: revenue - expenseTotal, expenseCount: periodExpenses.length, transactionCount, totalReceivables, topProducts };
 }
 
+/** Ringkasan bulanan satu tahun untuk mini grafik finansial Dashboard. */
+export async function generateAnnualTrend(year = new Date().getFullYear()) {
+  await applyAutomaticStatusRules();
+  const monthly = Array.from({ length: 12 }, (_, month) => ({ month, revenue: 0, expenses: 0, profit: 0 }));
+  const yearPrefix = `${year}-`;
+  const sales = (await db.getAll('sales')).filter((sale) => !sale.isDeleted && String(sale.saleDate || '').startsWith(yearPrefix));
+  const expenses = (await db.getAll('expenses')).filter((expense) => String(expense.expenseDate || '').startsWith(yearPrefix));
+
+  for (const sale of sales) {
+    const month = Number(String(sale.saleDate).slice(5, 7)) - 1;
+    if (month >= 0 && month < 12) monthly[month].revenue += Number(sale.total) || 0;
+  }
+  for (const expense of expenses) {
+    const month = Number(String(expense.expenseDate).slice(5, 7)) - 1;
+    if (month >= 0 && month < 12) monthly[month].expenses += Number(expense.amount) || 0;
+  }
+  for (const month of monthly) month.profit = month.revenue - month.expenses;
+  return { year, monthly };
+}
+
 const MONTH_LABELS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
 /**

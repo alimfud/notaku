@@ -113,7 +113,7 @@ async function drawAllTime(root) {
           </div>
           <div class="reports-layout-30">${rupiah(data.statusBreakdown[key].amount)}</div>
         </div>`).join('')}
-      ${data.autoMarkedCount > 0 ? `<div class="reports-layout-31">${data.autoMarkedCount} di antaranya ditandai LUNAS otomatis (2 hari setelah tanggal pengambilan).</div>` : ''}
+      ${data.autoMarkedCount > 0 ? `<div class="reports-layout-31">${data.autoMarkedCount} di antaranya ditandai LUNAS otomatis (mulai 1 hari setelah tanggal pengambilan).</div>` : ''}
     </div>
 
     <div class="reports-layout-10">Rincian per Bulan</div>

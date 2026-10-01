@@ -139,13 +139,12 @@ function draw(root, mode, state, onSave) {
         <div id="linesList" class="sale-lines-list"></div>
       </section>
 
-      <button id="adjustmentsBtn" class="sale-adjustments-trigger" type="button">
-        <span class="sale-adjustments-icon" aria-hidden="true">±</span>
+      <button id="adjustmentsBtn" class="sale-adjustments-trigger ${adjustmentSummary.length ? 'has-active-adjustments' : ''}" type="button">
+        <span class="sale-adjustments-icon" aria-hidden="true">+</span>
         <span class="sale-adjustments-copy">
           <strong>Atur tambahan</strong>
-          <small>${adjustmentSummary.length ? escapeHtml(adjustmentSummary.join(' · ')) : 'Diskon, ongkir, pembayaran, dan catatan'}</small>
+          ${adjustmentSummary.length ? `<small>${escapeHtml(adjustmentSummary.join(' · '))}</small>` : ''}
         </span>
-        <span class="sale-adjustments-arrow" aria-hidden="true">›</span>
       </button>
 
       <div class="sale-form-bottom-space"></div>
