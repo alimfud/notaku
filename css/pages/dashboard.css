@@ -40,17 +40,17 @@
 [data-page="dashboard"] .dashboard-section > span,
 [data-page="dashboard"] .dashboard-section-row > div > span { color:var(--primary); font-size:9.5px; font-weight:800; letter-spacing:.08em; }
 [data-page="dashboard"] h3 { margin:1px 0 0; color:var(--ink); font-size:14px; }
-[data-page="dashboard"] .dashboard-card-heading > small { position:relative; z-index:1; padding:4px 7px; border:1px solid rgba(121,30,56,.08); border-radius:999px; background:rgba(255,247,237,.62); color:var(--muted); font-size:9.5px; white-space:nowrap; }
-[data-page="dashboard"] .dashboard-attention-list { position:relative; z-index:1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
-[data-page="dashboard"] .dashboard-attention button { display:grid; width:100%; min-width:0; grid-template-columns:34px minmax(0,1fr); align-items:center; gap:5px 8px; padding:10px; border:1px solid rgba(121,30,56,.075); border-radius:11px; background:rgba(255,247,237,.66); color:var(--ink); font:inherit; text-align:left; box-shadow:0 3px 10px rgba(73,29,48,.04); cursor:pointer; }
-[data-page="dashboard"] .dashboard-attention button:nth-child(2) { background:rgba(250,229,221,.74); }
+[data-page="dashboard"] .dashboard-card-heading > small { position:relative; z-index:1; color:var(--muted); font-size:9.5px; white-space:nowrap; }
+[data-page="dashboard"] .dashboard-attention-list { position:relative; z-index:1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); margin-top:2px; border-top:1px solid rgba(121,30,56,.1); }
+[data-page="dashboard"] .dashboard-attention button { display:grid; width:100%; min-width:0; grid-template-columns:34px minmax(0,1fr); align-items:center; gap:5px 8px; padding:12px 10px 5px 0; border:0; background:transparent; color:var(--ink); font:inherit; text-align:left; cursor:pointer; }
+[data-page="dashboard"] .dashboard-attention button:nth-child(2) { padding-right:0; padding-left:12px; border-left:1px solid rgba(121,30,56,.1); }
 [data-page="dashboard"] .dashboard-attention-icon { display:grid; width:34px; height:34px; grid-row:1 / 3; place-items:center; border-radius:10px; background:#ead2dd; color:var(--primary); }
 [data-page="dashboard"] .dashboard-attention button:nth-child(2) .dashboard-attention-icon { background:#f3d7c5; color:#9a4f2d; }
 [data-page="dashboard"] .dashboard-attention-icon svg { width:17px; height:17px; }
 [data-page="dashboard"] .dashboard-attention-copy { min-width:0; grid-column:2; }
 [data-page="dashboard"] .dashboard-attention b { display:block; font-size:12.5px; }
 [data-page="dashboard"] .dashboard-attention small { display:block; margin-top:2px; color:var(--muted); font-size:10.5px; }
-[data-page="dashboard"] .dashboard-attention strong { display:flex; min-width:0; grid-column:2; align-items:center; justify-self:end; gap:5px; padding:4px 6px; border-radius:7px; background:rgba(121,30,56,.065); color:var(--primary); font-size:12.5px; font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap; }
+[data-page="dashboard"] .dashboard-attention strong { display:flex; min-width:0; grid-column:2; align-items:center; justify-self:end; gap:5px; color:var(--primary); font-size:13px; font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap; }
 [data-page="dashboard"] .dashboard-attention i { color:var(--muted); font-size:21px; font-style:normal; font-weight:300; }
 [data-page="dashboard"] .dashboard-section { margin:19px 0 8px; }
 [data-page="dashboard"] .dashboard-shortcuts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
@@ -96,6 +96,8 @@
   [data-page="dashboard"] .dashboard-revenue { font-size:clamp(24px,7vw,30px); }
   [data-page="dashboard"] .dashboard-annual-visual { right:4px; bottom:63px; width:61%; height:94px; opacity:.64; }
   [data-page="dashboard"] .dashboard-attention-list { grid-template-columns:1fr; }
+  [data-page="dashboard"] .dashboard-attention button { padding:11px 0; }
+  [data-page="dashboard"] .dashboard-attention button:nth-child(2) { padding:11px 0 2px; border-top:1px solid rgba(121,30,56,.1); border-left:0; }
   [data-page="dashboard"] .dashboard-orders .avatar { display:none; }
   [data-page="dashboard"] .dashboard-row-arrow { display:none; }
 }
