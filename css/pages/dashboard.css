@@ -10,7 +10,7 @@
 [data-page="dashboard"] .dashboard-label { color:#d8eee2; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
 [data-page="dashboard"] .dashboard-period { display:block; margin-top:4px; color:rgba(255,255,255,.7); font-size:10.5px; line-height:1.45; }
 [data-page="dashboard"] .dashboard-revenue { position:relative; z-index:2; margin:8px 0 17px; overflow-wrap:anywhere; font-size:clamp(25px,7vw,34px); font-weight:800; letter-spacing:-1px; font-variant-numeric:tabular-nums; }
-[data-page="dashboard"] .dashboard-annual-visual { position:absolute; z-index:0; top:27px; right:5px; width:59%; height:101px; opacity:.72; pointer-events:none; background:repeating-linear-gradient(to bottom,transparent 0 19px,rgba(255,255,255,.075) 19px 20px); -webkit-mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.4) 16%,#000 43%); mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.4) 16%,#000 43%); }
+[data-page="dashboard"] .dashboard-annual-visual { position:absolute; z-index:0; right:5px; bottom:69px; width:59%; height:101px; opacity:.72; pointer-events:none; background:repeating-linear-gradient(to bottom,transparent 0 19px,rgba(255,255,255,.075) 19px 20px); -webkit-mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.4) 16%,#000 43%); mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.4) 16%,#000 43%); }
 [data-page="dashboard"] .dashboard-annual-visual::before { position:absolute; inset:2px -8px -5px; border-radius:50%; background:radial-gradient(circle,rgba(255,255,255,.13),transparent 66%); content:""; filter:blur(4px); animation:dashboardAnnualGlow 3.2s ease-in-out infinite; }
 [data-page="dashboard"] .dashboard-finance-lines { position:relative; z-index:1; display:block; width:100%; height:100%; overflow:visible; fill:none; }
 [data-page="dashboard"] .dashboard-finance-volume-column { transform:scaleY(0); transform-box:fill-box; transform-origin:center bottom; animation:dashboardVolumeRise .7s cubic-bezier(.22,1,.36,1) forwards; animation-delay:var(--volume-delay); }
@@ -83,7 +83,7 @@
   [data-page="dashboard"] .dashboard-primary-action { padding:8px 10px; }
   [data-page="dashboard"] .dashboard-hero { padding:16px 14px; }
   [data-page="dashboard"] .dashboard-revenue { font-size:clamp(24px,7vw,30px); }
-  [data-page="dashboard"] .dashboard-annual-visual { top:30px; right:4px; width:61%; height:94px; opacity:.64; }
+  [data-page="dashboard"] .dashboard-annual-visual { right:4px; bottom:63px; width:61%; height:94px; opacity:.64; }
   [data-page="dashboard"] .dashboard-orders .avatar { display:none; }
   [data-page="dashboard"] .dashboard-row-arrow { display:none; }
 }
