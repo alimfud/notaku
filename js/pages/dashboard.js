@@ -45,9 +45,13 @@ function annualMiniChart({ year, monthly }) {
   const minimum = Math.min(0, ...values);
   const maximum = Math.max(1, ...values);
   const range = maximum - minimum || 1;
+  const positiveMaximum = Math.max(1, ...monthly.flatMap((month) => [month.revenue, month.expenses, Math.max(0, month.profit)]));
   const pointsFor = (key) => monthly.map((month, index) => ({
     x: 5 + index * (190 / 11),
-    y: 72 - ((month[key] - minimum) / range) * 62,
+    // Pengeluaran nol harus tepat di baseline/pemisah bawah grafik.
+    y: key === 'expenses'
+      ? 78 - (Math.max(0, month.expenses) / positiveMaximum) * 68
+      : 72 - ((month[key] - minimum) / range) * 62,
   }));
   const pathFor = (points) => {
     let path = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
