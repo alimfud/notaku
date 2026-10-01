@@ -162,20 +162,20 @@ async function drawReport(root) {
     ${periodNavigator()}
     <p class="business-period">${dateShort(data.start)} – ${dateShort(data.end)}<br>Nilai nota berdasarkan tanggal pengambilan.</p>
     <div class="reports-layout-4">
-      <div class="reports-layout-5">
+      <div class="reports-layout-5 reports-metric reports-metric--revenue">
         <div class="reports-layout-6">Omzet ${data.periodLabel}</div>
         <div class="reports-layout-7">${rupiah(data.revenue)}</div>
       </div>
-      <div class="reports-layout-5">
+      <div class="reports-layout-5 reports-metric reports-metric--transactions">
         <div class="reports-layout-6">Transaksi</div>
         <div class="reports-layout-7">${data.transactionCount}</div>
       </div>
     </div>
     <div class="reports-layout-4">
-      <div class="reports-layout-5"><div class="reports-layout-6">Pengeluaran</div><div class="reports-layout-8">${rupiah(data.expenseTotal)}</div><div class="row-meta">${data.expenseCount} catatan</div></div>
-      <div class="reports-layout-5"><div class="reports-layout-6">Sisa Omzet</div><div class="reports-layout-7">${rupiah(data.netIncome)}</div></div>
+      <div class="reports-layout-5 reports-metric reports-metric--expenses"><div class="reports-layout-6">Pengeluaran</div><div class="reports-layout-8">${rupiah(data.expenseTotal)}</div><div class="row-meta">${data.expenseCount} catatan</div></div>
+      <div class="reports-layout-5 reports-metric reports-metric--net"><div class="reports-layout-6">Sisa Omzet</div><div class="reports-layout-7">${rupiah(data.netIncome)}</div></div>
     </div>
-    <div class="reports-layout-9">
+    <div class="reports-layout-9 reports-metric reports-metric--receivable">
       <div class="reports-layout-6">Piutang Periode Ini (Belum Lunas)</div>
       <div class="reports-layout-8">${rupiah(data.totalReceivables)}</div>
     </div>
@@ -242,16 +242,16 @@ async function drawAllTime(root, data) {
     </div>
 
     <div class="reports-summary-grid">
-      <div class="reports-layout-20">
+      <div class="reports-layout-20 reports-overall-metric reports-overall-metric--received">
         <div class="reports-layout-21">Sudah Diterima (tercatat)</div>
         <div class="reports-layout-22">${rupiah(data.totalPaidCollected)}</div>
       </div>
-      <div class="reports-layout-20">
+      <div class="reports-layout-20 reports-overall-metric reports-overall-metric--receivable">
         <div class="reports-layout-21">Piutang Belum Lunas</div>
         <div class="reports-layout-23">${rupiah(data.totalReceivables)}</div>
       </div>
-      <div class="reports-layout-20"><div class="reports-layout-21">Total Pengeluaran</div><div class="reports-layout-23">${rupiah(data.totalExpenses)}</div><div class="row-meta">${data.totalExpenseCount} catatan</div></div>
-      <div class="reports-layout-20"><div class="reports-layout-21">Sisa Omzet</div><div class="reports-layout-24">${rupiah(data.netIncome)}</div></div>
+      <div class="reports-layout-20 reports-overall-metric reports-overall-metric--expenses"><div class="reports-layout-21">Total Pengeluaran</div><div class="reports-layout-23">${rupiah(data.totalExpenses)}</div><div class="row-meta">${data.totalExpenseCount} catatan</div></div>
+      <div class="reports-layout-20 reports-overall-metric reports-overall-metric--net"><div class="reports-layout-21">Sisa Omzet</div><div class="reports-layout-24">${rupiah(data.netIncome)}</div></div>
     </div>
 
     <div class="reports-layout-10">Rincian per Status Pembayaran</div>

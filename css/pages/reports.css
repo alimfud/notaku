@@ -85,8 +85,16 @@
 [data-page="reports"] .row-meta { text-align: left; }
 [data-page="reports"] .field { text-align: left; text-align-last: auto; }
 [data-page="reports"] .reports-layout-5, [data-page="reports"] .reports-layout-20 { min-width:0; overflow-wrap:anywhere; }
-[data-page="reports"] .reports-layout-4:first-of-type .reports-layout-5:first-child { background:var(--primary-container); }
-[data-page="reports"] .reports-layout-4:first-of-type .reports-layout-5:last-child { background:color-mix(in srgb,var(--surface) 76%,var(--status-lunas)); }
+[data-page="reports"] .reports-metric--revenue { background:#eed7e1; border-color:#e3c3d0; }
+[data-page="reports"] .reports-metric--transactions { background:#dfeadc; border-color:#cedfc9; }
+[data-page="reports"] .reports-metric--expenses { background:#f4dfd1; border-color:#e8cdbb; }
+[data-page="reports"] .reports-metric--net { background:#e8dfed; border-color:#dacde1; }
+[data-page="reports"] .reports-metric--receivable { background:#f1dde1; border-color:#e4c8cf; }
+[data-page="reports"] .reports-metric--revenue .reports-layout-7,
+[data-page="reports"] .reports-metric--receivable .reports-layout-8 { color:var(--primary); }
+[data-page="reports"] .reports-metric--transactions .reports-layout-7 { color:#315d42; }
+[data-page="reports"] .reports-metric--expenses .reports-layout-8 { color:#9a4b28; }
+[data-page="reports"] .reports-metric--net .reports-layout-7 { color:#594064; }
 
 #pageRoot[data-page="reports"] {
   width:100%;
@@ -375,6 +383,15 @@
   font-variant-numeric:tabular-nums;
   overflow-wrap:anywhere;
 }
+
+[data-page="reports"] .reports-overall-metric--received { background:#dfeadc; border-color:#cedfc9; }
+[data-page="reports"] .reports-overall-metric--receivable { background:#f1dde1; border-color:#e4c8cf; }
+[data-page="reports"] .reports-overall-metric--expenses { background:#f4dfd1; border-color:#e8cdbb; }
+[data-page="reports"] .reports-overall-metric--net { background:#e8dfed; border-color:#dacde1; }
+[data-page="reports"] .reports-overall-metric--received .reports-layout-22 { color:#315d42; }
+[data-page="reports"] .reports-overall-metric--receivable .reports-layout-23 { color:var(--primary); }
+[data-page="reports"] .reports-overall-metric--expenses .reports-layout-23 { color:#9a4b28; }
+[data-page="reports"] .reports-overall-metric--net .reports-layout-24 { color:#594064; }
 
 [data-page="reports"] .reports-layout-25 {
   margin-bottom:14px;
