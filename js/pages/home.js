@@ -1,7 +1,7 @@
 // pages/home.js
 
 import { getAllSaleSummaries, setCompleted } from '../services/saleService.js';
-import { rupiah, dateShort, initials, escapeHtml, todayDbDate } from '../format.js';
+import { rupiah, dateShort, initials, escapeHtml, todayDbDate, dbDate } from '../format.js';
 import { STATUS_LABEL } from '../services/saleCalculation.js';
 import { navigate, setTopbarActions, setPageTitle } from '../app.js';
 
@@ -9,9 +9,17 @@ let _search = '';
 let _dateFilter = 'all';   // all | today | week | month
 let _sortBy = 'pickup';    // pickup (tgl pengambilan) | created (tgl nota dibuat)
 let _onlyIncomplete = true; // fokus ke yang belum selesai secara default
+let _dashboardFilter = ''; // pickup | unpaid ketika datang dari Dashboard
 
-export async function render(root) {
-  setPageTitle('Daftar Nota');
+export async function render(root, params = []) {
+  _dashboardFilter = ['pickup', 'unpaid'].includes(params[0]) ? params[0] : '';
+  if (_dashboardFilter) {
+    _search = '';
+    _dateFilter = 'all';
+    _sortBy = 'pickup';
+    _onlyIncomplete = _dashboardFilter === 'pickup';
+  }
+  setPageTitle(_dashboardFilter === 'pickup' ? 'Jadwal Pickup' : _dashboardFilter === 'unpaid' ? 'Nota Belum Lunas' : 'Daftar Nota');
   setTopbarActions([]);
   root.innerHTML = `
     <div class="summary-card" id="summaryCard"></div>
@@ -34,13 +42,15 @@ export async function render(root) {
         <option value="created" ${_sortBy === 'created' ? 'selected' : ''}>Tgl Dibuat</option>
       </select>
     </div>
+    ${_dashboardFilter ? `<div class="home-dashboard-filter"><span>${_dashboardFilter === 'pickup' ? 'Jadwal pengambilan 7 hari terdekat' : 'Nota belum lunas dalam 7 hari ke depan'}</span><button type="button" id="clearDashboardFilter">Lihat semua</button></div>` : ''}
     <div id="notaList" class="list"></div>
     <button class="fab" id="fabNew" aria-label="Buat nota baru">+</button>
   `;
 
   root.querySelectorAll('.chip').forEach((c) => {
-    c.classList.toggle('active', c.dataset.f === _dateFilter);
+    c.classList.toggle('active', !_dashboardFilter && c.dataset.f === _dateFilter);
     c.onclick = () => {
+      _dashboardFilter = '';
       _dateFilter = c.dataset.f;
       root.querySelectorAll('.chip').forEach((chip) => {
         chip.classList.toggle('active', chip.dataset.f === _dateFilter);
@@ -56,8 +66,9 @@ export async function render(root) {
     debounce = setTimeout(() => renderList(root), 150);
   };
 
-  root.querySelector('#onlyIncompleteToggle').onchange = (e) => { _onlyIncomplete = e.target.checked; renderList(root); };
-  root.querySelector('#sortSelect').onchange = (e) => { _sortBy = e.target.value; renderList(root); };
+  root.querySelector('#onlyIncompleteToggle').onchange = (e) => { _dashboardFilter = ''; _onlyIncomplete = e.target.checked; renderList(root); };
+  root.querySelector('#sortSelect').onchange = (e) => { _dashboardFilter = ''; _sortBy = e.target.value; renderList(root); };
+  root.querySelector('#clearDashboardFilter')?.addEventListener('click', () => navigate('home'));
   root.querySelector('#fabNew').onclick = () => navigate('sale/new');
 
   await renderList(root);
@@ -73,6 +84,9 @@ export async function render(root) {
 async function renderList(root) {
   const today = todayDbDate();
   const monthStart = today.slice(0, 8) + '01';
+  const nextWeek = new Date();
+  nextWeek.setDate(nextWeek.getDate() + 6);
+  const nextWeekEnd = dbDate(nextWeek);
   
   // ✅ Query SEKALI - ambil SEMUA nota (tanpa filter tanggal di level query)
   // Ini penting karena ada data di masa depan yang tidak boleh hilang
@@ -82,8 +96,14 @@ async function renderList(root) {
 
   // Filter untuk display (berdasarkan _dateFilter, _search, _onlyIncomplete)
   const summaries = allMonthlySummaries.filter(s => {
+    if (_dashboardFilter === 'pickup') {
+      if (s.sale.completed || s.sale.saleDate < today || s.sale.saleDate > nextWeekEnd) return false;
+    } else if (_dashboardFilter === 'unpaid') {
+      if (!['UNPAID', 'PARTIAL'].includes(s.displayStatus) || s.sale.saleDate < today || s.sale.saleDate > nextWeekEnd) return false;
+    }
+
     // Filter 1: onlyIncomplete
-    if (_onlyIncomplete && s.sale.completed) {
+    if (!_dashboardFilter && _onlyIncomplete && s.sale.completed) {
       return false;
     }
     
@@ -98,7 +118,9 @@ async function renderList(root) {
     }
     
     // Filter 3: Date range based on _dateFilter
-    if (_dateFilter === 'today') {
+    if (_dashboardFilter) {
+      return true;
+    } else if (_dateFilter === 'today') {
       return s.sale.saleDate === today;
     } else if (_dateFilter === 'week') {
       const now = new Date();
@@ -113,7 +135,9 @@ async function renderList(root) {
     
     // 'all' filter - show ALL data tanpa batasan tanggal (PENTING: jangan hapus data masa depan)
     return true;
-  });
+  }).sort((a, b) => _dashboardFilter
+    ? (a.sale.saleDate + a.sale.saleTime).localeCompare(b.sale.saleDate + b.sale.saleTime)
+    : 0);
 
   // Filter untuk summary bulan (lebih sederhana karena sudah dalam range)
   const monthSummaries = allMonthlySummaries.filter(s =>
@@ -122,7 +146,18 @@ async function renderList(root) {
   const monthRevenue = monthSummaries.reduce((s, x) => s + x.sale.total, 0);
   const monthCount = monthSummaries.length;
 
-  root.querySelector('#summaryCard').innerHTML = `
+  const filteredValue = summaries.reduce((total, summary) => total + (_dashboardFilter === 'unpaid' ? Math.max(0, summary.remaining) : summary.sale.total), 0);
+  root.querySelector('#summaryCard').innerHTML = _dashboardFilter ? `
+    <div class="summary-block">
+      <div class="summary-label">${_dashboardFilter === 'pickup' ? 'Jadwal Terdekat' : 'Total Piutang'}</div>
+      <div class="summary-value">${_dashboardFilter === 'pickup' ? `${summaries.length} nota` : rupiah(filteredValue)}</div>
+    </div>
+    <div class="summary-divider"></div>
+    <div class="home-layout-4 summary-block">
+      <div class="summary-label">${_dashboardFilter === 'pickup' ? 'Nilai Pesanan' : 'Jumlah Nota'}</div>
+      <div class="summary-value">${_dashboardFilter === 'pickup' ? rupiah(filteredValue) : summaries.length}</div>
+    </div>
+  ` : `
     <div class="summary-block">
       <div class="summary-label">Omzet Bulan Ini</div>
       <div class="summary-value">${rupiah(monthRevenue)}</div>
@@ -139,7 +174,7 @@ async function renderList(root) {
     listEl.innerHTML = `
       <div class="empty-state">
         <svg viewBox="0 0 24 24"><path d="M5 3h14v18l-3.5-2.2L12 21l-3.5-2.2L5 21V3z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
-        <p>${_onlyIncomplete ? 'Tidak ada nota yang perlu dikerjakan. 🎉' : 'Belum ada nota.<br>Ketuk tombol + untuk membuat nota pertama.'}</p>
+        <p>${_dashboardFilter === 'pickup' ? 'Tidak ada jadwal pengambilan dalam 7 hari ke depan. 🎉' : _dashboardFilter === 'unpaid' ? 'Tidak ada nota belum lunas dalam periode ini. 🎉' : _onlyIncomplete ? 'Tidak ada nota yang perlu dikerjakan. 🎉' : 'Belum ada nota.<br>Ketuk tombol + untuk membuat nota pertama.'}</p>
       </div>`;
     return;
   }
