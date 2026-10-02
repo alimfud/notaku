@@ -277,6 +277,37 @@
   padding:0;
 }
 
+@media(min-width:800px) {
+  #pageRoot[data-page="settings"][data-section="hub"] {
+    max-width:none;
+    padding:22px 24px 105px;
+  }
+
+  #pageRoot[data-page="settings"][data-section="hub"] .settings-hub {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+    overflow:visible;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    box-shadow:none;
+  }
+
+  #pageRoot[data-page="settings"][data-section="hub"] .settings-tile {
+    min-height:76px;
+    padding:12px;
+    border:1px solid var(--outline);
+    border-radius:12px;
+    background:var(--surface);
+    box-shadow:0 4px 14px rgba(73,29,48,.045);
+  }
+
+  #pageRoot[data-page="settings"][data-section="hub"] .settings-spacer {
+    display:none;
+  }
+}
+
 /* Info Toko. */
 #pageRoot[data-page="settings"][data-section="store"] .settings-store-logo {
   padding:12px;
