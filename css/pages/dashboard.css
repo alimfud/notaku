@@ -97,8 +97,11 @@
   [data-page="dashboard"] .dashboard-revenue { font-size:clamp(24px,7vw,30px); }
   [data-page="dashboard"] .dashboard-annual-visual { right:4px; bottom:63px; width:61%; height:94px; opacity:.64; }
   [data-page="dashboard"] .dashboard-attention-list { grid-template-columns:1fr; }
-  [data-page="dashboard"] .dashboard-attention-item { padding:11px 0; }
-  [data-page="dashboard"] .dashboard-attention-item:nth-child(2) { padding:11px 0 2px; border-top:1px solid rgba(121,30,56,.1); border-left:0; }
+  [data-page="dashboard"] .dashboard-attention-item { grid-template-columns:34px minmax(0,1fr) auto; grid-template-rows:auto; column-gap:8px; padding:10px 0; }
+  [data-page="dashboard"] .dashboard-attention-item:nth-child(2) { padding:10px 0; border-top:1px solid rgba(121,30,56,.1); border-left:0; }
+  [data-page="dashboard"] .dashboard-attention-icon { grid-row:1; grid-column:1; }
+  [data-page="dashboard"] .dashboard-attention-copy { grid-row:1; grid-column:2; }
+  [data-page="dashboard"] .dashboard-attention-action { grid-row:1; grid-column:3; }
   [data-page="dashboard"] .dashboard-orders .avatar { display:none; }
   [data-page="dashboard"] .dashboard-row-arrow { display:none; }
 }
