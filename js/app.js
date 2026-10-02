@@ -117,10 +117,16 @@ async function handleRouteChange() {
   const { route, params } = parseHash();
 
   const isTopLevel = TOP_LEVEL_ROUTES.includes(route) && params.length === 0;
+  const hasWideSidebar = window.matchMedia('(min-width:800px)').matches;
+  const keepDesktopSettingsNav = route === 'settings' && hasWideSidebar;
   btnBack.classList.toggle('hidden', isTopLevel);
   btnMenu.classList.toggle('hidden', !isTopLevel);
-  bottomnav.classList.toggle('hidden', !isTopLevel);
-  const navRoute = ['customers', 'expenses', 'reports'].includes(route) ? 'settings' : route;
+  bottomnav.classList.toggle('hidden', !isTopLevel && !keepDesktopSettingsNav);
+  const navRoute = ['customers', 'expenses', 'reports'].includes(route) && !hasWideSidebar
+    ? 'settings'
+    : route === 'settings' && params.length
+      ? (params[0] === 'autobackup' ? 'settings/backup' : `settings/${params[0]}`)
+      : route;
   document.querySelectorAll('.nav-btn').forEach((b) => {
     const active = b.dataset.route === navRoute;
     b.classList.toggle('active', active);
