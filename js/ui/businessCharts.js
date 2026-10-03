@@ -1,9 +1,9 @@
 import { rupiah, dateShort, escapeHtml } from '../format.js';
 
 const series = [
-  { key: 'revenue', label: ' || Nilai nota', color: '#8d2947' },
-  { key: 'received', label: ' || Pembayaran tercatat', color: '#398178' },
-  { key: 'expenses', label: ' || Pengeluaran', color: '#d68b3b' },
+  { key: 'revenue', label: ' || Nilai nota', color: '#ff9a3c' },
+  { key: 'received', label: ' || Pembayaran tercatat', color: '#2fe0b0' },
+  { key: 'expenses', label: ' || Pengeluaran', color: '#ff5d7a' },
 ];
 
 function activityLinePath(days, key, ceiling) {
@@ -45,7 +45,7 @@ export function dailyChart(days, { compact = false, dateBasis = 'pickup', period
 }
 
 export function statusChart(counts) {
-  const statuses = [['PAID', 'Lunas', '#398178'], ['PARTIAL', 'Sebagian', '#d68b3b'], ['UNPAID', 'Belum lunas', '#b43d5c'], ['OVERPAID', 'Lebih bayar', '#8270ae']];
+  const statuses = [['PAID', 'Lunas', '#2fe0b0'], ['PARTIAL', 'Sebagian', '#ff5d7a'], ['UNPAID', 'Belum lunas', '#ff6f86'], ['OVERPAID', 'Lebih bayar', '#8f7bff']];
   const total = statuses.reduce((sum, [key]) => sum + counts[key], 0);
   let angle = 0;
   const stops = statuses.map(([key, , color]) => {
