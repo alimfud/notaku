@@ -30,12 +30,15 @@ export async function renderSaleForm(root, mode, initial, onSave) {
     stepperQty: 1,
     products: await getAllProducts(),
     saving: false,
+    editDetailsExpanded: mode !== 'edit',
   };
 
   draw(root, mode, state, onSave);
 }
 
 function draw(root, mode, state, onSave) {
+  root._notakuEditDetailsCleanup?.();
+  root._notakuEditDetailsCleanup = null;
   // Disimpan di elemen root supaya semua handler internal (tambah item,
   // hapus item, dst) yang memicu redraw bisa selalu tahu mode & callback
   // simpan yang sedang aktif, tanpa perlu diteruskan manual di tiap pemanggilan.
@@ -57,17 +60,52 @@ function draw(root, mode, state, onSave) {
   if (mode === 'create' && state.payment > 0) adjustmentSummary.push(`Bayar ${rupiah(state.payment)}`);
   if (state.note.trim()) adjustmentSummary.push('Ada catatan');
 
-  root.innerHTML = `
-    <div class="sale-form">
+  const customerAndScheduleMarkup = mode === 'edit' ? `
+      <section id="editDetailsPanel" class="sale-form-card sale-edit-details-card" data-expanded="${state.editDetailsExpanded}">
+        <div id="editDetailsHeader" class="sale-edit-details-header" role="button" tabindex="0" aria-expanded="${state.editDetailsExpanded}">
+          <div class="sale-edit-summary-column">
+            <h2>Informasi pemesan</h2>
+            <p id="customerSummary" class="sale-edit-summary" ${state.editDetailsExpanded ? 'hidden' : ''}>${escapeHtml(c.name || 'Nama belum diisi')}${c.phone ? ` · ${escapeHtml(c.phone)}` : ''}</p>
+          </div>
+          <div class="sale-edit-summary-column">
+            <div class="sale-card-kicker">Jadwal</div>
+            <p id="scheduleSummary" class="sale-edit-summary" ${state.editDetailsExpanded ? 'hidden' : ''}>${escapeHtml(formatSaleDate(state.saleDate))}${state.saleTime ? ` · ${escapeHtml(state.saleTime)}` : ''}</p>
+          </div>
+        </div>
+        <div id="editDetailsContent" class="sale-edit-details-content" ${state.editDetailsExpanded ? '' : 'hidden'}>
+          <div class="sale-edit-customer-fields">
+            <button id="pickCustomerBtn" class="sale-text-btn sale-pick-customer-btn" type="button">Pilih dari daftar</button>
+            <label class="sale-input-field">
+              <span>Nama pelanggan</span>
+              <input id="custName" value="${escapeHtml(c.name)}" placeholder="Masukkan nama" autocomplete="name">
+            </label>
+            <label class="sale-input-field">
+              <span>No. WhatsApp <em>Opsional</em></span>
+              <input id="custPhone" value="${escapeHtml(c.phone)}" placeholder="08xxxxxxxxxx" inputmode="tel" autocomplete="tel">
+            </label>
+            <label class="sale-input-field sale-address-field">
+              <span>Alamat <em>Opsional</em></span>
+              <input id="custAddress" value="${escapeHtml(c.address)}" placeholder="Masukkan alamat pelanggan" autocomplete="street-address">
+            </label>
+          </div>
+          <div class="sale-edit-schedule-fields">
+            <label class="sale-input-field">
+              <span>Tanggal pengambilan</span>
+              <input id="fDate" type="date" value="${state.saleDate || ''}" required>
+            </label>
+            <label class="sale-input-field">
+              <span>Jam pengambilan</span>
+              <input id="fTime" type="time" value="${state.saleTime || ''}" required>
+            </label>
+          </div>
+        </div>
+      </section>
+  ` : `
       <section class="sale-form-card sale-customer-card">
         <div class="sale-card-heading">
-          <div>
-            <div class="sale-card-kicker"></div>
-            <h2>Informasi pemesan</h2>
-          </div>
+          <div><h2>Informasi pemesan</h2></div>
           <button id="pickCustomerBtn" class="sale-text-btn" type="button">Pilih dari daftar</button>
         </div>
-
         <div class="sale-field-grid sale-field-grid-2">
           <label class="sale-input-field">
             <span>Nama pelanggan</span>
@@ -87,9 +125,7 @@ function draw(root, mode, state, onSave) {
 
       <section class="sale-form-card sale-schedule-card">
         <div class="sale-card-heading sale-card-heading-compact">
-          <div>
-            <div class="sale-card-kicker">Jadwal</div>
-          </div>
+          <div><div class="sale-card-kicker">Jadwal</div></div>
         </div>
         <div class="sale-field-grid sale-field-grid-2">
           <label class="sale-input-field">
@@ -102,6 +138,11 @@ function draw(root, mode, state, onSave) {
           </label>
         </div>
       </section>
+  `;
+
+  root.innerHTML = `
+    <div class="sale-form">
+      ${customerAndScheduleMarkup}
 
       <section class="sale-form-card sale-product-card">
         <div class="sale-card-heading">
@@ -167,13 +208,52 @@ function draw(root, mode, state, onSave) {
   drawLines(root, state);
   wireScanInput(root, state);
 
-  root.querySelector('#custName').oninput = (e) => { state.customer.name = e.target.value; };
-  root.querySelector('#custAddress').oninput = (e) => { state.customer.address = e.target.value; };
-  root.querySelector('#custPhone').oninput = (e) => { state.customer.phone = e.target.value; };
-  root.querySelector('#pickCustomerBtn').onclick = () => pickCustomer(root, mode, state, onSave);
+  root.querySelector('#custName')?.addEventListener('input', (e) => { state.customer.name = e.target.value; });
+  root.querySelector('#custAddress')?.addEventListener('input', (e) => { state.customer.address = e.target.value; });
+  root.querySelector('#custPhone')?.addEventListener('input', (e) => { state.customer.phone = e.target.value; });
+  root.querySelector('#pickCustomerBtn')?.addEventListener('click', () => pickCustomer(root, mode, state, onSave));
 
-  root.querySelector('#fDate').onchange = (e) => { state.saleDate = e.target.value; };
-  root.querySelector('#fTime').onchange = (e) => { state.saleTime = e.target.value; };
+  if (mode === 'edit') {
+    const panel = root.querySelector('#editDetailsPanel');
+    const header = root.querySelector('#editDetailsHeader');
+    const openDetails = () => {
+      if (!state.editDetailsExpanded) {
+        state.editDetailsExpanded = true;
+        syncEditDetailsPanel(root, state);
+      }
+    };
+    const finishDetails = () => {
+      if (!state.editDetailsExpanded) return;
+      captureEditDetails(root, state);
+      state.editDetailsExpanded = false;
+      syncEditDetailsPanel(root, state);
+    };
+    panel.addEventListener('click', openDetails);
+    header.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openDetails();
+      }
+    });
+    root.onpointerdown = (e) => {
+      if (state.editDetailsExpanded && !panel.contains(e.target)) finishDetails();
+    };
+    root.onfocusout = (e) => {
+      if (state.editDetailsExpanded && panel.contains(e.target) && !panel.contains(e.relatedTarget)) finishDetails();
+    };
+    const collapseAfterScroll = () => {
+      const bounds = panel.getBoundingClientRect();
+      if (state.editDetailsExpanded && (bounds.bottom <= 0 || bounds.top >= window.innerHeight)) finishDetails();
+    };
+    window.addEventListener('scroll', collapseAfterScroll, true);
+    root._notakuEditDetailsCleanup = () => window.removeEventListener('scroll', collapseAfterScroll, true);
+  } else {
+    root.onpointerdown = null;
+    root.onfocusout = null;
+  }
+
+  root.querySelector('#fDate')?.addEventListener('change', (e) => { state.saleDate = e.target.value; });
+  root.querySelector('#fTime')?.addEventListener('change', (e) => { state.saleTime = e.target.value; });
 
   root.querySelector('#adjustmentsBtn').onclick = () => editAdjustments(root, mode, state, onSave);
   root.querySelector('#manualItemBtn').onclick = () => addManualItem(root, mode, state, onSave);
@@ -190,6 +270,44 @@ function draw(root, mode, state, onSave) {
   root.querySelector('#qtyStepper').onchange = (e) => {
     state.stepperQty = Math.max(1, Number(e.target.value) || 1);
   };
+}
+
+function formatSaleDate(value) {
+  if (!value) return 'Tanggal belum diisi';
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function captureEditDetails(root, state) {
+  const name = root.querySelector('#custName');
+  const phone = root.querySelector('#custPhone');
+  const address = root.querySelector('#custAddress');
+  const date = root.querySelector('#fDate');
+  const time = root.querySelector('#fTime');
+  if (name) state.customer.name = name.value;
+  if (phone) state.customer.phone = phone.value;
+  if (address) state.customer.address = address.value;
+  if (date) state.saleDate = date.value || null;
+  if (time) state.saleTime = time.value || null;
+}
+
+function syncEditDetailsPanel(root, state) {
+  const header = root.querySelector('#editDetailsHeader');
+  const content = root.querySelector('#editDetailsContent');
+  const customerSummary = root.querySelector('#customerSummary');
+  const scheduleSummary = root.querySelector('#scheduleSummary');
+  if (!header || !content || !customerSummary || !scheduleSummary) return;
+
+  header.setAttribute('aria-expanded', String(state.editDetailsExpanded));
+  content.hidden = !state.editDetailsExpanded;
+  customerSummary.hidden = state.editDetailsExpanded;
+  scheduleSummary.hidden = state.editDetailsExpanded;
+  root.querySelector('#editDetailsPanel').dataset.expanded = String(state.editDetailsExpanded);
+  if (!state.editDetailsExpanded) {
+    const customer = state.customer;
+    customerSummary.textContent = `${customer.name || 'Nama belum diisi'}${customer.phone ? ` · ${customer.phone}` : ''}`;
+    scheduleSummary.textContent = `${formatSaleDate(state.saleDate)}${state.saleTime ? ` · ${state.saleTime}` : ''}`;
+  }
 }
 
 function wireScanInput(root, state) {
@@ -492,6 +610,7 @@ async function pickCustomer(root, mode, state, onSave) {
 
   if (selected) {
     state.customer = { id: selected.id || '', name: selected.name, phone: selected.phone || '', address: selected.address || '' };
+    if (mode === 'edit') state.editDetailsExpanded = false;
     draw(root, mode, state, onSave);
   }
 }
