@@ -2,7 +2,7 @@
 
 NotaKu adalah aplikasi kasir dan nota penjualan berbasis web/PWA. Data toko disimpan lokal melalui IndexedDB, sehingga aplikasi tetap dapat dipakai setelah dibuka sekali saat online.
 
-- **Versi saat ini:** v1.7.7
+- **Versi saat ini:** v1.7.8
 - **Versi aplikasi:** buka dari browser atau instal sebagai PWA melalui Chrome/Edge.
 
 ## Cara pakai di HP
