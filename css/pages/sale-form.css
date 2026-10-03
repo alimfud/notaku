@@ -1056,18 +1056,36 @@
   }
 }
 
-/* Ubah Nota: ringkasan pemesan/jadwal tetap terlihat saat panel dilipat. */
-[data-page="sale-edit"] .sale-collapse-heading {
-  align-items:center;
-  margin-bottom:0;
+/* Ubah Nota: pemesan dan jadwal menjadi satu panel horizontal yang dapat dibuka. */
+[data-page="sale-edit"] .sale-edit-details-card {
+  padding:16px;
+  cursor:pointer;
 }
 
-[data-page="sale-edit"] .sale-collapse-title {
+[data-page="sale-edit"] .sale-edit-details-header {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  align-items:start;
+  gap:14px;
+  cursor:pointer;
+}
+
+[data-page="sale-edit"] .sale-edit-summary-column {
   min-width:0;
-  flex:1;
 }
 
-[data-page="sale-edit"] .sale-collapsed-summary {
+[data-page="sale-edit"] .sale-edit-summary-column h2 {
+  margin:2px 0 0;
+  color:var(--ink);
+  font-size:16px;
+  line-height:1.25;
+}
+
+[data-page="sale-edit"] .sale-edit-summary-column .sale-card-kicker {
+  margin-top:2px;
+}
+
+[data-page="sale-edit"] .sale-edit-summary {
   margin:4px 0 0;
   overflow-wrap:anywhere;
   color:var(--muted);
@@ -1075,19 +1093,68 @@
   line-height:1.4;
 }
 
-[data-page="sale-edit"] .sale-collapsible-content[hidden] {
+[data-page="sale-edit"] .sale-edit-details-content[hidden],
+[data-page="sale-edit"] .sale-edit-summary[hidden] {
   display:none;
 }
 
-[data-page="sale-edit"] .sale-collapsible-content:not([hidden]) {
-  margin-top:12px;
-}
-
-[data-page="sale-edit"] .sale-pick-customer-btn {
-  margin-bottom:12px;
-}
-
-[data-page="sale-edit"] .sale-form-card.is-collapsed {
+[data-page="sale-edit"] .sale-edit-details-content:not([hidden]) {
+  display:grid;
+  gap:16px;
+  margin-top:14px;
   padding-top:14px;
-  padding-bottom:14px;
+  border-top:1px solid var(--outline);
+}
+
+[data-page="sale-edit"] .sale-edit-customer-fields,
+[data-page="sale-edit"] .sale-edit-schedule-fields {
+  display:grid;
+  min-width:0;
+  gap:10px;
+}
+
+[data-page="sale-edit"] .sale-edit-customer-fields {
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+}
+
+[data-page="sale-edit"] .sale-edit-customer-fields .sale-pick-customer-btn,
+[data-page="sale-edit"] .sale-edit-customer-fields .sale-address-field {
+  grid-column:1 / -1;
+}
+
+[data-page="sale-edit"] .sale-edit-customer-fields .sale-pick-customer-btn {
+  justify-self:start;
+  margin:0;
+}
+
+[data-page="sale-edit"] .sale-edit-customer-fields .sale-address-field {
+  margin-top:0;
+}
+
+[data-page="sale-edit"] .sale-edit-details-header:focus-visible {
+  outline:2px solid var(--primary);
+  outline-offset:4px;
+  border-radius:8px;
+}
+
+@media(min-width:800px) {
+  [data-page="sale-edit"] .sale-edit-details-content:not([hidden]) {
+    grid-template-columns:minmax(0,1.4fr) minmax(190px,.8fr);
+    align-items:start;
+    gap:20px;
+  }
+}
+
+@media(max-width:380px) {
+  [data-page="sale-edit"] .sale-edit-details-card {
+    padding:14px;
+  }
+
+  [data-page="sale-edit"] .sale-edit-details-header {
+    gap:8px;
+  }
+
+  [data-page="sale-edit"] .sale-edit-summary-column h2 {
+    font-size:14px;
+  }
 }
