@@ -1113,8 +1113,9 @@
   gap:10px;
 }
 
-[data-page="sale-edit"] .sale-edit-customer-fields {
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+[data-page="sale-edit"] .sale-edit-customer-fields,
+[data-page="sale-edit"] .sale-edit-schedule-fields {
+  grid-template-columns:repeat(2,minmax(0,1fr));
 }
 
 [data-page="sale-edit"] .sale-edit-customer-fields .sale-pick-customer-btn,
@@ -1139,7 +1140,7 @@
 
 @media(min-width:800px) {
   [data-page="sale-edit"] .sale-edit-details-content:not([hidden]) {
-    grid-template-columns:minmax(0,1.4fr) minmax(190px,.8fr);
+    grid-template-columns:minmax(0,1.35fr) minmax(235px,.95fr);
     align-items:start;
     gap:20px;
   }
