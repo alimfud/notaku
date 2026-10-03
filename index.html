@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1b2354">
+<meta name="theme-color" content="#791e38">
 <title>NotaKu</title>
 <meta name="description" content="Aplikasi kasir & nota penjualan sederhana.">
 <link rel="manifest" href="manifest.json">
@@ -27,7 +27,14 @@
 <link rel="stylesheet" href="css/theme.css">
 <link rel="stylesheet" href="css/pages/dashboard.css">
 <link rel="stylesheet" href="css/charts.css">
-<link rel="stylesheet" href="css/neo.css">
+<link id="themeNeo" rel="stylesheet" href="css/neo.css" media="not all">
+<script>
+/* Terapkan tema tersimpan sebelum tampil (tanpa kedip). Logika lengkap: js/theme.js */
+(function(){var t='light';try{if(localStorage.getItem('notaku-theme')==='dark')t='dark';}catch(e){}
+document.documentElement.setAttribute('data-theme',t);
+var l=document.getElementById('themeNeo');if(l)l.media=(t==='dark')?'all':'not all';
+var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='dark'?'#1b2354':'#791e38');})();
+</script>
 </head>
 <body>
 
@@ -114,6 +121,8 @@
   <button class="drawer-item" data-route="reports">Laporan</button>
   <div class="drawer-sep"></div>
   <button class="drawer-item" data-route="settings">Setting</button>
+  <div class="drawer-sep"></div>
+  <button class="drawer-item" id="btnDrawerTheme" type="button">🌙 Mode Gelap</button>
 </aside>
 
 <div id="sheetRoot"></div>

@@ -367,4 +367,8 @@
     background:#fff; color:#14151a;
   }
   .print-preview-wrap { background:rgba(8,11,36,.55); border-radius:18px; box-shadow:var(--nv-inset); }
+  /* Pilihan tema di Setting */
+  [data-page="settings"] .settings-theme { background:var(--nv-card); border:1px solid var(--nv-line); border-radius:22px; box-shadow:var(--nv-shadow); }
+  [data-page="settings"] .theme-switch { background:#121843; box-shadow:var(--nv-inset); border-radius:16px; }
+  [data-page="settings"] .theme-switch button.active { background:var(--g-amber); color:var(--navy-text); border-radius:12px; box-shadow:0 6px 14px -3px rgba(255,160,40,.55), inset 0 1px 0 rgba(255,255,255,.6); }
 }

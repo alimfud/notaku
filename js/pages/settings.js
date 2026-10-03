@@ -9,6 +9,7 @@ import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, checkForUpdate } from '../app.js';
 import { APP_VERSION } from '../version.js';
 import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
+import { bindThemeSwitch } from '../theme.js';
 
 export async function render(root, params) {
   const sub = params[0];
@@ -46,12 +47,21 @@ function renderHub(root) {
       <div class="settings-spacer"></div>
       ${tile('☁️', 'Backup / Restore', 'Cadangkan data & impor database lama', 'settings/backup')}
     </div>
+    <div class="settings-theme">
+      <div class="settings-theme-title">Tampilan</div>
+      <div class="settings-theme-sub">Terang memakai tema maroon, Gelap memakai tema Neo.</div>
+      <div class="theme-switch" role="group" aria-label="Pilih tema tampilan">
+        <button type="button" data-theme-choice="light">☀️ Terang</button>
+        <button type="button" data-theme-choice="dark">🌙 Gelap</button>
+      </div>
+    </div>
     <div class="settings-version">NotaKu Web v${APP_VERSION}</div>
     <div class="settings-update-action">
       <button class="btn small secondary" id="btnCheckUpdate">Cek Pembaruan</button>
     </div>
   `;
   root.querySelector('#btnCheckUpdate').onclick = () => checkForUpdate(false);
+  bindThemeSwitch(root);
   root.querySelectorAll('[data-route]').forEach((el) => {
     el.onclick = () => navigate(el.dataset.route);
   });

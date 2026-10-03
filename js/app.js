@@ -1,5 +1,6 @@
 // app.js — bootstrap aplikasi & router SPA.
 import { APP_VERSION } from './version.js';
+import { initTheme } from './theme.js';
 //
 // Kenapa hash router + dynamic import per halaman?
 // - Hash router (#/rute) tidak perlu konfigurasi server apa pun — cocok untuk
@@ -20,6 +21,7 @@ const btnMenu = document.getElementById('btnMenu');
 const bottomnav = document.getElementById('bottomnav');
 const drawer = document.getElementById('drawer');
 const drawerOverlay = document.getElementById('drawerOverlay');
+initTheme();
 
 const TOP_LEVEL_ROUTES = ['dashboard', 'home', 'products', 'customers', 'expenses', 'reports', 'settings'];
 
@@ -159,6 +161,7 @@ document.querySelectorAll('.nav-btn').forEach((btn) => {
   btn.addEventListener('click', () => navigate(btn.dataset.route));
 });
 document.querySelectorAll('.drawer-item').forEach((btn) => {
+  if (!btn.dataset.route) return; // tombol tema ditangani js/theme.js
   btn.addEventListener('click', () => {
     navigate(btn.dataset.route);
     closeDrawer();
