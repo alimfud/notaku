@@ -1055,3 +1055,39 @@
     animation:none;
   }
 }
+
+/* Ubah Nota: ringkasan pemesan/jadwal tetap terlihat saat panel dilipat. */
+[data-page="sale-edit"] .sale-collapse-heading {
+  align-items:center;
+  margin-bottom:0;
+}
+
+[data-page="sale-edit"] .sale-collapse-title {
+  min-width:0;
+  flex:1;
+}
+
+[data-page="sale-edit"] .sale-collapsed-summary {
+  margin:4px 0 0;
+  overflow-wrap:anywhere;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.4;
+}
+
+[data-page="sale-edit"] .sale-collapsible-content[hidden] {
+  display:none;
+}
+
+[data-page="sale-edit"] .sale-collapsible-content:not([hidden]) {
+  margin-top:12px;
+}
+
+[data-page="sale-edit"] .sale-pick-customer-btn {
+  margin-bottom:12px;
+}
+
+[data-page="sale-edit"] .sale-form-card.is-collapsed {
+  padding-top:14px;
+  padding-bottom:14px;
+}
