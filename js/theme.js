@@ -12,8 +12,8 @@ const THEME_LINK = { dark: 'themeNeo', glass: 'themeGlass' };
 export function getTheme() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return THEMES.includes(saved) ? saved : 'dark';
-  } catch { return 'dark'; }
+    return THEMES.includes(saved) ? saved : 'light';
+  } catch { return 'light'; }
 }
 
 export function applyTheme(theme) {
