@@ -1,0 +1,355 @@
+/*
+  NotaKu "Clay" — gaya clay/pastel 3D bergaya referensi (Dashboard musik):
+  latar krem hangat, kartu pastel (mint, peach, kuning mentega, biru abu)
+  yang tampak membulat seperti tanah liat, teks cokelat tua, tombol pil
+  koral, dan panel navigasi hijau mint.
+
+  - Hanya aktif saat tema "Clay" dipilih (link #themeClay diatur js/theme.js).
+  - Hanya berlaku di layar. Struk (.receipt), preview Bluetooth, dan cetak
+    sengaja TIDAK diubah.
+  - Tidak ada perubahan fungsi / JavaScript logika.
+*/
+@media screen {
+  :root {
+    color-scheme:light;
+
+    /* Palet */
+    --ink:#4a3526;
+    --ink-soft:#6f5744;
+    --muted:#9a8470;
+    --surface:#fff6e8;
+    --surface-dim:#f6e6d0;
+    --surface-alt:#efd9be;
+    --outline:rgba(170,125,85,.25);
+    --primary:#e0693f;
+    --primary-container:rgba(240,138,100,.18);
+    --accent:#c4602b;
+    --danger:#cf4a3a;
+    --status-lunas:#2f7a58;
+    --status-partial:#b0750a;
+    --status-unpaid:#c4452f;
+    --status-overpaid:#3a6b9c;
+
+    /* Bahan clay */
+    --cl-bg:#fbf0e0;
+    --cl-card:linear-gradient(160deg,#fffaf0 0%,#fbeedb 100%);
+    --cl-line:rgba(255,255,255,.85);
+    --cl-shadow:0 12px 20px -8px rgba(176,125,85,.40), 0 2px 4px rgba(176,125,85,.12), inset 0 2px 4px rgba(255,255,255,.95), inset 0 -4px 8px rgba(205,160,115,.20);
+    --cl-shadow-sm:0 6px 12px -5px rgba(176,125,85,.40), inset 0 2px 3px rgba(255,255,255,.9), inset 0 -3px 5px rgba(205,160,115,.20);
+    --cl-inset:inset 2px 3px 6px rgba(176,130,90,.30), inset -2px -2px 5px rgba(255,255,255,.85);
+    --cl-coral:linear-gradient(180deg,#f8a67f 0%,#ef7d55 100%);
+    --cl-coral-shadow:0 10px 16px -6px rgba(222,105,65,.60), inset 0 2px 3px rgba(255,255,255,.55), inset 0 -3px 5px rgba(170,70,30,.28);
+    --cl-sage:linear-gradient(180deg,#86bba6 0%,#5d9680 100%);
+    --cl-sage-shadow:0 10px 16px -6px rgba(70,130,105,.55), inset 0 2px 3px rgba(255,255,255,.5), inset 0 -3px 5px rgba(30,80,60,.25);
+    --cl-mint:linear-gradient(160deg,#dbeadb 0%,#cbdfcc 100%);
+    --cl-peach:linear-gradient(160deg,#fcdccd 0%,#f8c8b3 100%);
+    --cl-butter:linear-gradient(160deg,#fff0c8 0%,#fbe3a4 100%);
+    --cl-blue:linear-gradient(160deg,#dbe6ef 0%,#c6d7e6 100%);
+    --cl-panel:linear-gradient(180deg,#d3e6db 0%,#bcd6c8 100%);
+  }
+
+  /* ---------- Latar ---------- */
+  html { background:var(--cl-bg); }
+  body { background:transparent; color:var(--ink); }
+  body::before {
+    content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(50vmax 36vmax at 100% 0%, rgba(250,200,175,.45), transparent 65%),
+      radial-gradient(46vmax 40vmax at 0% 62%, rgba(190,222,205,.45), transparent 65%),
+      radial-gradient(40vmax 30vmax at 90% 100%, rgba(253,230,170,.40), transparent 65%),
+      linear-gradient(180deg,#fdf4e6 0%,#f9e9d3 100%);
+  }
+  #app { background:transparent; box-shadow:none; }
+  ::selection { background:#f6c9a8; color:#4a3526; }
+  ::placeholder { color:var(--muted); opacity:.9; }
+
+  /* ---------- Topbar & navigasi ---------- */
+  #topbar {
+    background:linear-gradient(180deg,#fffaf0 0%,#fbeedb 100%);
+    color:var(--ink); border-bottom:1px solid var(--cl-line);
+    border-radius:0 0 30px 30px;
+    box-shadow:0 12px 20px -10px rgba(176,125,85,.45), inset 0 2px 3px rgba(255,255,255,.95), inset 0 -3px 6px rgba(205,160,115,.18);
+  }
+  #topbar h1 { color:var(--ink); font-weight:800; letter-spacing:-.3px; }
+  #topbar .icon-btn { color:#4f7e6a; }
+  #topbar .icon-btn:active { background:rgba(95,150,128,.18); }
+
+  #bottomnav {
+    background:var(--cl-panel);
+    border:1px solid rgba(255,255,255,.7);
+    box-shadow:0 16px 26px -10px rgba(80,130,110,.55), inset 0 2px 4px rgba(255,255,255,.7), inset 0 -4px 8px rgba(80,130,110,.18);
+  }
+  .nav-btn { color:#4f7566; transition:background .15s ease, box-shadow .15s ease; }
+  .nav-btn.active {
+    color:#2f6a52;
+    background:linear-gradient(180deg,#fffaf0,#fbeedb);
+    box-shadow:0 8px 12px -5px rgba(80,120,100,.55), inset 0 2px 3px #fff, inset 0 -3px 5px rgba(205,160,115,.22);
+  }
+  .nav-btn[data-route="sale/new"] { color:#c4602b; }
+  @media(max-width:799px) {
+    #bottomnav {
+      margin:0 12px calc(env(safe-area-inset-bottom,0px) + 10px);
+      bottom:calc(env(safe-area-inset-bottom,0px) + 10px);
+      padding:8px 6px; border-radius:30px;
+    }
+    .nav-btn[data-route="sale/new"] svg {
+      color:#fff; background:var(--cl-coral);
+      border:4px solid #c9e0d3; border-radius:50%;
+      box-shadow:0 12px 18px -6px rgba(222,105,65,.7), inset 0 2px 3px rgba(255,255,255,.55), inset 0 -3px 5px rgba(170,70,30,.3);
+    }
+    .nav-btn[data-route="sale/new"].active { color:#c4602b; background:transparent; box-shadow:none; }
+    .nav-btn[data-route="sale/new"].active svg { background:var(--cl-coral); }
+  }
+  @media(min-width:800px) {
+    #topbar { margin:12px 12px 0; top:12px; border-radius:26px; }
+    #bottomnav {
+      top:88px; min-height:calc(100vh - 100px); max-height:calc(100vh - 100px);
+      margin:12px 0 12px 12px; border-radius:30px;
+    }
+    .nav-section-label--desktop { color:#5f8574; }
+    .nav-divider--desktop { background:rgba(255,255,255,.55); }
+  }
+
+  /* ---------- Drawer, overlay, popup ---------- */
+  .drawer {
+    background:var(--cl-panel); color:#355f4d; border-radius:0 30px 30px 0;
+    box-shadow:14px 0 34px rgba(110,80,50,.28), inset -2px 0 4px rgba(255,255,255,.5);
+  }
+  .drawer-title { color:#2f5a48; }
+  .drawer-item { color:#3f6b59; }
+  .drawer-item:active { background:rgba(255,255,255,.45); }
+  .drawer-sep { background:rgba(255,255,255,.6); }
+  .drawer-overlay, .sheet-backdrop, .dialog-backdrop { background:rgba(110,80,50,.38); }
+  .sheet, .dialog {
+    background:linear-gradient(180deg,#fffaf0 0%,#fbeedb 100%);
+    color:var(--ink); border:1px solid var(--cl-line);
+    box-shadow:0 -12px 30px rgba(110,80,50,.28), inset 0 2px 4px #fff;
+  }
+  .sheet { border-radius:32px 32px 0 0; border-bottom:0; }
+  .dialog { border-radius:30px; box-shadow:0 22px 44px rgba(110,80,50,.38), inset 0 2px 4px #fff; }
+  .sheet-handle { background:rgba(170,125,85,.35); }
+  .dialog-actions .cancel { color:var(--ink-soft); }
+  .dialog-actions .confirm:not(.dangerous) { background:var(--cl-coral); color:#fff; box-shadow:var(--cl-coral-shadow); }
+  .dialog-actions .confirm.dangerous { background:linear-gradient(180deg,#ee8a7a,#d44f3f); color:#fff; }
+  .dialog-actions button { border-radius:999px; }
+  #toast {
+    background:linear-gradient(180deg,#6fa48f,#4c7f6a); color:#fff; border-radius:20px;
+    border:1px solid rgba(255,255,255,.4);
+    box-shadow:0 12px 20px -6px rgba(60,110,90,.6), inset 0 2px 3px rgba(255,255,255,.4);
+  }
+  #loadingOverlay { background:rgba(251,240,224,.94); }
+  .loading-mark { color:#e0693f; }
+
+  /* ---------- Tombol ---------- */
+  .btn { border-radius:999px; letter-spacing:.1px; }
+  .btn:not(.secondary):not(.danger):not(.ghost), .fab, .dialog-actions .confirm:not(.dangerous) {
+    background:var(--cl-coral); color:#fff;
+  }
+  .btn:not(.secondary):not(.danger):not(.ghost) {
+    border:0; box-shadow:var(--cl-coral-shadow);
+    text-shadow:0 1px 2px rgba(150,60,20,.35); transition:transform .1s ease, box-shadow .12s ease;
+  }
+  .btn:not(.secondary):not(.danger):not(.ghost):active, .fab:active {
+    transform:translateY(2px) scale(.985); opacity:1;
+    box-shadow:0 3px 8px -3px rgba(222,105,65,.55), inset 0 4px 7px rgba(150,60,20,.35);
+  }
+  .btn.secondary { background:var(--cl-card); color:var(--ink); border:1px solid var(--cl-line); box-shadow:var(--cl-shadow-sm); }
+  .btn.danger { background:var(--cl-card); color:#c4452f; border:1px solid rgba(207,74,58,.4); box-shadow:var(--cl-shadow-sm); }
+  .btn.ghost { background:rgba(255,255,255,.35); color:var(--ink-soft); border:1.5px dashed rgba(170,125,85,.45); }
+  .fab { border:0; box-shadow:0 14px 22px -8px rgba(222,105,65,.7), inset 0 2px 3px rgba(255,255,255,.55), inset 0 -4px 6px rgba(170,70,30,.3); }
+
+  /* ---------- Kartu clay ---------- */
+  [data-page="home"] #notaList,
+  [data-page="customers"] .list,
+  [data-page="expenses"] .list,
+  [data-page="expenses"] .expense-page .expense-list,
+  [data-page="dashboard"] .dashboard-orders,
+  [data-page="dashboard"] .dashboard-attention,
+  [data-page="dashboard"] .business-chart,
+  .business-chart,
+  [data-page="reports"] .reports-product-card,
+  [data-page="reports"] .reports-year-card,
+  [data-page="reports"] .reports-layout-25,
+  [data-page="reports"] .reports-layout-5,
+  [data-page="reports"] .reports-layout-9,
+  [data-page="reports"] .reports-layout-20,
+  #pageRoot[data-page="settings"][data-section="hub"] .settings-hub,
+  #pageRoot[data-page="settings"][data-section="printer"] .settings-printer-section,
+  #pageRoot[data-page="settings"][data-section="qris"] .settings-content,
+  #pageRoot[data-page="settings"][data-section="store"] .settings-privacy,
+  #pageRoot[data-page="settings"]:is([data-section="backup"], [data-section="autobackup"]) .settings-section-bottom,
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-form-card,
+  [data-page="sale-detail"] .sale-detail-share-options,
+  [data-page="settings"] .settings-theme {
+    background:var(--cl-card); border:1px solid var(--cl-line); border-radius:28px; box-shadow:var(--cl-shadow);
+  }
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-suggestions {
+    background:#fff8ec; border:1px solid var(--cl-line); border-radius:20px; box-shadow:var(--cl-shadow);
+  }
+  [data-page="customers"] .customer-card,
+  [data-page="products"] #pList .row {
+    background:var(--cl-card); border:1px solid var(--cl-line); border-radius:22px; box-shadow:var(--cl-shadow);
+  }
+  .row:active, .settings-tile:active, [data-page="customers"] .customer-card:active { background:rgba(246,198,160,.25); }
+  .row { color:var(--ink); }
+  .settings-tile, .field { background:transparent; }
+  .total-box { background:var(--cl-mint); border:1px solid var(--cl-line); border-radius:24px; box-shadow:var(--cl-shadow); }
+  .info-card { background:var(--cl-butter); border:1px solid var(--cl-line); border-radius:22px; box-shadow:var(--cl-shadow); }
+  .info-card .info-title { color:#8a5a00; }
+  .receipt-alert { background:var(--cl-butter); border:1px solid var(--cl-line); }
+  .receipt-alert-action { border-color:#c4602b; color:#c4602b; }
+
+  .sale-checkout,
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-checkout {
+    background:linear-gradient(180deg,#fffaf0,#fbeedb) !important;
+    border-top:1px solid var(--cl-line); border-radius:30px 30px 0 0;
+    box-shadow:0 -12px 26px rgba(110,80,50,.25), inset 0 2px 4px #fff;
+  }
+  :is([data-page="sale-new"], [data-page="sale-edit"]) {
+    --sale-card-bg:#fff6e8;
+    --sale-soft-bg:#f6e6d0;
+    --sale-shadow:0 12px 20px -10px rgba(176,125,85,.45);
+  }
+  [data-page="products"].product-form-sheet .product-sheet-actions,
+  [data-page="expenses"].expense-form-sheet .expense-sheet-actions,
+  [data-page="customers"].customer-form-sheet .customer-sheet-actions,
+  :is([data-page="sale-new"], [data-page="sale-edit"]).sale-adjustments-sheet .sale-sheet-actions,
+  :is([data-page="sale-new"], [data-page="sale-edit"]):is(.sale-item-edit-sheet, .sale-item-new-sheet) .sale-sheet-actions,
+  [data-page="sale-detail"] .sale-detail-sheet-footer {
+    background:#fdf1df; border-top:1px solid var(--cl-line);
+  }
+  [data-page="products"].product-form-sheet .product-form-fields,
+  [data-page="expenses"].expense-form-sheet .expense-form-fields,
+  [data-page="customers"].customer-form-sheet .customer-form-fields,
+  [data-page="sale-detail"] .sale-detail-sheet-field {
+    background:rgba(255,255,255,.5); border:1px solid var(--cl-line); border-radius:20px;
+  }
+
+  /* ---------- Input & chip ---------- */
+  .search-input,
+  [data-page="products"] .products-search,
+  [data-page="customers"] .customers-search {
+    background:#f7e9d6; border:0; border-radius:999px; box-shadow:var(--cl-inset); color:var(--ink);
+  }
+  .search-input:focus { outline:2px solid rgba(224,105,63,.5); outline-offset:0; }
+  .field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible { outline:2px solid rgba(224,105,63,.5); outline-offset:3px; border-radius:6px; }
+  [data-page="customers"].customer-form-sheet :is(input,textarea),
+  [data-page="home"] .home-layout-3 { background:#f7e9d6; border-color:transparent; color:var(--ink); box-shadow:var(--cl-inset); }
+  .chip { background:var(--cl-card); border:1px solid var(--cl-line); color:var(--ink-soft); border-radius:999px; box-shadow:var(--cl-shadow-sm); }
+  .chip.active, [data-page="reports"] .reports-layout-1 .chip.active {
+    background:var(--cl-sage); border-color:transparent; color:#fff; font-weight:700;
+    text-shadow:0 1px 2px rgba(30,80,60,.35); box-shadow:var(--cl-sage-shadow);
+  }
+  [data-page="reports"] .reports-view-tabs { background:#f7e9d6; border:0; border-radius:999px; box-shadow:var(--cl-inset); }
+  [data-page="reports"] .reports-view-tabs button.active { background:var(--cl-sage); color:#fff; border-radius:999px; box-shadow:var(--cl-sage-shadow); }
+
+  /* ---------- Kartu berwarna ---------- */
+  [data-page="dashboard"] .dashboard-hero,
+  [data-page="reports"] .reports-layout-15 {
+    background:linear-gradient(150deg,#79b09b 0%,#5d9680 55%,#4d8670 100%); color:#fff;
+    border:1px solid rgba(255,255,255,.5); border-radius:32px;
+    box-shadow:0 20px 28px -12px rgba(70,130,105,.65), inset 0 3px 5px rgba(255,255,255,.45), inset 0 -5px 10px rgba(30,80,60,.22);
+  }
+  .summary-card, [data-page="expenses"] .expense-summary {
+    background:linear-gradient(150deg,#f6a27d 0%,#ee7f58 55%,#e46a42 100%); color:#fff;
+    border:1px solid rgba(255,255,255,.5); border-radius:30px;
+    box-shadow:0 20px 28px -12px rgba(222,105,65,.65), inset 0 3px 5px rgba(255,255,255,.45), inset 0 -5px 10px rgba(150,60,20,.22);
+    text-shadow:0 1px 2px rgba(130,50,15,.3);
+  }
+  .summary-label, [data-page="dashboard"] .dashboard-label { color:rgba(255,255,255,.92); }
+  [data-page="dashboard"] .dashboard-primary-action { background:var(--cl-coral); color:#fff; border:0; border-radius:999px; padding:8px 16px 8px 12px; box-shadow:var(--cl-coral-shadow); text-shadow:0 1px 2px rgba(150,60,20,.35); }
+  [data-page="home"] .home-dashboard-filter { background:var(--cl-butter); border:1px solid var(--cl-line); color:#8a5a00; border-radius:18px; box-shadow:var(--cl-shadow-sm); }
+  [data-page="home"] .home-dashboard-filter button { background:var(--cl-coral); color:#fff; border-radius:999px; padding:5px 10px; }
+  [data-page="home"] .row-status { background:rgba(170,125,85,.14); }
+
+  /* Akses cepat: kartu pastel + ikon clay */
+  [data-page="dashboard"] .dashboard-shortcuts button:nth-child(1) { background:var(--cl-mint); }
+  [data-page="dashboard"] .dashboard-shortcuts button:nth-child(2) { background:var(--cl-peach); }
+  [data-page="dashboard"] .dashboard-shortcuts button:nth-child(3) { background:var(--cl-butter); }
+  [data-page="dashboard"] .dashboard-shortcuts button:nth-child(4) { background:var(--cl-blue); }
+  [data-page="dashboard"] .dashboard-shortcuts button:nth-child(1),
+  [data-page="dashboard"] .dashboard-shortcuts button:nth-child(2),
+  [data-page="dashboard"] .dashboard-shortcuts button:nth-child(3),
+  [data-page="dashboard"] .dashboard-shortcuts button:nth-child(4) {
+    border:1px solid var(--cl-line); border-radius:26px; color:var(--ink); box-shadow:var(--cl-shadow);
+  }
+  [data-page="dashboard"] .dashboard-shortcut-icon,
+  [data-page="dashboard"] .dashboard-shortcuts button:nth-child(n) .dashboard-shortcut-icon { color:#fff; border-radius:16px; border:0; }
+  [data-page="dashboard"] .dashboard-shortcuts button:nth-child(1) .dashboard-shortcut-icon { background:var(--cl-sage); box-shadow:var(--cl-sage-shadow); }
+  [data-page="dashboard"] .dashboard-shortcuts button:nth-child(2) .dashboard-shortcut-icon { background:var(--cl-coral); box-shadow:var(--cl-coral-shadow); }
+  [data-page="dashboard"] .dashboard-shortcuts button:nth-child(3) .dashboard-shortcut-icon { background:linear-gradient(180deg,#fbcf63,#f0a92c); box-shadow:0 10px 16px -6px rgba(225,155,30,.6), inset 0 2px 3px rgba(255,255,255,.55), inset 0 -3px 5px rgba(150,95,0,.25); }
+  [data-page="dashboard"] .dashboard-shortcuts button:nth-child(4) .dashboard-shortcut-icon { background:linear-gradient(180deg,#9bbbd8,#6f97bd); box-shadow:0 10px 16px -6px rgba(90,130,175,.6), inset 0 2px 3px rgba(255,255,255,.55), inset 0 -3px 5px rgba(30,70,110,.25); }
+
+  /* Perlu perhatian */
+  [data-page="dashboard"] .dashboard-attention::after { border-color:rgba(255,255,255,.55); }
+  [data-page="dashboard"] .dashboard-attention-list { border-top-color:var(--outline); }
+  [data-page="dashboard"] .dashboard-attention-item:nth-child(2) { border-left-color:var(--outline); }
+  @media(max-width:390px) { [data-page="dashboard"] .dashboard-attention-item:nth-child(2) { border-top-color:var(--outline); } }
+  [data-page="dashboard"] .dashboard-attention-icon { background:var(--cl-coral); color:#fff; border-radius:14px; box-shadow:var(--cl-coral-shadow); }
+  [data-page="dashboard"] .dashboard-attention button:nth-child(2) .dashboard-attention-icon { background:linear-gradient(180deg,#fbcf63,#f0a92c); color:#fff; box-shadow:0 8px 12px -5px rgba(225,155,30,.6), inset 0 2px 3px rgba(255,255,255,.55); }
+  [data-page="dashboard"] .dashboard-attention-action strong { color:#c4602b; }
+
+  /* ---------- Avatar, foto, ikon, lencana ---------- */
+  .avatar,
+  [data-page="customers"] .customer-card .avatar,
+  [data-page="dashboard"] .dashboard-orders .avatar { background:var(--cl-coral); color:#fff; border:0; box-shadow:var(--cl-coral-shadow); }
+  [data-page="customers"] .customer-card:nth-child(3n+2) .avatar { background:var(--cl-sage); box-shadow:var(--cl-sage-shadow); color:#fff; }
+  [data-page="customers"] .customer-card:nth-child(3n+3) .avatar { background:linear-gradient(180deg,#fbcf63,#f0a92c); color:#fff; box-shadow:0 10px 14px -6px rgba(225,155,30,.6), inset 0 2px 3px rgba(255,255,255,.55); }
+  [data-page="products"] .product-photo { background:var(--cl-peach); color:#b0532b; box-shadow:var(--cl-shadow-sm); }
+  [data-page="products"] .row:nth-child(3n+2) .product-photo { background:var(--cl-mint); color:#3f7a63; }
+  [data-page="products"] .row:nth-child(3n+3) .product-photo { background:var(--cl-butter); color:#9a6a00; }
+  .settings-tile .icon-box { box-shadow:var(--cl-shadow-sm); border:1px solid var(--cl-line); }
+  .settings-tile:nth-child(4n+1) .icon-box { background:var(--cl-mint); color:#3f7a63; }
+  .settings-tile:nth-child(4n+2) .icon-box { background:var(--cl-peach); color:#c4602b; }
+  .settings-tile:nth-child(4n+3) .icon-box { background:var(--cl-butter); color:#9a6a00; }
+  .settings-tile:nth-child(4n) .icon-box { background:var(--cl-blue); color:#3a6b9c; }
+
+  .payment-badge { background:var(--cl-butter); color:#8a5a00; border:1px solid rgba(255,255,255,.8); border-radius:999px; padding:3px 10px; box-shadow:var(--cl-shadow-sm); }
+  .payment-badge[data-status="PAID"] { background:var(--cl-mint); color:#2d6e50; }
+  .payment-badge[data-status="UNPAID"] { background:var(--cl-peach); color:#a8432f; }
+  .payment-badge[data-status="OVERPAID"] { background:var(--cl-blue); color:#2f5f8f; }
+
+  /* ---------- Laporan ---------- */
+  [data-page="reports"] .reports-metric--revenue,
+  [data-page="reports"] .reports-overall-metric--received { background:var(--cl-peach); border-color:var(--cl-line); box-shadow:var(--cl-shadow); }
+  [data-page="reports"] .reports-metric--transactions { background:var(--cl-mint); border-color:var(--cl-line); box-shadow:var(--cl-shadow); }
+  [data-page="reports"] .reports-metric--expenses,
+  [data-page="reports"] .reports-overall-metric--expenses { background:linear-gradient(160deg,#fcd3d0 0%,#f6bcb6 100%); border-color:var(--cl-line); box-shadow:var(--cl-shadow); }
+  [data-page="reports"] .reports-metric--net,
+  [data-page="reports"] .reports-overall-metric--net { background:var(--cl-blue); border-color:var(--cl-line); box-shadow:var(--cl-shadow); }
+  [data-page="reports"] .reports-metric--receivable,
+  [data-page="reports"] .reports-overall-metric--receivable { background:var(--cl-butter); border-color:var(--cl-line); box-shadow:var(--cl-shadow); }
+  [data-page="reports"] .reports-metric--transactions .reports-layout-7,
+  [data-page="reports"] .reports-overall-metric--received .reports-layout-22 { color:#2d6e50; }
+  [data-page="reports"] .reports-metric--expenses .reports-layout-8,
+  [data-page="reports"] .reports-overall-metric--expenses .reports-layout-23 { color:#a8392f; }
+  [data-page="reports"] .reports-metric--net .reports-layout-7,
+  [data-page="reports"] .reports-overall-metric--net .reports-layout-24 { color:#2f5f8f; }
+
+  /* ---------- Detail nota & pengaturan ---------- */
+  [data-page="sale-detail"] .sale-detail-receipt-wrap { background:#f1dfc6; border-radius:26px; box-shadow:var(--cl-inset); }
+  [data-page="sale-detail"] .sale-detail-payment-row { background:var(--cl-card); border:1px solid var(--cl-line); border-radius:20px; box-shadow:var(--cl-shadow-sm); }
+  [data-page="sale-detail"] .sale-detail-payment-icon { background:var(--cl-mint); color:#3f7a63; }
+  [data-page="sale-detail"] .sale-detail-payment-trailing strong { color:#c4602b; }
+  [data-page="settings"] .settings-logo-control output { background:var(--cl-coral); color:#fff; }
+  [data-page="settings"] #logoMaxWidth::-webkit-slider-thumb { background:#ef7d55; }
+  [data-page="settings"] #logoMaxWidth::-moz-range-thumb { background:#ef7d55; }
+  [data-page="settings"] .theme-switch { background:#f7e9d6; box-shadow:var(--cl-inset); border-radius:999px; }
+  [data-page="settings"] .theme-switch button { border-radius:999px; }
+  [data-page="settings"] .theme-switch button.active { background:var(--cl-coral); color:#fff; box-shadow:var(--cl-coral-shadow); }
+
+  /* ---------- Grafik ---------- */
+  .business-bars { background:repeating-linear-gradient(to top,transparent 0,transparent 76px,rgba(170,125,85,.22) 77px,rgba(170,125,85,.22) 78px); }
+  .business-day-label { background:transparent; }
+  .business-day[aria-pressed="true"] { background:rgba(240,138,100,.2); border-radius:10px; }
+  .business-column-3d > i { border-radius:8px 8px 4px 4px; box-shadow:inset 0 2px 3px rgba(255,255,255,.55), inset 0 -3px 4px rgba(120,70,30,.18); }
+  .business-donut > div { background:#fff6e8; box-shadow:var(--cl-inset); }
+
+  /* ---------- Struk tetap putih (tidak diubah) ---------- */
+  .receipt {
+    --ink:#14151a; --ink-soft:#44474a; --muted:#8a8d91; --outline:#e1e2de;
+    --accent:#c6512e; --status-lunas:#2f6b4f; --primary:#791e38; --surface:#fff; --surface-dim:#f5f5f3;
+    background:#fff; color:#14151a;
+  }
+  .print-preview-wrap { background:#f1dfc6; border-radius:22px; box-shadow:var(--cl-inset); }
+}

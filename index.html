@@ -29,13 +29,15 @@
 <link rel="stylesheet" href="css/charts.css">
 <link id="themeNeo" rel="stylesheet" href="css/neo.css" media="not all">
 <link id="themeGlass" rel="stylesheet" href="css/glass.css" media="not all">
+<link id="themeClay" rel="stylesheet" href="css/clay.css" media="not all">
 <script>
 /* Terapkan tema tersimpan sebelum tampil (tanpa kedip). Logika lengkap: js/theme.js */
-(function(){var t='dark';try{var v=localStorage.getItem('notaku-theme');if(v==='dark'||v==='glass')t=v;}catch(e){}
+(function(){var t='dark';try{var v=localStorage.getItem('notaku-theme');if(v==='light'||v==='dark'||v==='glass'||v==='clay')t=v;}catch(e){}
 document.documentElement.setAttribute('data-theme',t);
 var n=document.getElementById('themeNeo');if(n)n.media=(t==='dark')?'all':'not all';
 var g=document.getElementById('themeGlass');if(g)g.media=(t==='glass')?'all':'not all';
-var c={light:'#791e38',dark:'#1b2354',glass:'#bcd9f2'};
+var y=document.getElementById('themeClay');if(y)y.media=(t==='clay')?'all':'not all';
+var c={light:'#791e38',dark:'#1b2354',glass:'#bcd9f2',clay:'#fbf0e0'};
 var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c[t]);})();
 </script>
 </head>

@@ -1,23 +1,24 @@
-// theme.js — pilihan tema tampilan: "light" (maroon asli), "dark" (Neo), "glass" (kaca biru).
+// theme.js — pilihan tema tampilan: "light" (maroon asli), "dark" (Neo), "glass" (kaca biru), "clay" (pastel 3D).
 // Pilihan disimpan per perangkat di localStorage agar bisa diterapkan sebelum
 // halaman tampil (tanpa kedip). Tidak menyentuh data usaha / IndexedDB.
 const STORAGE_KEY = 'notaku-theme';
-const THEMES = ['light', 'dark', 'glass'];
-const THEME_LABEL = { light: 'Terang', dark: 'Gelap', glass: 'Glass' };
-const THEME_ICON = { light: '☀️', dark: '🌙', glass: '💎' };
-const THEME_COLOR = { light: '#791e38', dark: '#1b2354', glass: '#bcd9f2' };
+const THEMES = ['light', 'dark', 'glass', 'clay'];
+const DEFAULT_THEME = 'dark';
+const THEME_LABEL = { light: 'Terang', dark: 'Gelap', glass: 'Glass', clay: 'Clay' };
+const THEME_ICON = { light: '☀️', dark: '🌙', glass: '💎', clay: '🧸' };
+const THEME_COLOR = { light: '#791e38', dark: '#1b2354', glass: '#bcd9f2', clay: '#fbf0e0' };
 // Stylesheet tambahan per tema (tema "light" tidak butuh tambahan).
-const THEME_LINK = { dark: 'themeNeo', glass: 'themeGlass' };
+const THEME_LINK = { dark: 'themeNeo', glass: 'themeGlass', clay: 'themeClay' };
 
 export function getTheme() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return THEMES.includes(saved) ? saved : 'light';
-  } catch { return 'light'; }
+    return THEMES.includes(saved) ? saved : DEFAULT_THEME;
+  } catch { return DEFAULT_THEME; }
 }
 
 export function applyTheme(theme) {
-  const t = THEMES.includes(theme) ? theme : 'light';
+  const t = THEMES.includes(theme) ? theme : DEFAULT_THEME;
   document.documentElement.dataset.theme = t;
   Object.entries(THEME_LINK).forEach(([name, id]) => {
     const link = document.getElementById(id);
@@ -29,12 +30,12 @@ export function applyTheme(theme) {
 }
 
 export function setTheme(theme) {
-  const t = THEMES.includes(theme) ? theme : 'light';
+  const t = THEMES.includes(theme) ? theme : DEFAULT_THEME;
   try { localStorage.setItem(STORAGE_KEY, t); } catch { /* penyimpanan dinonaktifkan */ }
   applyTheme(t);
 }
 
-// Ganti ke tema berikutnya: Terang → Gelap → Glass → Terang.
+// Ganti ke tema berikutnya: Terang → Gelap → Glass → Clay → Terang.
 export function cycleTheme() {
   setTheme(THEMES[(THEMES.indexOf(getTheme()) + 1) % THEMES.length]);
 }
