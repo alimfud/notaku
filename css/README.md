@@ -3,7 +3,8 @@
 - `style.css`: komponen dasar bersama (navigasi, tombol, popup, struktur field).
 - `theme.css`: tema marun berwarna dan navigasi responsif; palet layar tidak mengubah warna struk.
 - `pages/dashboard.css`: beranda ringkasan usaha, akses cepat, dan jadwal pengambilan.
-- `neo.css`: tema "Neo Dark" 3D (navy, tombol pil gradasi amber/oranye/koral, kartu berbayangan lembut); hanya aktif saat pengguna memilih mode Gelap (Setting atau menu samping); mode Terang memakai tema maroon asli. Struk tidak diubah.
+- `neo.css`: tema "Neo Dark" 3D (navy, tombol pil gradasi amber/oranye/koral, kartu berbayangan lembut); hanya aktif saat pengguna memilih tema Gelap (Setting atau menu samping); tema Terang memakai maroon asli. Struk tidak diubah.
+- `glass.css`: tema "Glass" (kaca buram biru muda, tombol pil gradasi biru-cyan); hanya aktif saat dipilih di Setting atau menu samping. Struk tidak diubah.
 - `charts.css`: grafik harian dan diagram status pembayaran pada Beranda/Laporan, tanpa dependensi jaringan.
 - `pages/home.css`: daftar nota, tanggal, dan nomor invoice.
 - `pages/products.css`: daftar produk dan popup tambah/ubah produk.

@@ -49,10 +49,11 @@ function renderHub(root) {
     </div>
     <div class="settings-theme">
       <div class="settings-theme-title">Tampilan</div>
-      <div class="settings-theme-sub">Terang memakai tema maroon, Gelap memakai tema Neo.</div>
+      <div class="settings-theme-sub">Terang (maroon), Gelap (Neo), atau Glass (kaca biru).</div>
       <div class="theme-switch" role="group" aria-label="Pilih tema tampilan">
         <button type="button" data-theme-choice="light">☀️ Terang</button>
         <button type="button" data-theme-choice="dark">🌙 Gelap</button>
+        <button type="button" data-theme-choice="glass">💎 Glass</button>
       </div>
     </div>
     <div class="settings-version">NotaKu Web v${APP_VERSION}</div>

@@ -28,12 +28,15 @@
 <link rel="stylesheet" href="css/pages/dashboard.css">
 <link rel="stylesheet" href="css/charts.css">
 <link id="themeNeo" rel="stylesheet" href="css/neo.css" media="not all">
+<link id="themeGlass" rel="stylesheet" href="css/glass.css" media="not all">
 <script>
 /* Terapkan tema tersimpan sebelum tampil (tanpa kedip). Logika lengkap: js/theme.js */
-(function(){var t='light';try{if(localStorage.getItem('notaku-theme')==='dark')t='dark';}catch(e){}
+(function(){var t='light';try{var v=localStorage.getItem('notaku-theme');if(v==='dark'||v==='glass')t=v;}catch(e){}
 document.documentElement.setAttribute('data-theme',t);
-var l=document.getElementById('themeNeo');if(l)l.media=(t==='dark')?'all':'not all';
-var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='dark'?'#1b2354':'#791e38');})();
+var n=document.getElementById('themeNeo');if(n)n.media=(t==='dark')?'all':'not all';
+var g=document.getElementById('themeGlass');if(g)g.media=(t==='glass')?'all':'not all';
+var c={light:'#791e38',dark:'#1b2354',glass:'#bcd9f2'};
+var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c[t]);})();
 </script>
 </head>
 <body>
@@ -122,7 +125,7 @@ var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('co
   <div class="drawer-sep"></div>
   <button class="drawer-item" data-route="settings">Setting</button>
   <div class="drawer-sep"></div>
-  <button class="drawer-item" id="btnDrawerTheme" type="button">🌙 Mode Gelap</button>
+  <button class="drawer-item" id="btnDrawerTheme" type="button">🎨 Tema</button>
 </aside>
 
 <div id="sheetRoot"></div>
