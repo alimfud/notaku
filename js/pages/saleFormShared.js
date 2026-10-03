@@ -30,6 +30,8 @@ export async function renderSaleForm(root, mode, initial, onSave) {
     stepperQty: 1,
     products: await getAllProducts(),
     saving: false,
+    customerExpanded: mode !== 'edit',
+    scheduleExpanded: mode !== 'edit',
   };
 
   draw(root, mode, state, onSave);
@@ -59,47 +61,56 @@ function draw(root, mode, state, onSave) {
 
   root.innerHTML = `
     <div class="sale-form">
-      <section class="sale-form-card sale-customer-card">
-        <div class="sale-card-heading">
-          <div>
-            <div class="sale-card-kicker"></div>
+      <section class="sale-form-card sale-customer-card ${mode === 'edit' && !state.customerExpanded ? 'is-collapsed' : ''}">
+        <div class="sale-card-heading sale-collapse-heading">
+          <div class="sale-collapse-title">
             <h2>Informasi pemesan</h2>
+            ${mode === 'edit' && !state.customerExpanded ? `<p class="sale-collapsed-summary">${escapeHtml(c.name || 'Nama belum diisi')}${c.phone ? ` · ${escapeHtml(c.phone)}` : ''}</p>` : ''}
           </div>
-          <button id="pickCustomerBtn" class="sale-text-btn" type="button">Pilih dari daftar</button>
+          ${mode === 'edit'
+            ? `<button id="toggleCustomerEditBtn" class="sale-text-btn" type="button" aria-expanded="${state.customerExpanded}">${state.customerExpanded ? 'Selesai' : 'Edit'}</button>`
+            : '<button id="pickCustomerBtn" class="sale-text-btn" type="button">Pilih dari daftar</button>'}
         </div>
 
-        <div class="sale-field-grid sale-field-grid-2">
-          <label class="sale-input-field">
-            <span>Nama pelanggan</span>
-            <input id="custName" value="${escapeHtml(c.name)}" placeholder="Masukkan nama" autocomplete="name">
+        <div class="sale-collapsible-content" ${mode === 'edit' && !state.customerExpanded ? 'hidden' : ''}>
+          ${mode === 'edit' ? '<button id="pickCustomerBtn" class="sale-text-btn sale-pick-customer-btn" type="button">Pilih dari daftar</button>' : ''}
+          <div class="sale-field-grid sale-field-grid-2">
+            <label class="sale-input-field">
+              <span>Nama pelanggan</span>
+              <input id="custName" value="${escapeHtml(c.name)}" placeholder="Masukkan nama" autocomplete="name">
+            </label>
+            <label class="sale-input-field">
+              <span>No. WhatsApp <em>Opsional</em></span>
+              <input id="custPhone" value="${escapeHtml(c.phone)}" placeholder="08xxxxxxxxxx" inputmode="tel" autocomplete="tel">
+            </label>
+          </div>
+          <label class="sale-input-field sale-address-field">
+            <span>Alamat <em>Opsional</em></span>
+            <input id="custAddress" value="${escapeHtml(c.address)}" placeholder="Masukkan alamat pelanggan" autocomplete="street-address">
           </label>
-          <label class="sale-input-field">
-            <span>No. WhatsApp <em>Opsional</em></span>
-            <input id="custPhone" value="${escapeHtml(c.phone)}" placeholder="08xxxxxxxxxx" inputmode="tel" autocomplete="tel">
-          </label>
+          <p class="sale-helper"></p>
         </div>
-        <label class="sale-input-field sale-address-field">
-          <span>Alamat <em>Opsional</em></span>
-          <input id="custAddress" value="${escapeHtml(c.address)}" placeholder="Masukkan alamat pelanggan" autocomplete="street-address">
-        </label>
-        <p class="sale-helper"></p>
       </section>
 
-      <section class="sale-form-card sale-schedule-card">
-        <div class="sale-card-heading sale-card-heading-compact">
-          <div>
+      <section class="sale-form-card sale-schedule-card ${mode === 'edit' && !state.scheduleExpanded ? 'is-collapsed' : ''}">
+        <div class="sale-card-heading sale-card-heading-compact sale-collapse-heading">
+          <div class="sale-collapse-title">
             <div class="sale-card-kicker">Jadwal</div>
+            ${mode === 'edit' && !state.scheduleExpanded ? `<p class="sale-collapsed-summary">${escapeHtml(state.saleDate || 'Tanggal belum diisi')}${state.saleTime ? ` · ${escapeHtml(state.saleTime)}` : ''}</p>` : ''}
           </div>
+          ${mode === 'edit' ? `<button id="toggleScheduleEditBtn" class="sale-text-btn" type="button" aria-expanded="${state.scheduleExpanded}">${state.scheduleExpanded ? 'Selesai' : 'Edit'}</button>` : ''}
         </div>
-        <div class="sale-field-grid sale-field-grid-2">
-          <label class="sale-input-field">
-            <span>Tanggal pengambilan</span>
-            <input id="fDate" type="date" value="${state.saleDate || ''}" required>
-          </label>
-          <label class="sale-input-field">
-            <span>Jam pengambilan</span>
-            <input id="fTime" type="time" value="${state.saleTime || ''}" required>
-          </label>
+        <div class="sale-collapsible-content" ${mode === 'edit' && !state.scheduleExpanded ? 'hidden' : ''}>
+          <div class="sale-field-grid sale-field-grid-2">
+            <label class="sale-input-field">
+              <span>Tanggal pengambilan</span>
+              <input id="fDate" type="date" value="${state.saleDate || ''}" required>
+            </label>
+            <label class="sale-input-field">
+              <span>Jam pengambilan</span>
+              <input id="fTime" type="time" value="${state.saleTime || ''}" required>
+            </label>
+          </div>
         </div>
       </section>
 
@@ -167,13 +178,21 @@ function draw(root, mode, state, onSave) {
   drawLines(root, state);
   wireScanInput(root, state);
 
-  root.querySelector('#custName').oninput = (e) => { state.customer.name = e.target.value; };
-  root.querySelector('#custAddress').oninput = (e) => { state.customer.address = e.target.value; };
-  root.querySelector('#custPhone').oninput = (e) => { state.customer.phone = e.target.value; };
-  root.querySelector('#pickCustomerBtn').onclick = () => pickCustomer(root, mode, state, onSave);
+  root.querySelector('#custName')?.addEventListener('input', (e) => { state.customer.name = e.target.value; });
+  root.querySelector('#custAddress')?.addEventListener('input', (e) => { state.customer.address = e.target.value; });
+  root.querySelector('#custPhone')?.addEventListener('input', (e) => { state.customer.phone = e.target.value; });
+  root.querySelector('#pickCustomerBtn')?.addEventListener('click', () => pickCustomer(root, mode, state, onSave));
+  root.querySelector('#toggleCustomerEditBtn')?.addEventListener('click', () => {
+    state.customerExpanded = !state.customerExpanded;
+    draw(root, mode, state, onSave);
+  });
+  root.querySelector('#toggleScheduleEditBtn')?.addEventListener('click', () => {
+    state.scheduleExpanded = !state.scheduleExpanded;
+    draw(root, mode, state, onSave);
+  });
 
-  root.querySelector('#fDate').onchange = (e) => { state.saleDate = e.target.value; };
-  root.querySelector('#fTime').onchange = (e) => { state.saleTime = e.target.value; };
+  root.querySelector('#fDate')?.addEventListener('change', (e) => { state.saleDate = e.target.value; });
+  root.querySelector('#fTime')?.addEventListener('change', (e) => { state.saleTime = e.target.value; });
 
   root.querySelector('#adjustmentsBtn').onclick = () => editAdjustments(root, mode, state, onSave);
   root.querySelector('#manualItemBtn').onclick = () => addManualItem(root, mode, state, onSave);
@@ -492,6 +511,7 @@ async function pickCustomer(root, mode, state, onSave) {
 
   if (selected) {
     state.customer = { id: selected.id || '', name: selected.name, phone: selected.phone || '', address: selected.address || '' };
+    if (mode === 'edit') state.customerExpanded = false;
     draw(root, mode, state, onSave);
   }
 }
