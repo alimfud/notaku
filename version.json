@@ -1,4 +1,4 @@
 {
-  "version": "1.11.0",
-  "notes": "Menu bawah baru bergaya notch + bubble yang meluncur, mengikuti warna tiap tema."
+  "version": "1.12.0",
+  "notes": "Animasi di seluruh aplikasi: halaman masuk berurutan, riak sentuh, switch pegas, sheet/dialog/drawer halus, angka menghitung naik."
 }
