@@ -5,6 +5,7 @@ import { uid, dbDate, timeLabel, todayDbDate } from '../format.js';
 import { calculateSubtotal, computeAdjustments, defaultAdjustments, resolveStatus } from './saleCalculation.js';
 import { generateAndAdvance } from './invoiceNumber.js';
 import { saveCustomer } from './customerService.js';
+import { getSaleProductPriceUpdates } from './productService.js';
 import { isSettlementDue, settlementChanges } from './automaticSettlement.js';
 
 export class AppError extends Error {
@@ -96,6 +97,8 @@ export async function createSale({ customer, lines, adjustments = null, discount
     }));
 
     const writes = { sales: [sale], saleItems: items };
+    const productUpdates = await getSaleProductPriceUpdates(lines);
+    if (productUpdates.length) writes.products = productUpdates;
     if (initialPayment > 0) {
       writes.payments = [{
         id: uid(),
@@ -260,8 +263,11 @@ export async function updateSale(saleId, { customer, lines, adjustments = null, 
 
     // Ganti seluruh baris item lama dengan yang baru (lebih sederhana &
     // aman daripada mencocokkan satu-satu item mana yang berubah).
+    const writes = { sales: [updatedSale], saleItems: newItems };
+    const productUpdates = await getSaleProductPriceUpdates(lines);
+    if (productUpdates.length) writes.products = productUpdates;
     await db.removeByIndex('saleItems', 'saleId', saleId);
-    await db.bulkPutMulti({ sales: [updatedSale], saleItems: newItems });
+    await db.bulkPutMulti(writes);
   } catch (e) {
     if (e instanceof AppError) throw e;
     console.error('[SaleService.updateSale]', e);

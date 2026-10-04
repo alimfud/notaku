@@ -18,6 +18,26 @@ export async function getProduct(id) {
   return db.get('products', id);
 }
 
+/** Build price changes for catalog products represented on the saved sale. */
+export async function getSaleProductPriceUpdates(lines) {
+  const latestPriceByProduct = new Map();
+  for (const line of lines) {
+    if (line.updateProductPrice && line.productId && Number.isFinite(Number(line.price)) && Number(line.price) >= 0) {
+      latestPriceByProduct.set(line.productId, Number(line.price));
+    }
+  }
+  if (!latestPriceByProduct.size) return [];
+
+  const products = await db.getAll('products');
+  const productsById = new Map(products.map((product) => [product.id, product]));
+  const now = new Date().toISOString();
+  return [...latestPriceByProduct].flatMap(([id, price]) => {
+    const product = productsById.get(id);
+    if (!product || Number(product.price) === price) return [];
+    return [{ ...product, price, updatedAt: now }];
+  });
+}
+
 export async function saveProduct({ id, name, category, unit, price, cost, stock, barcode, imageData }) {
   if (!name || !name.trim()) throw new Error('Nama produk wajib diisi.');
   const now = new Date().toISOString();
