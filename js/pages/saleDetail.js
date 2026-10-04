@@ -95,7 +95,7 @@ async function draw(root, saleId) {
           <span>${dateShort(sale.saleDate)}</span><span>${sale.saleTime}</span><span>${escapeHtml(sale.invoiceNumber)}</span>
         </div>
         <div class="receipt-customer">${escapeHtml(sale.customerName)}</div>
-        ${addressPhoneLine ? `<div class="row-meta">${escapeHtml(addressPhoneLine)}</div>` : ''}
+        ${addressPhoneLine ? `<div class="row-meta receipt-customer-info">${escapeHtml(addressPhoneLine)}</div>` : ''}
         ${items.map((it) => `
           <div class="receipt-item">
             <div class="ri-top"><span>${escapeHtml(it.productName)}</span><span>${rupiah(it.subtotal)}</span></div>
