@@ -128,7 +128,7 @@ async function handleRouteChange() {
   btnBack.classList.toggle('hidden', isTopLevel);
   btnMenu.classList.toggle('hidden', !isTopLevel);
   bottomnav.classList.toggle('hidden', !isTopLevel && !keepDesktopSettingsNav);
-  const navRoute = ['customers', 'expenses', 'reports'].includes(route) && !hasWideSidebar
+  const navRoute = ['customers', 'reports'].includes(route) && !hasWideSidebar
     ? 'settings'
     : route === 'settings' && params.length
       ? (params[0] === 'autobackup' ? 'settings/backup' : `settings/${params[0]}`)

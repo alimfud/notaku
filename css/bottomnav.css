@@ -113,18 +113,6 @@
   #app #bottomnav .nav-btn.active svg { opacity:0; }
   #app #bottomnav .nav-btn:focus-visible { outline:2px solid var(--nav-rim); outline-offset:-6px; border-radius:16px; }
 
-  /* Tombol "Buat Nota" tidak lagi menonjol sendiri: semua tab diperlakukan sama */
-  #app #bottomnav .nav-btn[data-route="sale/new"],
-  #app #bottomnav .nav-btn[data-route="sale/new"].active {
-    padding:4px 0 0; color:var(--nav-ink); background:none; box-shadow:none; font-weight:inherit;
-  }
-  #app #bottomnav .nav-btn[data-route="sale/new"] svg,
-  #app #bottomnav .nav-btn[data-route="sale/new"].active svg {
-    width:24px; height:24px; padding:0; margin:0; background:none; border:0; border-radius:0; box-shadow:none;
-    color:inherit;
-  }
-  #app #bottomnav .nav-btn[data-route="sale/new"].active svg { opacity:0; }
-
   /* ---------- Bubble ---------- */
   #app #bottomnav .nav-bubble {
     display:flex; align-items:center; justify-content:center;

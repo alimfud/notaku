@@ -37,7 +37,6 @@ function renderHub(root) {
   root.innerHTML = `
     <div class="settings-hub">
       ${tile('👥', 'Pelanggan', 'Daftar pelanggan & riwayat nota', 'customers')}
-      ${tile('💳', 'Pengeluaran', 'Belanja & biaya operasional', 'expenses')}
       ${tile('📊', 'Laporan', 'Penjualan, pembayaran & ringkasan usaha', 'reports')}
       <div class="settings-spacer"></div>
       ${tile('🏪', 'Info Toko', 'Nama, alamat, telepon toko', 'settings/store')}
