@@ -4,8 +4,8 @@
 const STORAGE_KEY = 'notaku-theme';
 const THEMES = ['light', 'dark', 'glass', 'clay'];
 const DEFAULT_THEME = 'dark';
-const THEME_LABEL = { light: 'Terang', dark: 'Gelap', glass: 'Glass', clay: 'Clay' };
-const THEME_ICON = { light: '☀️', dark: '🌙', glass: '💎', clay: '🧸' };
+const THEME_LABEL = { light: 'Maroon', dark: 'Neo', glass: 'Glass', clay: 'Clay' };
+const THEME_ICON = { light: '🟥', dark: '🌌', glass: '💎', clay: '🧸' };
 const THEME_COLOR = { light: '#791e38', dark: '#1b2354', glass: '#bcd9f2', clay: '#fbf0e0' };
 // Stylesheet tambahan per tema (tema "light" tidak butuh tambahan).
 const THEME_LINK = { dark: 'themeNeo', glass: 'themeGlass', clay: 'themeClay' };
