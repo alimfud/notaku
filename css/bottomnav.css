@@ -65,6 +65,7 @@
   #app #bottomnav {
     --nav-h:64px;
     position:sticky; bottom:0;
+    flex-shrink:0;
     margin:0; gap:0;
     padding:0 0 env(safe-area-inset-bottom,0px);
     background:none; border:0; border-radius:0; box-shadow:none;
@@ -101,9 +102,9 @@
     transform:translateY(0);
     transition:transform .58s cubic-bezier(.65,0,.35,1);
   }
-  #app #bottomnav .nav-btn.active span { transform:translateY(41px); color:var(--nav-ink); }
+  #app #bottomnav .nav-btn.active span { transform:translateY(35px); color:var(--nav-ink); }
   #app #bottomnav .nav-btn svg {
-    position:absolute; bottom:5px;
+    position:absolute; bottom:14px;
     width:24px; height:24px; padding:0; margin:0;
     background:none; border:0; border-radius:0; box-shadow:none;
     color:inherit; opacity:.82;
@@ -112,14 +113,14 @@
   }
   #app #bottomnav .nav-btn:active svg { transform:translateY(0) scale(.86); }
   /* Ikon tab aktif ditampilkan di dalam bubble, jadi yang asli disembunyikan */
-  #app #bottomnav .nav-btn.active svg { opacity:0; transform:translateY(-34px) scale(.75); }
+  #app #bottomnav .nav-btn.active svg { opacity:0; transform:translateY(-29px) scale(.75); }
   #app #bottomnav .nav-btn:focus-visible { outline:2px solid var(--nav-rim); outline-offset:-6px; border-radius:16px; }
 
   /* ---------- Bubble ---------- */
   #app #bottomnav .nav-bubble {
     display:flex; align-items:center; justify-content:center;
     position:absolute; left:0; z-index:2; pointer-events:none;
-    top:-13px; /* NOTCH_DEPTH (12) - radius bubble (25) */
+    top:-16px; /* NOTCH_DEPTH (9) - radius bubble (25) */
     width:50px; height:50px; border-radius:50%;
     background:var(--nav-bubble); color:var(--nav-bubble-ink);
     box-shadow:var(--nav-bubble-shadow);

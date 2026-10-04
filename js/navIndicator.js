@@ -13,7 +13,7 @@
 
 // Geometri (px) — harus sama dengan nilai di css/bottomnav.css
 const NOTCH_RADIUS = 29;  // radius lekukan = radius bubble (25) + cincin (4)
-const NOTCH_DEPTH = 12;   // jarak pusat lekukan dari tepi atas bar
+const NOTCH_DEPTH = 9;   // jarak pusat lekukan dari tepi atas bar
 const FILLET = 22;        // lebar bahu lengkung antara tepi datar dan lekukan
 const SLIDE_MS = 580;
 
@@ -187,8 +187,9 @@ export function initBottomNavIndicator(nav) {
     attributeFilter: ['class'],
     subtree: true,
   });
-  // Ukuran berubah (rotasi layar, nav baru tampil): posisikan ulang tanpa animasi.
-  if ('ResizeObserver' in window) new ResizeObserver(() => sync(false)).observe(nav);
+  // Render halaman bisa mengubah ukuran nav saat transisi masih berjalan.
+  // Pertahankan animasi ke target yang sama, atau arahkan ulang bila posisinya berubah.
+  if ('ResizeObserver' in window) new ResizeObserver(() => sync(true)).observe(nav);
   const onMq = () => sync(false);
   if (mobileMq.addEventListener) mobileMq.addEventListener('change', onMq);
   else if (mobileMq.addListener) mobileMq.addListener(onMq);
@@ -289,7 +290,7 @@ function initSidebarNavIndicator(nav) {
     if (records.some(({ target }) => target === nav || target.classList.contains('nav-btn'))) sync(true);
   }).observe(nav, { attributes:true, attributeFilter:['class'], subtree:true });
   if ('ResizeObserver' in window) {
-    const observer = new ResizeObserver(() => sync(false));
+    const observer = new ResizeObserver(() => sync(true));
     observer.observe(nav);
     nav.querySelectorAll('.nav-btn').forEach(button => observer.observe(button));
   }
