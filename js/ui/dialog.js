@@ -1,15 +1,5 @@
 // dialog.js — confirm/alert dialog & bottom sheet, setara AppDialog di Flutter.
 
-// Tutup overlay dengan animasi keluar (class .is-closing di css/motion.css).
-// Promise tetap selesai seketika; hanya elemennya yang dilepas setelah animasi.
-function dismiss(backdrop) {
-  if (backdrop.dataset.closing) return;
-  backdrop.dataset.closing = '1';
-  if (window.matchMedia('(prefers-reduced-motion:reduce)').matches) { backdrop.remove(); return; }
-  backdrop.classList.add('is-closing');
-  setTimeout(() => backdrop.remove(), 230);
-}
-
 export function confirmDialog({ title, message, confirmLabel = 'Ya, Lanjutkan', cancelLabel = 'Batal', dangerous = false }) {
   return new Promise((resolve) => {
     const backdrop = document.createElement('div');
@@ -24,7 +14,7 @@ export function confirmDialog({ title, message, confirmLabel = 'Ya, Lanjutkan', 
         </div>
       </div>`;
     document.body.appendChild(backdrop);
-    const cleanup = (result) => { if (backdrop.dataset.closing) return; dismiss(backdrop); resolve(result); };
+    const cleanup = (result) => { document.body.removeChild(backdrop); resolve(result); };
     backdrop.querySelector('.cancel').onclick = () => cleanup(false);
     backdrop.querySelector('.confirm').onclick = () => cleanup(true);
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) cleanup(false); });
@@ -42,7 +32,7 @@ export function alertDialog({ title, message, okLabel = 'OK' }) {
         <div class="dialog-actions"><button class="confirm">${okLabel}</button></div>
       </div>`;
     document.body.appendChild(backdrop);
-    const close = () => { if (backdrop.dataset.closing) return; dismiss(backdrop); resolve(); };
+    const close = () => { document.body.removeChild(backdrop); resolve(); };
     backdrop.querySelector('.confirm').onclick = close;
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
   });
@@ -70,8 +60,8 @@ export function openSheet(renderContent) {
     document.body.appendChild(backdrop);
 
     const close = (result) => {
-      if (backdrop.dataset.closing || !document.body.contains(backdrop)) return;
-      dismiss(backdrop);
+      if (!document.body.contains(backdrop)) return;
+      document.body.removeChild(backdrop);
       resolve(result);
     };
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(undefined); });

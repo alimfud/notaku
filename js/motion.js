@@ -1,38 +1,15 @@
-// motion.js — lapisan animasi global NotaKu (terinspirasi animasi mikro pada video referensi).
+// motion.js — animasi TEKS NotaKu.
 //
-// Tidak mengubah logika halaman. Semua halaman, sheet, dan dialog otomatis
-// mendapat animasi lewat MutationObserver + event delegation:
-// 1. Elemen halaman muncul berurutan (stagger) + arah geser mengikuti navigasi.
-// 2. Elemen di bawah layar baru muncul saat di-scroll (IntersectionObserver).
-// 3. Efek riak (ripple) saat tombol/kartu/baris disentuh.
-// 4. Angka ringkasan menghitung naik dari 0.
-// 5. Judul topbar bergeser masuk, isi sheet muncul berurutan.
-// Semua dimatikan otomatis bila perangkat memakai "reduce motion".
-// Gaya animasinya ada di css/motion.css.
+// Hanya teks yang beranimasi (tidak ada kartu, tombol, sheet, atau riak):
+// 1. Teks halaman muncul berurutan (naik + memudar), arah geser mengikuti navigasi.
+// 2. Teks di dalam sheet/dialog muncul berurutan saat dibuka.
+// 3. Angka ringkasan (omzet, total, dll) menghitung naik dari 0.
+// 4. Judul topbar bergeser masuk saat berganti halaman.
+// Tidak mengubah logika halaman. Dimatikan otomatis bila perangkat memakai
+// "reduce motion". Gaya ada di css/motion.css.
 
 const reduceMq = window.matchMedia('(prefers-reduced-motion:reduce)');
 const reduced = () => reduceMq.matches;
-
-// Elemen halaman yang dianimasikan saat halaman dibuka (hanya yang paling luar).
-const TARGETS = [
-  '.summary-card', '.info-card', '.total-box', '.row', '.settings-tile', '.chip-scroll', '.search-row',
-  '.section-title', '.empty-state', '.btn', '.field', '.field-radio', '.item-line', '.payment-badge',
-  '.dashboard-hero', '.dashboard-section', '.dashboard-shortcuts > *', '.dashboard-attention-item',
-  '.business-chart', '.reports-metric', '.reports-overall-metric', '.reports-product-card',
-  '.reports-month-row', '.reports-year-card', '.reports-view-tabs', '.reports-period-picker',
-  '.customer-card', '.expense-summary', '.expense-row', '.expense-list-heading',
-  '.sale-form-card', '.sale-items-card', '.sale-product-card', '.sale-schedule-card',
-  '.sale-edit-details-card', '.sale-detail-actions', '.sale-detail-receipt-wrap',
-  '.sale-detail-payment-row', '.products-heading', '.customers-heading',
-  '.settings-section', '.settings-heading', '.theme-switch',
-].join(',');
-
-// Setelah halaman selesai dibuka, hanya elemen daftar ini yang dianimasikan
-// ulang (mis. saat hasil pencarian/filter berubah), dengan animasi singkat.
-const LATE = [
-  '.row', '.item-line', '.customer-card', '.expense-row', '.reports-product-row',
-  '.reports-month-row', '.sale-customer-card', '.dashboard-attention-item', '.empty-state', '.info-card',
-].join(',');
 
 // Angka yang dihitung naik dari 0.
 const COUNT = [
@@ -42,12 +19,15 @@ const COUNT = [
   '.sale-checkout-total',
 ].join(',');
 
-// Elemen yang memberi riak saat disentuh.
-const RIPPLE = [
-  'button', 'a[href]', '[role="button"]', '.row', '.settings-tile', '.chip', '.field-radio',
-  '.customer-card', '.reports-year-card', '.reports-month-row', '.sale-product-card',
-  '.sale-customer-card', '.dashboard-attention-item', '.drawer-item',
+// Setelah halaman selesai dibuka, teks di dalam daftar ini tetap dianimasikan
+// singkat saat berubah (mis. hasil pencarian/filter).
+const LATE = [
+  '.row', '.item-line', '.customer-card', '.expense-row', '.reports-product-row',
+  '.reports-month-row', '.sale-customer-card', '.dashboard-attention-item', '.empty-state', '.info-card',
 ].join(',');
+
+// Teks di area ini tidak disentuh (struk/cetak harus tetap utuh).
+const SKIP = '.receipt, #receiptCapture, .print-preview-wrap, svg, script, style, textarea, select, option, input, canvas, [contenteditable]';
 
 // Urutan menu untuk menentukan arah geser antarhalaman.
 const RANK = { dashboard: 0, home: 1, sale: 2, products: 3, customers: 4, expenses: 4, reports: 4, settings: 5 };
@@ -59,6 +39,35 @@ function routeInfo() {
   return { rank: RANK[parts[0] || 'dashboard'] ?? 0, depth: parts.length };
 }
 
+// Kumpulkan elemen yang punya teks langsung di dalam `nodes`.
+function collectTextParents(nodes) {
+  const out = new Set();
+  nodes.forEach((n) => {
+    if (n.nodeType === 3) {
+      if (n.nodeValue.trim() && n.parentElement) out.add(n.parentElement);
+      return;
+    }
+    if (n.nodeType !== 1) return;
+    const walker = document.createTreeWalker(n, NodeFilter.SHOW_TEXT);
+    let t;
+    while ((t = walker.nextNode())) {
+      if (t.nodeValue.trim() && t.parentElement) out.add(t.parentElement);
+    }
+  });
+  return out;
+}
+
+function playText(el, delay, fast) {
+  el.style.animationDelay = `${delay}ms`;
+  el.classList.add(fast ? 'mo-text-fast' : 'mo-text');
+  const clean = () => {
+    el.classList.remove('mo-text', 'mo-text-fast');
+    el.style.animationDelay = '';
+  };
+  el.addEventListener('animationend', (e) => { if (e.target === el) clean(); });
+  setTimeout(clean, 2000); // jaring pengaman
+}
+
 export function initMotion() {
   if (started) return;
   started = true;
@@ -68,7 +77,6 @@ export function initMotion() {
 
   let prev = routeInfo();
   let entranceUntil = performance.now() + 1400; // buka aplikasi pertama kali
-  const seen = new WeakSet();
   const seenCount = new WeakSet();
 
   // ---------- Arah geser mengikuti navigasi ----------
@@ -78,43 +86,10 @@ export function initMotion() {
     if (cur.depth > prev.depth) dir = 1;
     else if (cur.depth < prev.depth) dir = -1;
     else dir = Math.sign(cur.rank - prev.rank);
-    root.style.setProperty('--mo-dx', `${dir * 22}px`);
+    root.style.setProperty('--mo-dx', `${dir * 14}px`);
     prev = cur;
     entranceUntil = performance.now() + 900;
   });
-
-  // ---------- Menjalankan satu animasi lalu membersihkannya ----------
-  function play(el, cls) {
-    el.classList.add(cls);
-    const clean = () => {
-      el.classList.remove(cls);
-      el.style.animationDelay = '';
-    };
-    el.addEventListener('animationend', (e) => { if (e.target === el) clean(); }, { once: false });
-    setTimeout(clean, 2200); // jaring pengaman
-  }
-
-  // ---------- Muncul saat di-scroll ----------
-  const io = 'IntersectionObserver' in window
-    ? new IntersectionObserver((entries) => {
-      entries.forEach((en) => {
-        if (!en.isIntersecting) return;
-        const el = en.target;
-        io.unobserve(el);
-        if (!el.classList.contains('mo-pending')) return;
-        el.classList.remove('mo-pending');
-        play(el, 'mo-in-fast');
-      });
-    }, { rootMargin: '0px 0px -4% 0px' })
-    : null;
-
-  function holdUntilVisible(el) {
-    el.classList.add('mo-pending');
-    io.observe(el);
-    setTimeout(() => { // jaring pengaman: jangan pernah tersembunyi selamanya
-      if (el.classList.contains('mo-pending')) { el.classList.remove('mo-pending'); io.unobserve(el); }
-    }, 3500);
-  }
 
   // ---------- Angka menghitung naik ----------
   function countUp(el) {
@@ -143,39 +118,27 @@ export function initMotion() {
     requestAnimationFrame(step);
   }
 
-  // ---------- Elemen baru di halaman ----------
-  function handleAdded(nodes) {
+  // ---------- Teks baru di halaman ----------
+  function handleAdded(nodes, { baseDelay = 0, forceEntrance = false } = {}) {
     if (reduced()) return;
-    const found = new Set();
+    const inEntrance = forceEntrance || performance.now() < entranceUntil;
     const counters = [];
     nodes.forEach((n) => {
       if (n.nodeType !== 1) return;
-      if (n.matches(TARGETS)) found.add(n);
-      n.querySelectorAll(TARGETS).forEach((e) => found.add(e));
       if (n.matches(COUNT)) counters.push(n);
       n.querySelectorAll(COUNT).forEach((e) => counters.push(e));
     });
 
-    const inEntrance = performance.now() < entranceUntil;
     let i = 0;
     let lateCount = 0;
-    found.forEach((el) => {
-      if (seen.has(el)) return;
-      // hanya elemen terluar yang dianimasikan (anak ikut bergerak bersamanya)
-      for (let p = el.parentElement; p && p !== root; p = p.parentElement) {
-        if (found.has(p)) return;
-      }
-      seen.add(el);
-      if (!inEntrance && !el.matches(LATE)) return;
+    collectTextParents(nodes).forEach((el) => {
+      if (el.closest(SKIP) || el.matches(COUNT) || el.classList.contains('mo-text')) return;
+      if (!inEntrance && !el.closest(LATE)) return;
       const r = el.getBoundingClientRect();
       if (!r.width && !r.height) return;
-      if (io && r.top > window.innerHeight - 24) { holdUntilVisible(el); return; }
-      if (inEntrance) {
-        el.style.animationDelay = `${Math.min(i++, 12) * 45}ms`;
-        play(el, 'mo-in');
-      } else if (lateCount++ < 24) {
-        play(el, 'mo-in-fast');
-      }
+      if (r.bottom < 0 || r.top > window.innerHeight) return; // di luar layar: tidak perlu
+      if (inEntrance) playText(el, baseDelay + Math.min(i++, 26) * 30, false);
+      else if (lateCount++ < 40) playText(el, 0, true);
     });
 
     counters.forEach(countUp);
@@ -183,21 +146,18 @@ export function initMotion() {
 
   new MutationObserver((records) => {
     const added = [];
-    records.forEach((r) => r.addedNodes.forEach((n) => added.push(n)));
+    records.forEach((r) => {
+      if (r.type === 'characterData') { if (r.target.parentElement) added.push(r.target); return; }
+      r.addedNodes.forEach((n) => added.push(n));
+    });
     if (added.length) handleAdded(added);
   }).observe(root, { childList: true, subtree: true });
 
-  // ---------- Isi sheet muncul berurutan ----------
+  // ---------- Teks di sheet / dialog ----------
   new MutationObserver((records) => {
-    if (reduced()) return;
     records.forEach((r) => r.addedNodes.forEach((n) => {
-      if (n.nodeType !== 1 || !n.classList.contains('sheet-backdrop')) return;
-      const kids = n.querySelectorAll('.sheet-body > *');
-      kids.forEach((el, idx) => {
-        if (idx > 9) return;
-        el.style.animationDelay = `${110 + idx * 40}ms`;
-        play(el, 'mo-in-sheet');
-      });
+      if (n.nodeType !== 1 || !(n.classList.contains('sheet-backdrop') || n.classList.contains('dialog-backdrop'))) return;
+      handleAdded([n], { baseDelay: 90, forceEntrance: true });
     }));
   }).observe(document.body, { childList: true });
 
@@ -211,35 +171,4 @@ export function initMotion() {
       title.classList.add('mo-title');
     }).observe(title, { childList: true, characterData: true, subtree: true });
   }
-
-  // ---------- Riak saat disentuh ----------
-  document.addEventListener('pointerdown', (e) => {
-    if (reduced() || (e.pointerType === 'mouse' && e.button !== 0)) return;
-    const t = e.target.closest ? e.target.closest(RIPPLE) : null;
-    if (!t || t.disabled || t.getAttribute('aria-disabled') === 'true') return;
-    if (t.closest('.receipt, #receiptCapture')) return;
-    const rect = t.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const cs = getComputedStyle(t);
-
-    const layer = document.createElement('span');
-    layer.className = 'mo-ripple-layer';
-    layer.setAttribute('aria-hidden', 'true');
-    layer.style.cssText = `left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;`
-      + `border-radius:${cs.borderRadius};color:${cs.color};`;
-
-    const size = Math.min(640, Math.max(rect.width, rect.height) * 2.2);
-    const dot = document.createElement('span');
-    dot.className = 'mo-ripple';
-    dot.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX - rect.left - size / 2}px;`
-      + `top:${e.clientY - rect.top - size / 2}px;`;
-    layer.appendChild(dot);
-    document.body.appendChild(layer);
-
-    const kill = () => layer.remove();
-    dot.addEventListener('animationend', kill, { once: true });
-    window.addEventListener('scroll', kill, { once: true, capture: true, passive: true });
-    window.addEventListener('pointercancel', kill, { once: true });
-    setTimeout(kill, 900);
-  }, { passive: true });
 }

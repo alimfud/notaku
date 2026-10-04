@@ -1,4 +1,4 @@
 {
-  "version": "1.12.0",
-  "notes": "Animasi di seluruh aplikasi: halaman masuk berurutan, riak sentuh, switch pegas, sheet/dialog/drawer halus, angka menghitung naik."
+  "version": "1.12.1",
+  "notes": "Animasi teks: teks muncul berurutan, angka menghitung naik, judul bergeser masuk."
 }

@@ -25,7 +25,7 @@ const drawer = document.getElementById('drawer');
 const drawerOverlay = document.getElementById('drawerOverlay');
 initTheme();
 initBottomNavIndicator(bottomnav); // lekukan + bubble menu bawah (mobile)
-initMotion(); // animasi global: halaman, sheet, riak sentuh, angka
+initMotion(); // animasi teks: muncul berurutan, angka menghitung naik
 
 const TOP_LEVEL_ROUTES = ['dashboard', 'home', 'products', 'customers', 'expenses', 'reports', 'settings'];
 
@@ -171,18 +171,8 @@ document.querySelectorAll('.drawer-item').forEach((btn) => {
     closeDrawer();
   });
 });
-let drawerTimer = 0;
-function openDrawer() {
-  clearTimeout(drawerTimer);
-  drawer.classList.add('open');
-  drawerOverlay.classList.remove('hidden', 'is-closing');
-}
-function closeDrawer() {
-  drawer.classList.remove('open');
-  drawerOverlay.classList.add('is-closing'); // fade-out dulu, baru disembunyikan
-  clearTimeout(drawerTimer);
-  drawerTimer = setTimeout(() => { drawerOverlay.classList.add('hidden'); drawerOverlay.classList.remove('is-closing'); }, 240);
-}
+function openDrawer() { drawer.classList.add('open'); drawerOverlay.classList.remove('hidden'); }
+function closeDrawer() { drawer.classList.remove('open'); drawerOverlay.classList.add('hidden'); }
 btnMenu.addEventListener('click', openDrawer);
 drawerOverlay.addEventListener('click', closeDrawer);
 btnBack.addEventListener('click', () => navigateBack());

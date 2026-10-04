@@ -1,257 +1,36 @@
 /*
-  NotaKu — Lapisan animasi global (animasi mikro bergaya video referensi).
+  NotaKu — Animasi teks (hanya teks).
 
-  - Dimuat paling akhir. Berlaku untuk semua halaman dan keempat tema
-    (warna selalu mengikuti variabel tema: --primary, --outline, dll).
-  - Pemicu elemen halaman ada di js/motion.js (class .mo-in, .mo-in-fast,
-    .mo-pending, .mo-in-sheet, .mo-title, .mo-ripple-layer, .mo-counting).
-  - Hanya layar. Struk (.receipt), preview Bluetooth, dan cetak tidak berubah.
-  - Perangkat dengan "reduce motion" otomatis tanpa animasi (blok paling bawah).
+  Dipicu js/motion.js (class .mo-text, .mo-text-fast, .mo-title, .mo-counting).
+  Tidak ada animasi untuk kartu, tombol, sheet, drawer, atau elemen lain.
+  Berlaku di semua tema. Struk dan cetak tidak berubah.
+  Perangkat dengan "reduce motion" otomatis tanpa animasi.
 */
-
 @media screen {
-  :root {
-    --mo-ease:cubic-bezier(.22,1,.36,1);
-    --mo-spring:cubic-bezier(.34,1.56,.64,1);
-  }
-
-  /* ================= Masuk berurutan (stagger) ================= */
-  @keyframes moIn {
-    from { opacity:0; transform:translate3d(var(--mo-dx,0px),18px,0) scale(.96); }
+  @keyframes moText {
+    from { opacity:0; transform:translate3d(var(--mo-dx,0px),10px,0); }
     to   { opacity:1; transform:none; }
   }
-  @keyframes moInFast {
-    from { opacity:0; transform:translate3d(0,10px,0) scale(.985); }
-    to   { opacity:1; transform:none; }
+  @keyframes moTextInline {
+    from { opacity:0; }
+    to   { opacity:1; }
   }
-  @keyframes moInSheet {
-    from { opacity:0; transform:translate3d(0,14px,0); }
-    to   { opacity:1; transform:none; }
-  }
-  .mo-in { animation:moIn .6s var(--mo-ease) backwards; }
-  .mo-in-fast { animation:moInFast .32s var(--mo-ease) backwards; }
-  .mo-in-sheet { animation:moInSheet .45s var(--mo-ease) backwards; }
-  .mo-pending { opacity:0; transform:translate3d(0,18px,0) scale(.97); }
-  .mo-counting { font-variant-numeric:tabular-nums; }
-
-  /* ================= Topbar ================= */
   @keyframes moTitle {
     from { opacity:0; transform:translate3d(0,9px,0); }
     to   { opacity:1; transform:none; }
   }
-  @keyframes moIconIn {
-    from { opacity:0; transform:scale(.4) rotate(-40deg); }
-    to   { opacity:1; transform:none; }
-  }
-  #pageTitle.mo-title { animation:moTitle .45s var(--mo-ease); }
-  #btnBack, #btnMenu { animation:moIconIn .45s var(--mo-spring) backwards; }
-  #topbarActions > * { animation:moIconIn .45s var(--mo-spring) .1s backwards; }
 
-  /* ================= Menu bawah / sidebar muncul ================= */
-  @keyframes moNavUp {
-    from { opacity:0; transform:translate3d(0,100%,0); }
-    to   { opacity:1; transform:none; }
+  .mo-text { animation:moText .6s cubic-bezier(.22,1,.36,1) backwards; }
+  .mo-text-fast { animation:moText .3s cubic-bezier(.22,1,.36,1) backwards; }
+  /* teks inline tidak bisa digeser (transform), jadi cukup memudar */
+  span.mo-text, span.mo-text-fast, a.mo-text, a.mo-text-fast, strong.mo-text, strong.mo-text-fast,
+  small.mo-text, small.mo-text-fast, b.mo-text, b.mo-text-fast, em.mo-text, em.mo-text-fast {
+    animation-name:moTextInline;
   }
-  @keyframes moNavSide {
-    from { opacity:0; transform:translate3d(-24px,0,0); }
-    to   { opacity:1; transform:none; }
-  }
-  #bottomnav { animation:moNavUp .6s var(--mo-ease) backwards; }
-  @media (min-width:800px) {
-    #bottomnav { animation-name:moNavSide; }
-  }
-
-  /* ================= FAB, badge, chip, donat ================= */
-  @keyframes moFab {
-    from { opacity:0; transform:scale(0) rotate(-120deg); }
-    to   { opacity:1; transform:none; }
-  }
-  @keyframes moBadge {
-    from { opacity:0; transform:scale(.4); }
-    to   { opacity:1; transform:none; }
-  }
-  @keyframes moChipPop {
-    0%   { transform:scale(.88); }
-    55%  { transform:scale(1.07); }
-    100% { transform:none; }
-  }
-  @keyframes moDonut {
-    from { opacity:0; transform:rotate(-140deg) scale(.6); }
-    to   { opacity:1; transform:none; }
-  }
-  .fab { animation:moFab .7s var(--mo-spring) .3s backwards; }
-  .payment-badge, .row-status { animation:moBadge .55s var(--mo-spring) .25s backwards; }
-  .chip.active:not(.mo-in):not(.mo-in-fast) { animation:moChipPop .42s var(--mo-ease); }
-  .business-donut { animation:moDonut 1s var(--mo-ease) .15s backwards; }
-
-  /* ================= Transisi keadaan & efek tekan ================= */
-  .btn, .chip, .icon-btn, .row, .settings-tile, .customer-card, .sale-product-card,
-  .sale-customer-card, .dashboard-attention-item, .reports-year-card, .drawer-item,
-  .field-radio, .search-input, .theme-switch button, .payment-badge {
-    transition:transform .38s var(--mo-spring), background-color .22s ease, color .22s ease,
-      border-color .22s ease, box-shadow .28s ease, opacity .22s ease, filter .22s ease;
-    -webkit-tap-highlight-color:transparent;
-  }
-  :is(.btn, .chip, .icon-btn, .fab, .theme-switch button):active { transform:scale(.93); transition-duration:.08s; }
-  :is(.row, .settings-tile, .customer-card, .sale-product-card, .sale-customer-card,
-      .dashboard-attention-item, .reports-year-card, .drawer-item, .field-radio):active {
-    transform:scale(.982); transition-duration:.08s;
-  }
-  .search-input:focus { transform:scale(1.012); }
-
-  @media (hover:hover) {
-    .btn:hover:not(:disabled):not(:active) { transform:translateY(-1px); filter:brightness(1.06); }
-    .chip:hover:not(.active):not(:active) { transform:translateY(-1px); }
-    .settings-tile:hover:not(:active), .customer-card:hover:not(:active), .sale-product-card:hover:not(:active) {
-      transform:translateY(-2px);
-    }
-  }
-
-  /* ================= Riak (ripple) saat disentuh ================= */
-  .mo-ripple-layer {
-    position:fixed; z-index:9998; overflow:hidden; pointer-events:none; contain:strict;
-  }
-  .mo-ripple {
-    position:absolute; border-radius:50%; background:currentColor; opacity:.2;
-    transform:scale(0); animation:moRipple .65s var(--mo-ease) forwards;
-  }
-  @keyframes moRipple {
-    0%   { transform:scale(0); opacity:.26; }
-    100% { transform:scale(1); opacity:0; }
-  }
-
-  /* ================= Switch, radio, checkbox beranimasi ================= */
-  input[type="checkbox"]:is(.settings-checkbox, .settings-preview-checkbox) {
-    -webkit-appearance:none; appearance:none; position:relative; flex-shrink:0;
-    width:44px; height:24px; margin:0; border:0; border-radius:999px; cursor:pointer;
-    background:color-mix(in srgb, var(--muted, #888) 45%, transparent);
-    transition:background-color .3s var(--mo-ease), box-shadow .3s ease;
-    -webkit-tap-highlight-color:transparent;
-  }
-  input[type="checkbox"]:is(.settings-checkbox, .settings-preview-checkbox)::before {
-    content:''; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%;
-    background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.3);
-    transition:transform .42s var(--mo-spring), width .2s ease;
-  }
-  input[type="checkbox"]:is(.settings-checkbox, .settings-preview-checkbox):checked { background:var(--primary); }
-  input[type="checkbox"]:is(.settings-checkbox, .settings-preview-checkbox):checked::before { transform:translateX(20px); }
-  input[type="checkbox"]:is(.settings-checkbox, .settings-preview-checkbox):active::before { width:24px; }
-  input[type="checkbox"]:is(.settings-checkbox, .settings-preview-checkbox):checked:active::before { transform:translateX(14px); }
-  input[type="checkbox"]:is(.settings-checkbox, .settings-preview-checkbox):focus-visible {
-    outline:2px solid var(--primary); outline-offset:3px;
-  }
-  input[type="checkbox"]:is(.settings-checkbox, .settings-preview-checkbox):disabled { opacity:.5; cursor:not-allowed; }
-
-  input[type="checkbox"]:is(.settings-confirm-checkbox, .sale-option-toggle input) {
-    -webkit-appearance:none; appearance:none; position:relative; flex-shrink:0;
-    width:20px; height:20px; margin:0; border-radius:6px; cursor:pointer;
-    border:2px solid color-mix(in srgb, var(--muted, #888) 70%, transparent); background:transparent;
-    transition:background-color .22s ease, border-color .22s ease, transform .3s var(--mo-spring);
-  }
-  .sale-option-toggle input[type="checkbox"] {
-    -webkit-appearance:none; appearance:none; position:relative; border-radius:6px; cursor:pointer;
-    border:2px solid color-mix(in srgb, var(--muted, #888) 70%, transparent); background:transparent;
-    transition:background-color .22s ease, border-color .22s ease, transform .3s var(--mo-spring);
-  }
-  :is(.settings-confirm-checkbox, .sale-option-toggle input[type="checkbox"])::after {
-    content:''; position:absolute; left:28%; top:6%; width:30%; height:58%;
-    border:solid #fff; border-width:0 2.5px 2.5px 0;
-    transform:rotate(45deg) scale(0); transform-origin:center;
-    transition:transform .32s var(--mo-spring);
-  }
-  :is(.settings-confirm-checkbox, .sale-option-toggle input[type="checkbox"]):checked {
-    background:var(--primary); border-color:var(--primary);
-  }
-  :is(.settings-confirm-checkbox, .sale-option-toggle input[type="checkbox"]):checked::after {
-    transform:rotate(45deg) scale(1);
-  }
-  :is(.settings-confirm-checkbox, .sale-option-toggle input[type="checkbox"]):active { transform:scale(.85); }
-
-  .field-radio input[type="radio"], label input[type="radio"] {
-    -webkit-appearance:none; appearance:none; position:relative; flex-shrink:0;
-    width:20px; height:20px; margin:2px 0 0; border-radius:50%; cursor:pointer;
-    border:2px solid color-mix(in srgb, var(--muted, #888) 70%, transparent); background:transparent;
-    transition:border-color .22s ease, transform .3s var(--mo-spring), box-shadow .22s ease;
-  }
-  .field-radio input[type="radio"]::after, label input[type="radio"]::after {
-    content:''; position:absolute; inset:3px; border-radius:50%; background:var(--primary);
-    transform:scale(0); transition:transform .36s var(--mo-spring);
-  }
-  .field-radio input[type="radio"]:checked, label input[type="radio"]:checked { border-color:var(--primary); }
-  .field-radio input[type="radio"]:checked::after, label input[type="radio"]:checked::after { transform:scale(1); }
-  .field-radio input[type="radio"]:active, label input[type="radio"]:active { transform:scale(.85); }
-  input[type="checkbox"]:focus-visible, input[type="radio"]:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
-
-  /* ================= Sheet, dialog, drawer, toast ================= */
-  @keyframes moFade { from { opacity:0; } to { opacity:1; } }
-  @keyframes moFadeOut { from { opacity:1; } to { opacity:0; } }
-  @keyframes moSheetIn {
-    from { opacity:0; transform:translate3d(0,64px,0) scale(.98); }
-    to   { opacity:1; transform:none; }
-  }
-  @keyframes moSheetOut {
-    from { opacity:1; transform:none; }
-    to   { opacity:0; transform:translate3d(0,48px,0) scale(.98); }
-  }
-  @keyframes moPop {
-    from { opacity:0; transform:scale(.84) translate3d(0,14px,0); }
-    to   { opacity:1; transform:none; }
-  }
-  @keyframes moPopOut {
-    from { opacity:1; transform:none; }
-    to   { opacity:0; transform:scale(.92) translate3d(0,8px,0); }
-  }
-  .sheet-backdrop, .dialog-backdrop { animation:moFade .28s ease; }
-  .sheet { animation:moSheetIn .55s var(--mo-ease); }
-  .dialog { animation:moPop .45s var(--mo-spring); }
-  .sheet-backdrop.is-closing, .dialog-backdrop.is-closing { pointer-events:none; animation:moFadeOut .22s ease forwards; }
-  .sheet-backdrop.is-closing .sheet { animation:moSheetOut .22s ease-in forwards; }
-  .dialog-backdrop.is-closing .dialog { animation:moPopOut .2s ease-in forwards; }
-
-  .drawer { transition:transform .5s var(--mo-ease); }
-  .drawer-overlay { animation:moFade .3s ease; }
-  .drawer-overlay.is-closing { animation:moFadeOut .24s ease forwards; }
-  @keyframes moDrawerItem {
-    from { opacity:0; transform:translate3d(-26px,0,0); }
-    to   { opacity:1; transform:none; }
-  }
-  .drawer.open .drawer-title, .drawer.open .drawer-item { animation:moDrawerItem .5s var(--mo-ease) backwards; }
-  .drawer.open .drawer-title { animation-delay:.05s; }
-  .drawer.open .drawer-item:nth-of-type(1) { animation-delay:.08s; }
-  .drawer.open .drawer-item:nth-of-type(2) { animation-delay:.12s; }
-  .drawer.open .drawer-item:nth-of-type(3) { animation-delay:.16s; }
-  .drawer.open .drawer-item:nth-of-type(4) { animation-delay:.20s; }
-  .drawer.open .drawer-item:nth-of-type(5) { animation-delay:.24s; }
-  .drawer.open .drawer-item:nth-of-type(6) { animation-delay:.28s; }
-  .drawer.open .drawer-item:nth-of-type(7) { animation-delay:.32s; }
-  .drawer.open .drawer-item:nth-of-type(8) { animation-delay:.36s; }
-
-  #toast {
-    transform:translate(-50%,26px) scale(.9);
-    transition:opacity .26s ease, transform .5s var(--mo-spring);
-  }
-  #toast.show { transform:translate(-50%,0) scale(1); }
-
-  /* ================= Loading ================= */
-  @keyframes moBreath {
-    0%, 100% { transform:scale(1); }
-    50%      { transform:scale(1.08); }
-  }
-  #loadingOverlay { animation:moFade .2s ease; }
-  .loading-mark img { animation:moBreath 1.7s ease-in-out .35s infinite; }
+  #pageTitle.mo-title { animation:moTitle .45s cubic-bezier(.22,1,.36,1); }
+  .mo-counting { font-variant-numeric:tabular-nums; }
 }
 
-/* ================= Reduce motion: matikan semuanya ================= */
 @media (prefers-reduced-motion:reduce) {
-  .mo-in, .mo-in-fast, .mo-in-sheet, .mo-title,
-  #pageTitle.mo-title, #btnBack, #btnMenu, #topbarActions > *, #bottomnav,
-  .fab, .payment-badge, .row-status, .chip.active, .business-donut,
-  .sheet-backdrop, .dialog-backdrop, .sheet, .dialog, .drawer-overlay,
-  .drawer.open .drawer-title, .drawer.open .drawer-item,
-  #loadingOverlay, .loading-mark img { animation:none !important; }
-  .mo-pending { opacity:1; transform:none; }
-  .mo-ripple-layer { display:none; }
-  .btn, .chip, .icon-btn, .row, .settings-tile, .customer-card, .sale-product-card, .sale-customer-card,
-  .dashboard-attention-item, .reports-year-card, .drawer-item, .field-radio, .search-input,
-  .theme-switch button, .drawer, #toast { transition-duration:.01ms !important; }
+  .mo-text, .mo-text-fast, #pageTitle.mo-title { animation:none !important; }
 }
