@@ -52,6 +52,8 @@
 [data-page="dashboard"] .dashboard-attention small { display:block; margin-top:2px; color:var(--muted); font-size:10.5px; }
 [data-page="dashboard"] .dashboard-attention-action { display:flex; min-width:0; grid-row:2; grid-column:2; align-items:center; justify-self:end; gap:5px; padding:0; border:0; background:transparent; color:var(--primary); font:inherit; cursor:pointer; }
 [data-page="dashboard"] .dashboard-attention-action strong { display:flex; min-width:0; align-items:center; gap:5px; color:var(--primary); font-size:13px; font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap; }
+[data-page="dashboard"] .dashboard-attention-item--unpaid .dashboard-attention-action { max-width:100%; }
+[data-page="dashboard"] .dashboard-attention-item--unpaid .dashboard-attention-action strong { flex-wrap:wrap; white-space:normal; overflow-wrap:anywhere; font-size:clamp(10px,3vw,13px); line-height:1.15; }
 [data-page="dashboard"] .dashboard-attention i { color:var(--muted); font-size:21px; font-style:normal; font-weight:300; }
 [data-page="dashboard"] .dashboard-section { margin:19px 0 8px; }
 [data-page="dashboard"] .dashboard-shortcuts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
