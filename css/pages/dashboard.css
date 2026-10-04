@@ -81,6 +81,7 @@
 [data-page="dashboard"] .dashboard-orders .row-meta { display:block; white-space:normal; }
 [data-page="dashboard"] .dashboard-orders .row-title { font-size:15.5px; }
 [data-page="dashboard"] .dashboard-orders .row-meta { font-size:12.5px; text-align:left; line-height:1.45; }
+[data-page="dashboard"] .dashboard-orders .nota-address { display:block; margin-top:1px; overflow:hidden; color:var(--muted); font-size:10.5px; line-height:1.3; text-overflow:ellipsis; white-space:nowrap; }
 [data-page="dashboard"] .dashboard-orders .nota-date { display:inline-block; }
 [data-page="dashboard"] .dashboard-orders .nota-invoice { display:inline-block; overflow-wrap:anywhere; }
 [data-page="dashboard"] .dashboard-orders .row-money { font-size:15px; font-variant-numeric:tabular-nums; }

@@ -82,7 +82,7 @@
     -webkit-backdrop-filter:var(--nav-blur, none); backdrop-filter:var(--nav-blur, none);
   }
 
-  /* ---------- Tombol tab: hanya ikon, label tetap terbaca screen reader ---------- */
+  /* ---------- Tombol tab: label berganti posisi sesuai status aktif ---------- */
   #app #bottomnav .nav-btn {
     position:relative; z-index:1;
     flex:1 1 0; min-width:0; height:var(--nav-h); min-height:0;
@@ -94,9 +94,14 @@
   }
   #app #bottomnav .nav-btn.active { background:none; box-shadow:none; color:var(--nav-ink); }
   #app #bottomnav .nav-btn span {
-    position:absolute; width:1px; height:1px; margin:-1px; padding:0;
-    overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+    position:absolute; left:0; right:0; width:auto; height:auto; margin:0; padding:0 2px;
+    overflow:hidden; clip:auto; color:inherit; font-size:9px; font-weight:600;
+    line-height:1.15; text-align:center; text-overflow:ellipsis; white-space:nowrap; border:0;
   }
+  #app #bottomnav .nav-btn:not(.active) span { top:7px; }
+  #app #bottomnav .nav-btn.active span { bottom:5px; color:var(--nav-ink); }
+  #app #bottomnav .nav-btn:not(.active) svg { position:absolute; bottom:5px; }
+  #app #bottomnav .nav-btn.active svg { position:absolute; top:0; }
   #app #bottomnav .nav-btn svg {
     width:24px; height:24px; padding:0; margin:0;
     background:none; border:0; border-radius:0; box-shadow:none;
