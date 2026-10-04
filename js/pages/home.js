@@ -190,6 +190,7 @@ async function renderList(root) {
         <div class="avatar">${initials(s.sale.customerName)}</div>
         <div class="row-body">
           <div class="row-title">${escapeHtml(s.sale.customerName)}${s.sale.completed ? ' <span class="home-layout-6">SELESAI</span>' : ''}</div>
+          ${s.sale.customerAddress?.trim() ? `<div class="nota-address">${escapeHtml(s.sale.customerAddress.trim())}</div>` : ''}
           <div class="row-meta"><span class="nota-date">${dateLabel}</span> <span class="nota-invoice">• ${escapeHtml(s.sale.invoiceNumber)}</span></div>
         </div>
         <div class="row-trailing">
