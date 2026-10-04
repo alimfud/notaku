@@ -30,7 +30,7 @@ export async function renderSaleForm(root, mode, initial, onSave) {
     stepperQty: 1,
     products: await getAllProducts(),
     saving: false,
-    editDetailsExpanded: mode !== 'edit',
+    editDetailsExpanded: false,
   };
 
   draw(root, mode, state, onSave);
@@ -60,7 +60,7 @@ function draw(root, mode, state, onSave) {
   if (mode === 'create' && state.payment > 0) adjustmentSummary.push(`Bayar ${rupiah(state.payment)}`);
   if (state.note.trim()) adjustmentSummary.push('Ada catatan');
 
-  const customerAndScheduleMarkup = mode === 'edit' ? `
+  const customerAndScheduleMarkup = `
       <section id="editDetailsPanel" class="sale-form-card sale-edit-details-card" data-expanded="${state.editDetailsExpanded}">
         <div id="editDetailsHeader" class="sale-edit-details-header" role="button" tabindex="0" aria-expanded="${state.editDetailsExpanded}">
           <div class="sale-edit-summary-column">
@@ -98,44 +98,6 @@ function draw(root, mode, state, onSave) {
               <input id="fTime" type="time" value="${state.saleTime || ''}" required>
             </label>
           </div>
-        </div>
-      </section>
-  ` : `
-      <section class="sale-form-card sale-customer-card">
-        <div class="sale-card-heading">
-          <div><h2>Informasi pemesan</h2></div>
-          <button id="pickCustomerBtn" class="sale-text-btn" type="button">Pilih dari daftar</button>
-        </div>
-        <div class="sale-field-grid sale-field-grid-2">
-          <label class="sale-input-field">
-            <span>Nama pelanggan</span>
-            <input id="custName" value="${escapeHtml(c.name)}" placeholder="Masukkan nama" autocomplete="name">
-          </label>
-          <label class="sale-input-field">
-            <span>No. WhatsApp <em>Opsional</em></span>
-            <input id="custPhone" value="${escapeHtml(c.phone)}" placeholder="08xxxxxxxxxx" inputmode="tel" autocomplete="tel">
-          </label>
-        </div>
-        <label class="sale-input-field sale-address-field">
-          <span>Alamat <em>Opsional</em></span>
-          <input id="custAddress" value="${escapeHtml(c.address)}" placeholder="Masukkan alamat pelanggan" autocomplete="street-address">
-        </label>
-        <p class="sale-helper"></p>
-      </section>
-
-      <section class="sale-form-card sale-schedule-card">
-        <div class="sale-card-heading sale-card-heading-compact">
-          <div><div class="sale-card-kicker">Jadwal</div></div>
-        </div>
-        <div class="sale-field-grid sale-field-grid-2">
-          <label class="sale-input-field">
-            <span>Tanggal pengambilan</span>
-            <input id="fDate" type="date" value="${state.saleDate || ''}" required>
-          </label>
-          <label class="sale-input-field">
-            <span>Jam pengambilan</span>
-            <input id="fTime" type="time" value="${state.saleTime || ''}" required>
-          </label>
         </div>
       </section>
   `;
@@ -213,44 +175,39 @@ function draw(root, mode, state, onSave) {
   root.querySelector('#custPhone')?.addEventListener('input', (e) => { state.customer.phone = e.target.value; });
   root.querySelector('#pickCustomerBtn')?.addEventListener('click', () => pickCustomer(root, mode, state, onSave));
 
-  if (mode === 'edit') {
-    const panel = root.querySelector('#editDetailsPanel');
-    const header = root.querySelector('#editDetailsHeader');
-    const openDetails = () => {
-      if (!state.editDetailsExpanded) {
-        state.editDetailsExpanded = true;
-        syncEditDetailsPanel(root, state);
-      }
-    };
-    const finishDetails = () => {
-      if (!state.editDetailsExpanded) return;
-      captureEditDetails(root, state);
-      state.editDetailsExpanded = false;
+  const panel = root.querySelector('#editDetailsPanel');
+  const header = root.querySelector('#editDetailsHeader');
+  const openDetails = () => {
+    if (!state.editDetailsExpanded) {
+      state.editDetailsExpanded = true;
       syncEditDetailsPanel(root, state);
-    };
-    panel.addEventListener('click', openDetails);
-    header.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        openDetails();
-      }
-    });
-    root.onpointerdown = (e) => {
-      if (state.editDetailsExpanded && !panel.contains(e.target)) finishDetails();
-    };
-    root.onfocusout = (e) => {
-      if (state.editDetailsExpanded && panel.contains(e.target) && !panel.contains(e.relatedTarget)) finishDetails();
-    };
-    const collapseAfterScroll = () => {
-      const bounds = panel.getBoundingClientRect();
-      if (state.editDetailsExpanded && (bounds.bottom <= 0 || bounds.top >= window.innerHeight)) finishDetails();
-    };
-    window.addEventListener('scroll', collapseAfterScroll, true);
-    root._notakuEditDetailsCleanup = () => window.removeEventListener('scroll', collapseAfterScroll, true);
-  } else {
-    root.onpointerdown = null;
-    root.onfocusout = null;
-  }
+    }
+  };
+  const finishDetails = () => {
+    if (!state.editDetailsExpanded) return;
+    captureEditDetails(root, state);
+    state.editDetailsExpanded = false;
+    syncEditDetailsPanel(root, state);
+  };
+  panel.addEventListener('click', openDetails);
+  header.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openDetails();
+    }
+  });
+  root.onpointerdown = (e) => {
+    if (state.editDetailsExpanded && !panel.contains(e.target)) finishDetails();
+  };
+  root.onfocusout = (e) => {
+    if (state.editDetailsExpanded && panel.contains(e.target) && !panel.contains(e.relatedTarget)) finishDetails();
+  };
+  const collapseAfterScroll = () => {
+    const bounds = panel.getBoundingClientRect();
+    if (state.editDetailsExpanded && (bounds.bottom <= 0 || bounds.top >= window.innerHeight)) finishDetails();
+  };
+  window.addEventListener('scroll', collapseAfterScroll, true);
+  root._notakuEditDetailsCleanup = () => window.removeEventListener('scroll', collapseAfterScroll, true);
 
   root.querySelector('#fDate')?.addEventListener('change', (e) => { state.saleDate = e.target.value; });
   root.querySelector('#fTime')?.addEventListener('change', (e) => { state.saleTime = e.target.value; });
@@ -439,6 +396,7 @@ async function addManualItem(root, mode, state, onSave) {
   const existing = state.products.find((p) => p.name.toLowerCase() === name_lower(line.name));
   if (existing) {
     line.productId = existing.id;
+    line.updateProductPrice = Number(existing.price) !== Number(line.price);
   } else {
     try {
       const created = await saveProduct({ name: line.name, unit: line.unit, price: line.price, category: '', cost: 0, stock: 0 });
@@ -553,14 +511,16 @@ async function editLine(root, state, index) {
       preview.textContent = rupiah(q * p);
     }
     qtyInput.addEventListener('input', updatePreview);
-    priceInput.addEventListener('input', updatePreview);
     body.querySelector('#eClose').onclick = () => close(undefined);
+    let priceWasChanged = false;
+    priceInput.addEventListener('input', () => { priceWasChanged = true; updatePreview(); });
     body.querySelector('#eApply').onclick = () => {
       const name = body.querySelector('#eName').value.trim();
       if (name) line.name = name;
       line.unit = body.querySelector('#eUnit').value.trim();
       line.qty = Number(qtyInput.value) || line.qty;
       line.price = Number(priceInput.value) || 0;
+      line.updateProductPrice = line.updateProductPrice || priceWasChanged;
       line.note = body.querySelector('#eNote').value.trim();
       close(true);
     };
@@ -610,7 +570,7 @@ async function pickCustomer(root, mode, state, onSave) {
 
   if (selected) {
     state.customer = { id: selected.id || '', name: selected.name, phone: selected.phone || '', address: selected.address || '' };
-    if (mode === 'edit') state.editDetailsExpanded = false;
+    state.editDetailsExpanded = false;
     draw(root, mode, state, onSave);
   }
 }

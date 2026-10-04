@@ -1056,13 +1056,13 @@
   }
 }
 
-/* Ubah Nota: pemesan dan jadwal menjadi satu panel horizontal yang dapat dibuka. */
-[data-page="sale-edit"] .sale-edit-details-card {
+/* Nota Baru dan Ubah Nota memakai panel pemesan/jadwal yang sama dan dapat dibuka. */
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-details-card {
   padding:16px;
   cursor:pointer;
 }
 
-[data-page="sale-edit"] .sale-edit-details-header {
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-details-header {
   display:grid;
   grid-template-columns:minmax(0,1fr) minmax(0,1fr);
   align-items:start;
@@ -1070,22 +1070,22 @@
   cursor:pointer;
 }
 
-[data-page="sale-edit"] .sale-edit-summary-column {
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-summary-column {
   min-width:0;
 }
 
-[data-page="sale-edit"] .sale-edit-summary-column h2 {
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-summary-column h2 {
   margin:2px 0 0;
   color:var(--ink);
   font-size:16px;
   line-height:1.25;
 }
 
-[data-page="sale-edit"] .sale-edit-summary-column .sale-card-kicker {
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-summary-column .sale-card-kicker {
   margin-top:2px;
 }
 
-[data-page="sale-edit"] .sale-edit-summary {
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-summary {
   margin:4px 0 0;
   overflow-wrap:anywhere;
   color:var(--muted);
@@ -1093,12 +1093,12 @@
   line-height:1.4;
 }
 
-[data-page="sale-edit"] .sale-edit-details-content[hidden],
-[data-page="sale-edit"] .sale-edit-summary[hidden] {
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-details-content[hidden],
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-summary[hidden] {
   display:none;
 }
 
-[data-page="sale-edit"] .sale-edit-details-content:not([hidden]) {
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-details-content:not([hidden]) {
   display:grid;
   gap:16px;
   margin-top:14px;
@@ -1106,40 +1106,40 @@
   border-top:1px solid var(--outline);
 }
 
-[data-page="sale-edit"] .sale-edit-customer-fields,
-[data-page="sale-edit"] .sale-edit-schedule-fields {
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-customer-fields,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-schedule-fields {
   display:grid;
   min-width:0;
   gap:10px;
 }
 
-[data-page="sale-edit"] .sale-edit-customer-fields,
-[data-page="sale-edit"] .sale-edit-schedule-fields {
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-customer-fields,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-schedule-fields {
   grid-template-columns:repeat(2,minmax(0,1fr));
 }
 
-[data-page="sale-edit"] .sale-edit-customer-fields .sale-pick-customer-btn,
-[data-page="sale-edit"] .sale-edit-customer-fields .sale-address-field {
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-customer-fields .sale-pick-customer-btn,
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-customer-fields .sale-address-field {
   grid-column:1 / -1;
 }
 
-[data-page="sale-edit"] .sale-edit-customer-fields .sale-pick-customer-btn {
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-customer-fields .sale-pick-customer-btn {
   justify-self:start;
   margin:0;
 }
 
-[data-page="sale-edit"] .sale-edit-customer-fields .sale-address-field {
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-customer-fields .sale-address-field {
   margin-top:0;
 }
 
-[data-page="sale-edit"] .sale-edit-details-header:focus-visible {
+:is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-details-header:focus-visible {
   outline:2px solid var(--primary);
   outline-offset:4px;
   border-radius:8px;
 }
 
 @media(min-width:800px) {
-  [data-page="sale-edit"] .sale-edit-details-content:not([hidden]) {
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-details-content:not([hidden]) {
     grid-template-columns:minmax(0,1.35fr) minmax(235px,.95fr);
     align-items:start;
     gap:20px;
@@ -1147,15 +1147,15 @@
 }
 
 @media(max-width:380px) {
-  [data-page="sale-edit"] .sale-edit-details-card {
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-details-card {
     padding:14px;
   }
 
-  [data-page="sale-edit"] .sale-edit-details-header {
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-details-header {
     gap:8px;
   }
 
-  [data-page="sale-edit"] .sale-edit-summary-column h2 {
+  :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-edit-summary-column h2 {
     font-size:14px;
   }
 }
