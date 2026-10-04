@@ -1,6 +1,7 @@
 // app.js — bootstrap aplikasi & router SPA.
 import { APP_VERSION } from './version.js';
 import { initTheme } from './theme.js';
+import { initBottomNavIndicator } from './navIndicator.js';
 //
 // Kenapa hash router + dynamic import per halaman?
 // - Hash router (#/rute) tidak perlu konfigurasi server apa pun — cocok untuk
@@ -22,6 +23,7 @@ const bottomnav = document.getElementById('bottomnav');
 const drawer = document.getElementById('drawer');
 const drawerOverlay = document.getElementById('drawerOverlay');
 initTheme();
+initBottomNavIndicator(bottomnav); // lekukan + bubble menu bawah (mobile)
 
 const TOP_LEVEL_ROUTES = ['dashboard', 'home', 'products', 'customers', 'expenses', 'reports', 'settings'];
 

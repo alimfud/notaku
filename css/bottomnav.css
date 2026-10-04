@@ -1,0 +1,146 @@
+/*
+  NotaKu — Menu bawah "Notch + Bubble" (mobile, < 800px).
+
+  Bar penuh di dasar layar dengan lekukan setengah lingkaran di bawah tab aktif.
+  Bulatan (bubble) berisi ikon tab aktif duduk di dalam lekukan, berbingkai
+  cincin berwarna aksen, lalu meluncur mengikuti tab yang dipilih.
+  Geometri lekukan digambar oleh js/navIndicator.js (clip-path), sedangkan
+  warna & bayangan seluruhnya diatur variabel --nav-* di bawah, satu blok per tema.
+
+  - Dimuat paling akhir agar menimpa gaya menu bawah lama di theme/neo/glass/clay.
+  - Desktop (>= 800px): sidebar kiri lama tidak berubah.
+  - Tidak mengubah struk, cetak, atau logika aplikasi.
+*/
+
+/* Elemen tambahan tidak dipakai di desktop */
+.nav-shape, .nav-bubble { display:none; }
+
+@media screen {
+  /* ---------- Palet per tema ---------- */
+  html[data-theme="light"] {
+    --nav-bar:#491d30;
+    --nav-ink:#d9bcc8;
+    --nav-bubble:#f2ccaa;
+    --nav-bubble-ink:#532339;
+    --nav-rim:#a53b5a;
+    --nav-shadow:drop-shadow(0 -4px 12px rgba(53,16,31,.30));
+    --nav-bubble-shadow:0 0 0 4px var(--nav-rim), 0 8px 16px -4px rgba(35,10,20,.55);
+    --nav-blur:none;
+  }
+  html[data-theme="dark"] {
+    --nav-bar:linear-gradient(180deg,#2d3878 0%,#1b2354 100%);
+    --nav-ink:#9aa3d6;
+    --nav-bubble:var(--g-amber, linear-gradient(180deg,#ffd75a,#ff9a28));
+    --nav-bubble-ink:var(--navy-text, #1a2150);
+    --nav-rim:#3b4799;
+    --nav-shadow:drop-shadow(0 -6px 14px rgba(4,6,28,.65));
+    --nav-bubble-shadow:0 0 0 4px var(--nav-rim), 0 12px 20px -4px rgba(255,160,40,.55), inset 0 1px 0 rgba(255,255,255,.65), inset 0 -3px 5px rgba(150,70,0,.25);
+    --nav-blur:none;
+  }
+  html[data-theme="glass"] {
+    --nav-bar:linear-gradient(145deg,rgba(255,255,255,.82),rgba(226,241,252,.62));
+    --nav-ink:var(--muted, #678ba8);
+    --nav-bubble:var(--gl-btn, linear-gradient(90deg,#1b6fb4,#38cfe0));
+    --nav-bubble-ink:#fff;
+    --nav-rim:#f6fbff;
+    --nav-shadow:none; /* filter pada wrapper akan mematikan blur kaca */
+    --nav-bubble-shadow:0 0 0 4px var(--nav-rim), 0 12px 20px -6px rgba(24,125,190,.65), inset 0 1px 0 rgba(255,255,255,.6);
+    --nav-blur:var(--gl-blur-strong, blur(26px) saturate(160%));
+  }
+  html[data-theme="clay"] {
+    --nav-bar:var(--cl-panel, linear-gradient(180deg,#d3e6db,#bcd6c8));
+    --nav-ink:#4f7566;
+    --nav-bubble:var(--cl-coral, linear-gradient(180deg,#f8a67f,#ef7d55));
+    --nav-bubble-ink:#fff;
+    --nav-rim:#fff6e8;
+    --nav-shadow:drop-shadow(0 -6px 12px rgba(80,130,110,.38));
+    --nav-bubble-shadow:0 0 0 4px var(--nav-rim), 0 10px 16px -5px rgba(222,105,65,.65), inset 0 2px 3px rgba(255,255,255,.55), inset 0 -3px 5px rgba(170,70,30,.3);
+    --nav-blur:none;
+  }
+}
+
+@media screen and (max-width:799px) {
+  /* ---------- Wadah bar ---------- */
+  #app #bottomnav {
+    --nav-h:64px;
+    position:sticky; bottom:0;
+    margin:0; gap:0;
+    padding:0 0 env(safe-area-inset-bottom,0px);
+    background:none; border:0; border-radius:0; box-shadow:none;
+    -webkit-backdrop-filter:none; backdrop-filter:none;
+    overflow:visible;
+  }
+
+  /* Bentuk bar (dipotong oleh clip-path dari JS). Wrapper membawa bayangan. */
+  #app #bottomnav .nav-shape {
+    display:block; position:absolute; inset:0; z-index:0; pointer-events:none;
+    filter:var(--nav-shadow, none);
+  }
+  #app #bottomnav .nav-bg {
+    position:absolute; inset:0;
+    background:var(--nav-bar);
+    -webkit-backdrop-filter:var(--nav-blur, none); backdrop-filter:var(--nav-blur, none);
+  }
+
+  /* ---------- Tombol tab: hanya ikon, label tetap terbaca screen reader ---------- */
+  #app #bottomnav .nav-btn {
+    position:relative; z-index:1;
+    flex:1 1 0; min-width:0; height:var(--nav-h); min-height:0;
+    padding:4px 0 0; gap:0; border-radius:0;
+    justify-content:center; align-items:center;
+    background:none; box-shadow:none;
+    color:var(--nav-ink); font-weight:inherit;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #app #bottomnav .nav-btn.active { background:none; box-shadow:none; color:var(--nav-ink); }
+  #app #bottomnav .nav-btn span {
+    position:absolute; width:1px; height:1px; margin:-1px; padding:0;
+    overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+  }
+  #app #bottomnav .nav-btn svg {
+    width:24px; height:24px; padding:0; margin:0;
+    background:none; border:0; border-radius:0; box-shadow:none;
+    color:inherit; opacity:.82;
+    transition:transform .15s ease, opacity .2s ease;
+  }
+  #app #bottomnav .nav-btn:active svg { transform:scale(.86); }
+  /* Ikon tab aktif ditampilkan di dalam bubble, jadi yang asli disembunyikan */
+  #app #bottomnav .nav-btn.active svg { opacity:0; }
+  #app #bottomnav .nav-btn:focus-visible { outline:2px solid var(--nav-rim); outline-offset:-6px; border-radius:16px; }
+
+  /* Tombol "Buat Nota" tidak lagi menonjol sendiri: semua tab diperlakukan sama */
+  #app #bottomnav .nav-btn[data-route="sale/new"],
+  #app #bottomnav .nav-btn[data-route="sale/new"].active {
+    padding:4px 0 0; color:var(--nav-ink); background:none; box-shadow:none; font-weight:inherit;
+  }
+  #app #bottomnav .nav-btn[data-route="sale/new"] svg,
+  #app #bottomnav .nav-btn[data-route="sale/new"].active svg {
+    width:24px; height:24px; padding:0; margin:0; background:none; border:0; border-radius:0; box-shadow:none;
+    color:inherit;
+  }
+  #app #bottomnav .nav-btn[data-route="sale/new"].active svg { opacity:0; }
+
+  /* ---------- Bubble ---------- */
+  #app #bottomnav .nav-bubble {
+    display:flex; align-items:center; justify-content:center;
+    position:absolute; left:0; z-index:2; pointer-events:none;
+    top:-13px; /* NOTCH_DEPTH (12) - radius bubble (25) */
+    width:50px; height:50px; border-radius:50%;
+    background:var(--nav-bubble); color:var(--nav-bubble-ink);
+    box-shadow:var(--nav-bubble-shadow);
+    will-change:transform;
+  }
+  #app #bottomnav .nav-bubble.is-hidden { visibility:hidden; }
+  #app #bottomnav .nav-bubble svg { width:24px; height:24px; display:block; }
+  #app #bottomnav .nav-bubble.pop svg { animation:navBubblePop .32s cubic-bezier(.3,1.6,.5,1); }
+}
+
+@keyframes navBubblePop {
+  0% { transform:scale(.55) rotate(-12deg); opacity:.2; }
+  100% { transform:scale(1) rotate(0); opacity:1; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  #app #bottomnav .nav-bubble.pop svg { animation:none; }
+  #app #bottomnav .nav-btn svg { transition:none; }
+}

@@ -6,6 +6,7 @@
 - `neo.css`: tema "Neo Dark" 3D (navy, tombol pil gradasi amber/oranye/koral, kartu berbayangan lembut); hanya aktif saat pengguna memilih tema Gelap (Setting atau menu samping); tema Terang memakai maroon asli. Struk tidak diubah.
 - `glass.css`: tema "Glass" (kaca buram biru muda, tombol pil gradasi biru-cyan); hanya aktif saat dipilih di Setting atau menu samping. Struk tidak diubah.
 - `clay.css`: tema "Clay" (pastel 3D ala tanah liat: krem, mint, peach, tombol koral); hanya aktif saat dipilih di Setting atau menu samping. Struk tidak diubah.
+- `bottomnav.css`: menu bawah mobile bergaya notch + bubble yang meluncur (geometri digambar `js/navIndicator.js`); warna per tema lewat variabel `--nav-*`. Dimuat paling akhir; sidebar desktop tidak berubah.
 - `charts.css`: grafik harian dan diagram status pembayaran pada Beranda/Laporan, tanpa dependensi jaringan.
 - `pages/home.css`: daftar nota, tanggal, dan nomor invoice.
 - `pages/products.css`: daftar produk dan popup tambah/ubah produk.
