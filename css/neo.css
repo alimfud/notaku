@@ -300,8 +300,8 @@
   [data-page="dashboard"] .dashboard-attention-list { border-top-color:var(--nv-line); }
   [data-page="dashboard"] .dashboard-attention-item:nth-child(2) { border-left-color:var(--nv-line); }
   @media(max-width:390px) { [data-page="dashboard"] .dashboard-attention-item:nth-child(2) { border-top-color:var(--nv-line); } }
-  [data-page="dashboard"] .dashboard-attention-icon { background:var(--g-coral); color:#fff; border-radius:12px; box-shadow:0 7px 12px -4px rgba(255,90,114,.55), inset 0 1px 0 rgba(255,255,255,.5); }
-  [data-page="dashboard"] .dashboard-attention button:nth-child(2) .dashboard-attention-icon { background:var(--g-amber); color:var(--navy-text); box-shadow:0 7px 12px -4px rgba(255,160,40,.55), inset 0 1px 0 rgba(255,255,255,.6); }
+  [data-page="dashboard"] .dashboard-attention-icon { background:rgba(255,90,114,.14); color:#ff8796; border:0; border-radius:8px; box-shadow:none; }
+  [data-page="dashboard"] .dashboard-attention-item--unpaid .dashboard-attention-icon { background:rgba(255,194,71,.16); color:#ffc247; }
   [data-page="dashboard"] .dashboard-attention-action strong { color:#ffc247; }
 
   /* ---------- Avatar, ikon, foto, lencana ---------- */

@@ -285,8 +285,8 @@
   [data-page="dashboard"] .dashboard-attention-list { border-top-color:var(--outline); }
   [data-page="dashboard"] .dashboard-attention-item:nth-child(2) { border-left-color:var(--outline); }
   @media(max-width:390px) { [data-page="dashboard"] .dashboard-attention-item:nth-child(2) { border-top-color:var(--outline); } }
-  [data-page="dashboard"] .dashboard-attention-icon { background:var(--cl-coral); color:#fff; border-radius:14px; box-shadow:var(--cl-coral-shadow); }
-  [data-page="dashboard"] .dashboard-attention button:nth-child(2) .dashboard-attention-icon { background:linear-gradient(180deg,#fbcf63,#f0a92c); color:#fff; box-shadow:0 8px 12px -5px rgba(225,155,30,.6), inset 0 2px 3px rgba(255,255,255,.55); }
+  [data-page="dashboard"] .dashboard-attention-icon { background:color-mix(in srgb,var(--cl-coral) 20%,#fff); color:#b0532b; border:0; border-radius:8px; box-shadow:none; }
+  [data-page="dashboard"] .dashboard-attention-item--unpaid .dashboard-attention-icon { background:color-mix(in srgb,var(--cl-butter) 30%,#fff); color:#9a6a00; }
   [data-page="dashboard"] .dashboard-attention-action strong { color:#c4602b; }
 
   /* ---------- Avatar, foto, ikon, lencana ---------- */
