@@ -8,7 +8,7 @@
 //   lalu terbuka saat mendarat. Semua geometri mengikuti satu animation frame.
 // - Warna 100% dari CSS variable (--nav-*) per tema di css/bottomnav.css,
 //   jadi file ini tidak tahu apa pun soal tema.
-// - Hanya aktif di layar < 800px. Di desktop sidebar lama tetap dipakai.
+// - Di desktop, penanda dan ikon bergerak vertikal mengikuti menu samping.
 // - Tidak mengubah routing: cukup membaca class `.active` yang sudah diatur app.js.
 
 // Geometri (px) — harus sama dengan nilai di css/bottomnav.css
@@ -39,6 +39,7 @@ const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) 
 
 export function initBottomNavIndicator(nav) {
   if (!nav || nav.querySelector('.nav-bg')) return;
+  initSidebarNavIndicator(nav);
 
   const shape = document.createElement('div');
   shape.className = 'nav-shape';
@@ -194,5 +195,107 @@ export function initBottomNavIndicator(nav) {
   if (reduceMq.addEventListener) reduceMq.addEventListener('change', onMq);
   else if (reduceMq.addListener) reduceMq.addListener(onMq);
 
+  sync(false);
+}
+
+function initSidebarNavIndicator(nav) {
+  const indicator = document.createElement('div');
+  indicator.className = 'sidebar-indicator';
+  indicator.setAttribute('aria-hidden', 'true');
+  const bubble = document.createElement('div');
+  bubble.className = 'sidebar-bubble';
+  bubble.setAttribute('aria-hidden', 'true');
+  nav.append(indicator, bubble);
+  nav.classList.add('sidebar-motion-ready');
+
+  const desktopMq = window.matchMedia('(min-width:800px)');
+  const reduceMq = window.matchMedia('(prefers-reduced-motion:reduce)');
+  let pose = null;
+  let destination = null;
+  let frame = 0;
+  let shown = null;
+  let hop = 0;
+  let opacity = 1;
+
+  function showIcon(button) {
+    if (shown === button) return;
+    shown = button;
+    bubble.replaceChildren(button.querySelector('svg').cloneNode(true));
+  }
+
+  function paint() {
+    indicator.style.width = `${pose.width}px`;
+    indicator.style.height = `${pose.height}px`;
+    indicator.style.transform = `translate3d(${pose.x}px,${pose.y}px,0) scaleX(${1 - hop * 0.008})`;
+    bubble.style.transform = `translate3d(${pose.iconX - hop}px,${pose.iconY}px,0)`;
+    const icon = bubble.querySelector('svg');
+    if (icon) {
+      icon.style.opacity = opacity;
+      icon.style.transform = `scale(${0.75 + opacity * 0.25})`;
+    }
+  }
+
+  function sync(animate) {
+    const button = [...nav.querySelectorAll('.nav-btn.active')].find(btn => btn.offsetWidth > 0);
+    if (!desktopMq.matches || !button || !nav.clientWidth) {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      pose = destination = null;
+      indicator.style.visibility = bubble.style.visibility = 'hidden';
+      return;
+    }
+    const navRect = nav.getBoundingClientRect();
+    const rect = button.getBoundingClientRect();
+    const icon = button.querySelector('svg').getBoundingClientRect();
+    const x = nav.scrollLeft - navRect.left - nav.clientLeft;
+    const y = nav.scrollTop - navRect.top - nav.clientTop;
+    const target = {
+      x: rect.left + x, y: rect.top + y, width: rect.width, height: rect.height,
+      iconX: icon.left + x + icon.width / 2 - 16,
+      iconY: icon.top + y + icon.height / 2 - 16,
+    };
+    if (animate && destination && Object.keys(target).every(key => Math.abs(target[key] - destination[key]) < 0.5)) return;
+    cancelAnimationFrame(frame);
+    frame = 0;
+    destination = target;
+    indicator.style.visibility = bubble.style.visibility = 'visible';
+    if (!pose || !animate || reduceMq.matches) {
+      pose = { ...target };
+      hop = 0;
+      opacity = 1;
+      showIcon(button);
+      paint();
+      return;
+    }
+    const from = { ...pose };
+    const fromHop = hop;
+    const fromOpacity = opacity;
+    const start = performance.now();
+    const step = now => {
+      const t = Math.min(1, (now - start) / SLIDE_MS);
+      const progress = easeInOut(t);
+      for (const key of Object.keys(target)) pose[key] = from[key] + (target[key] - from[key]) * progress;
+      hop = fromHop * (1 - progress) + Math.sin(Math.PI * t) * 6;
+      opacity = t < 0.5 ? fromOpacity * (1 - Math.min(1, t / 0.28)) : easeInOut(Math.min(1, (t - 0.5) / 0.36));
+      if (t >= 0.5) showIcon(button);
+      if (t === 1) { hop = 0; opacity = 1; }
+      paint();
+      frame = t < 1 ? requestAnimationFrame(step) : 0;
+    };
+    frame = requestAnimationFrame(step);
+  }
+
+  new MutationObserver(records => {
+    if (records.some(({ target }) => target === nav || target.classList.contains('nav-btn'))) sync(true);
+  }).observe(nav, { attributes:true, attributeFilter:['class'], subtree:true });
+  if ('ResizeObserver' in window) {
+    const observer = new ResizeObserver(() => sync(false));
+    observer.observe(nav);
+    nav.querySelectorAll('.nav-btn').forEach(button => observer.observe(button));
+  }
+  for (const mq of [desktopMq, reduceMq]) {
+    if (mq.addEventListener) mq.addEventListener('change', () => sync(false));
+    else mq.addListener(() => sync(false));
+  }
   sync(false);
 }

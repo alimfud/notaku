@@ -8,12 +8,13 @@
   warna & bayangan seluruhnya diatur variabel --nav-* di bawah, satu blok per tema.
 
   - Dimuat paling akhir agar menimpa gaya menu bawah lama di theme/neo/glass/clay.
-  - Desktop (>= 800px): sidebar kiri lama tidak berubah.
+  - Desktop (>= 800px): penanda aktif dan ikon melompat secara vertikal.
   - Tidak mengubah struk, cetak, atau logika aplikasi.
 */
 
 /* Elemen tambahan tidak dipakai di desktop */
 .nav-shape, .nav-bubble { display:none; }
+.sidebar-indicator, .sidebar-bubble { display:none; }
 
 @media screen {
   /* ---------- Palet per tema ---------- */
@@ -128,7 +129,37 @@
   #app #bottomnav .nav-bubble svg { width:24px; height:24px; display:block; }
 }
 
+@media screen and (min-width:800px) {
+  #app #bottomnav { isolation:isolate; }
+  #app #bottomnav.sidebar-motion-ready .nav-btn { position:relative; z-index:1; }
+  #app #bottomnav.sidebar-motion-ready .nav-btn.active { background:transparent; box-shadow:none; }
+  #app #bottomnav.sidebar-motion-ready .nav-btn svg { flex-shrink:0; transition:opacity .22s ease; }
+  #app #bottomnav.sidebar-motion-ready .nav-btn.active svg { opacity:0; }
+  #app #bottomnav .sidebar-indicator {
+    display:block; position:absolute; top:0; left:0; z-index:0; pointer-events:none;
+    border-radius:12px; background:var(--nav-bubble); visibility:hidden;
+    box-shadow:0 7px 14px -6px rgba(0,0,0,.25); will-change:transform;
+  }
+  #app #bottomnav .sidebar-bubble {
+    display:flex; align-items:center; justify-content:center;
+    position:absolute; top:0; left:0; width:32px; height:32px; z-index:2;
+    pointer-events:none; visibility:hidden; border-radius:50%;
+    background:var(--nav-bubble); color:var(--nav-bubble-ink);
+    box-shadow:0 3px 7px rgba(0,0,0,.12); will-change:transform;
+  }
+  #app #bottomnav .sidebar-bubble svg { display:block; width:21px; height:21px; }
+  html[data-theme="clay"] #app #bottomnav .sidebar-indicator {
+    background:linear-gradient(180deg,#fffaf0,#fbeedb);
+    box-shadow:0 8px 12px -5px rgba(80,120,100,.55), inset 0 2px 3px #fff, inset 0 -3px 5px rgba(205,160,115,.22);
+  }
+  html[data-theme="glass"] #app #bottomnav .sidebar-indicator {
+    background:linear-gradient(160deg,rgba(255,255,255,.98),rgba(190,228,246,.75));
+    box-shadow:0 8px 16px -6px rgba(30,120,180,.45), inset 0 1px 0 #fff;
+  }
+}
+
 @media (prefers-reduced-motion:reduce) {
+  #app #bottomnav.sidebar-motion-ready .nav-btn svg,
   #app #bottomnav .nav-btn svg,
   #app #bottomnav .nav-btn span { transition:none; }
 }
