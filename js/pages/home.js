@@ -181,7 +181,6 @@ async function renderList(root) {
 
   listEl.innerHTML = summaries.map((s) => {
     const status = s.displayStatus;
-    const colorVar = { PAID: 'var(--status-lunas)', PARTIAL: 'var(--status-partial)', OVERPAID: 'var(--status-overpaid)', UNPAID: 'var(--status-unpaid)' }[status];
     const autoTag = s.sale.autoMarkedPaid ? ' <span class="home-layout-5">(otomatis)</span>' : '';
     const dateLabel = _sortBy === 'created'
       ? new Date(s.sale.createdAt).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -195,7 +194,7 @@ async function renderList(root) {
         </div>
         <div class="row-trailing">
           <div class="row-money">${rupiah(s.sale.total)}</div>
-          <div class="row-status" style="color:${colorVar}">${STATUS_LABEL[status]}${autoTag}</div>
+          <div class="payment-badge" data-status="${status}">${STATUS_LABEL[status]}${autoTag}</div>
         </div>
       </button>`;
   }).join('');

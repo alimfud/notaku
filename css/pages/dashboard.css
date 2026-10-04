@@ -75,16 +75,15 @@
 [data-page="dashboard"] .dashboard-section-row button { display:flex; align-items:center; gap:4px; padding:6px 0; border:0; background:none; color:var(--primary); font:700 10.5px var(--font); cursor:pointer; }
 [data-page="dashboard"] .dashboard-section-row button i { font-size:18px; font-style:normal; font-weight:300; }
 [data-page="dashboard"] .dashboard-orders { overflow:hidden; border:1px solid var(--outline); border-radius:14px; background:var(--surface); box-shadow:0 5px 17px rgba(73,29,48,.05); }
-[data-page="dashboard"] .dashboard-orders .row { gap:9px; padding:11px; }
+[data-page="dashboard"] .dashboard-orders .row { gap:12px; padding:12px 16px; }
 [data-page="dashboard"] .dashboard-orders .row:last-child { border-bottom:0; }
-[data-page="dashboard"] .dashboard-orders .avatar { width:36px; height:36px; background:var(--primary-container); color:var(--primary); font-size:11px; }
 [data-page="dashboard"] .dashboard-orders .row-title,
 [data-page="dashboard"] .dashboard-orders .row-meta { display:block; white-space:normal; }
-[data-page="dashboard"] .dashboard-orders .row-title { font-size:13px; }
-[data-page="dashboard"] .dashboard-orders .row-meta { font-size:10.5px; }
-[data-page="dashboard"] .dashboard-orders .row-money { font-size:12.5px; font-variant-numeric:tabular-nums; }
-[data-page="dashboard"] .dashboard-orders .payment-badge { font-size:8.5px; }
-[data-page="dashboard"] .dashboard-row-arrow { color:var(--muted); font-size:20px; }
+[data-page="dashboard"] .dashboard-orders .row-title { font-size:15.5px; }
+[data-page="dashboard"] .dashboard-orders .row-meta { font-size:12.5px; text-align:left; line-height:1.45; }
+[data-page="dashboard"] .dashboard-orders .nota-date { display:inline-block; }
+[data-page="dashboard"] .dashboard-orders .nota-invoice { display:inline-block; overflow-wrap:anywhere; }
+[data-page="dashboard"] .dashboard-orders .row-money { font-size:15px; font-variant-numeric:tabular-nums; }
 [data-page="dashboard"] .empty-state { padding:34px 20px; }
 
 @media(min-width:680px) {
@@ -104,8 +103,12 @@
   [data-page="dashboard"] .dashboard-attention-icon { grid-row:1; grid-column:1; }
   [data-page="dashboard"] .dashboard-attention-copy { grid-row:1; grid-column:2; }
   [data-page="dashboard"] .dashboard-attention-action { grid-row:1; grid-column:3; }
+}
+
+@media(max-width:380px) {
+  [data-page="dashboard"] .dashboard-orders .row { gap:8px; padding:14px 10px; }
   [data-page="dashboard"] .dashboard-orders .avatar { display:none; }
-  [data-page="dashboard"] .dashboard-row-arrow { display:none; }
+  [data-page="dashboard"] .dashboard-orders .row-money { font-size:13px; }
 }
 
 @media(prefers-reduced-motion:reduce) {
