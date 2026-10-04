@@ -294,10 +294,10 @@
   [data-page="dashboard"] .dashboard-attention-item:nth-child(2) { border-left-color:var(--outline); }
   @media(max-width:390px) { [data-page="dashboard"] .dashboard-attention-item:nth-child(2) { border-top-color:var(--outline); } }
   [data-page="dashboard"] .dashboard-attention-icon,
-  [data-page="dashboard"] .dashboard-attention button:nth-child(2) .dashboard-attention-icon {
-    background:var(--gl-tile); color:#1a8fc4; border:1px solid #fff; border-radius:13px; box-shadow:0 7px 12px -6px rgba(35,100,160,.45), inset 0 1px 0 #fff;
+  [data-page="dashboard"] .dashboard-attention-item--unpaid .dashboard-attention-icon {
+    background:color-mix(in srgb,var(--gl-tile) 35%,transparent); color:#1a8fc4; border:1px solid rgba(255,255,255,.6); border-radius:8px; box-shadow:none;
   }
-  [data-page="dashboard"] .dashboard-attention button:nth-child(2) .dashboard-attention-icon { color:#12a0b0; }
+  [data-page="dashboard"] .dashboard-attention-item--unpaid .dashboard-attention-icon { color:#12a0b0; }
   [data-page="dashboard"] .dashboard-attention-action strong { color:var(--primary); }
 
   /* ---------- Avatar, foto, ikon, lencana ---------- */

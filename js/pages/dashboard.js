@@ -17,6 +17,8 @@ export async function render(root) {
   const pending = summaries.filter(({ sale }) => !sale.completed);
   const pickupThisWeek = pending.filter(({ sale }) => sale.saleDate >= start && sale.saleDate <= end);
   const upcoming = [...pickupThisWeek].sort((a, b) => (a.sale.saleDate + a.sale.saleTime).localeCompare(b.sale.saleDate + b.sale.saleTime)).slice(0, 5);
+  const pickupCountText = numberToIndonesian(pickupThisWeek.length);
+  const pickupShowArrow = pickupCountText.length <= 8;
   const unpaidValue = rupiah(report.totalReceivables);
   const unpaidShowArrow = unpaidValue.length < 10;
   const hour = new Date().getHours();
@@ -25,7 +27,7 @@ export async function render(root) {
     <div class="dashboard-heading"><div><p class="dashboard-kicker">${escapeHtml(settings.storeName || 'Toko Saya')}</p><h2>${greeting}!</h2><p class="dashboard-date">${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p></div><button class="dashboard-primary-action" data-go="sale/new"><span>+</span> Nota baru</button></div>
     <div class="dashboard-overview">
       <section class="dashboard-hero"><div class="dashboard-label">Nilai pesanan</div><small class="dashboard-period">7 hari terakhir · ${orderPeriodLabel}</small><div class="dashboard-revenue">${rupiah(orders.revenue)}</div>${annualMiniChart(annual)}<div class="dashboard-hero-bottom"><div><span>Nota dibuat</span><strong>${orders.transactionCount} nota</strong></div><div><span>Pembayaran masuk</span><strong>${rupiah(orders.received)}</strong></div></div></section>
-      <section class="dashboard-attention"><div class="dashboard-card-heading"><div><span>PERLU PERHATIAN </span></div><small>${periodLabel}</small></div><div class="dashboard-attention-list"><div class="dashboard-attention-item"><span class="dashboard-attention-icon" aria-hidden="true">${shortcutIcon('calendar')}</span><span class="dashboard-attention-copy"><b>Jadwal Pickup</b><small>Pesanan akan diambil</small></span><button class="dashboard-attention-action" data-go="home/pickup" aria-label="Buka Jadwal Pickup"><strong>${pickupThisWeek.length}<i aria-hidden="true">›</i></strong></button></div><div class="dashboard-attention-item dashboard-attention-item--unpaid"><span class="dashboard-attention-icon" aria-hidden="true">${shortcutIcon('wallet')}</span><span class="dashboard-attention-copy"><b>Belum Lunas</b><small>Piutang periode ini</small></span><button class="dashboard-attention-action" data-go="home/unpaid" aria-label="Buka daftar Belum Lunas"><strong>${unpaidValue}${unpaidShowArrow ? '<i aria-hidden="true">›</i>' : ''}</strong></button></div></div></section>
+      <section class="dashboard-attention"><div class="dashboard-card-heading"><div><span>PERLU PERHATIAN </span></div><small>${periodLabel}</small></div><div class="dashboard-attention-list"><div class="dashboard-attention-item dashboard-attention-item--pickup"><span class="dashboard-attention-icon" aria-hidden="true">${shortcutIcon('calendar')}</span><span class="dashboard-attention-copy"><b>Jadwal Pickup</b><small>Pesanan akan diambil</small></span><button class="dashboard-attention-action" data-go="home/pickup" aria-label="Buka Jadwal Pickup"><strong>${pickupCountText}${pickupShowArrow ? '<i aria-hidden="true">›</i>' : ''}</strong></button></div><div class="dashboard-attention-item dashboard-attention-item--unpaid"><span class="dashboard-attention-icon" aria-hidden="true">${shortcutIcon('wallet')}</span><span class="dashboard-attention-copy"><b>Belum Lunas</b><small>Piutang periode ini</small></span><button class="dashboard-attention-action" data-go="home/unpaid" aria-label="Buka daftar Belum Lunas"><strong>${unpaidValue}${unpaidShowArrow ? '<i aria-hidden="true">›</i>' : ''}</strong></button></div></div></section>
     </div>
     <div class="dashboard-section"><h3>Akses cepat</h3></div>
     <div class="dashboard-shortcuts">${[['customers','Pelanggan','users'],['expenses','Pengeluaran','wallet'],['reports','Laporan','chart'],['settings','Pengaturan','settings']].map(([route, label, icon]) => `<button data-go="${route}"><span class="dashboard-shortcut-icon">${shortcutIcon(icon)}</span>${label}</button>`).join('')}</div>
@@ -39,6 +41,35 @@ export async function render(root) {
   `;
   root.querySelectorAll('[data-go]').forEach(button => button.onclick = () => navigate(button.dataset.go));
   wireBusinessCharts(root);
+}
+
+function numberToIndonesian(value) {
+  const number = Math.max(0, Math.floor(Number(value) || 0));
+  if (number === 0) return 'nol';
+
+  const smallNumbers = ['nol', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+  const scales = ['', 'ribu', 'juta', 'miliar', 'triliun', 'kuadriliun'];
+  const underThousand = (n) => {
+    if (n < 12) return smallNumbers[n];
+    if (n < 20) return `${smallNumbers[n - 10]} belas`;
+    if (n < 100) return `${smallNumbers[Math.floor(n / 10)]} puluh${n % 10 ? ` ${underThousand(n % 10)}` : ''}`;
+    if (n < 200) return `seratus${n % 100 ? ` ${underThousand(n % 100)}` : ''}`;
+    return `${underThousand(Math.floor(n / 100))} ratus${n % 100 ? ` ${underThousand(n % 100)}` : ''}`;
+  };
+
+  const chunks = [];
+  let remaining = number;
+  let scaleIndex = 0;
+  while (remaining > 0) {
+    const chunk = remaining % 1000;
+    if (chunk) {
+      const words = scaleIndex === 1 && chunk === 1 ? 'seribu' : `${underThousand(chunk)}${scaleIndex ? ` ${scales[scaleIndex] || 'kuintiliun'}` : ''}`;
+      chunks.unshift(words);
+    }
+    remaining = Math.floor(remaining / 1000);
+    scaleIndex += 1;
+  }
+  return chunks.join(' ');
 }
 
 function annualMiniChart({ year, monthly }) {
