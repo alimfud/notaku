@@ -22,7 +22,7 @@ export async function render(root, params = []) {
   setPageTitle(_dashboardFilter === 'pickup' ? 'Jadwal Pickup' : _dashboardFilter === 'unpaid' ? 'Nota Belum Lunas' : 'Daftar Nota');
   setTopbarActions([]);
   root.innerHTML = `
-    <div class="summary-card" id="summaryCard"></div>
+    <div class="summary-card ${_dashboardFilter === 'pickup' ? 'summary-card-pickup' : ''}" id="summaryCard"></div>
     <div class="search-row">
       <input class="search-input" id="searchInput" placeholder="Cari nama pelanggan / no. nota" value="${escapeHtml(_search)}">
     </div>
