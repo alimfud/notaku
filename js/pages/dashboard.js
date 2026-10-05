@@ -10,7 +10,7 @@ export async function render(root) {
   setPageTitle('NotaKu');
   setTopbarActions([]);
   const [summaries, settings, report, orders, annual] = await Promise.all([getAllSaleSummaries(), getSettings(), generateReport('week'), generateReport('orders-last7'), generateAnnualTrend()]);
-  if (root.dataset.page !== 'dashboard') return;
+  if (root.dataset.pendingPage !== 'dashboard') return;
   const { start, end } = report;
   const periodLabel = `${dateShort(start)} – ${dateShort(end)}`;
   const orderPeriodLabel = `${dateShort(orders.start)} – ${dateShort(orders.end)}`;

@@ -156,7 +156,7 @@ async function drawReport(root) {
   root.querySelectorAll('.chip').forEach((c) => c.classList.toggle('active', c.dataset.p === _period));
   const referenceDate = _period === 'month' ? selectedMonth : new Date(selectedYear, 0, 1);
   const data = await generateReport(_period, referenceDate);
-  if (request !== reportRequest || root.dataset.page !== 'reports') return;
+  if (request !== reportRequest || (root.dataset.pendingPage !== 'reports' && root.dataset.page !== 'reports')) return;
   const el = root.querySelector('#reportBody');
   el.innerHTML = `
     ${periodNavigator()}
