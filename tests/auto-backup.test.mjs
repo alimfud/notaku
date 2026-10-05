@@ -11,6 +11,7 @@ function fixture({ failUpload = false, token = true } = {}) {
   let popups = 0;
   const context = vm.createContext({
     GOOGLE_CLIENT_ID: 'configured',
+    persistentAccess: async () => null,
     getSettings: async () => settings,
     saveSettings: async (partial) => { settings = { ...settings, ...partial }; },
     createBackupBlob: async () => new Blob(['{}']), Blob, FormData,

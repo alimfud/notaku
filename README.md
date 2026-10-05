@@ -2,7 +2,7 @@
 
 NotaKu adalah aplikasi kasir dan nota penjualan berbasis web/PWA. Data toko disimpan lokal melalui IndexedDB, sehingga aplikasi tetap dapat dipakai setelah dibuka sekali saat online.
 
-- **Versi saat ini:** v1.12.8
+- **Versi saat ini:** v1.13.0
 - **Versi aplikasi:** buka dari browser atau instal sebagai PWA melalui Chrome/Edge.
 
 ## Cara pakai di HP
@@ -28,6 +28,8 @@ npm run version:sync
 ```
 
 ## Sumber utama
+
+Backend opsional untuk sesi Google persisten di Vercel tersedia dalam `api/` dan `server/`. Ikuti [panduan konfigurasi backend](docs/VERCEL_GOOGLE_SESSION.md); kode saja belum mengaktifkan sesi persisten tanpa konfigurasi Google dan penyimpanan server.
 
 Edit hanya berkas berikut sesuai kebutuhan:
 

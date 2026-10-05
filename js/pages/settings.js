@@ -428,10 +428,13 @@ let removeSyncStatusListener = null;
 async function renderAutoBackup(root) {
   removeSyncStatusListener?.();
   setPageTitle('Atur Backup Otomatis');
+  const drive = await import('../services/driveBackupService.js');
+  try { await drive.restoreGoogleAccess(); } catch { /* Status panel displays connection errors. */ }
   const s = await getSettings();
   const cfg = s.autoBackup;
-  const drive = await import('../services/driveBackupService.js');
   const configured = drive.isConfigured();
+  const loginMessage = drive.consumeGoogleLoginMessage();
+  if (loginMessage) toast(loginMessage);
 
   setTopbarActions(configured ? [{ icon: 'save', title: 'Simpan', onClick: () => saveAutoBackupForm(root) }] : []);
 
@@ -619,9 +622,11 @@ async function renderAutoBackup(root) {
 
   root.querySelector('#btnDriveConnect').onclick = async () => {
     if (cfg.driveConnected) {
-      await drive.disconnectAccount();
-      toast('Akun Google Drive diputuskan');
-      await renderAutoBackup(root);
+      try {
+        await drive.disconnectAccount();
+        toast('Akun Google Drive diputuskan');
+        await renderAutoBackup(root);
+      } catch (error) { toast(error.message || 'Gagal memutuskan akun.'); }
       return;
     }
     try {

@@ -18,7 +18,7 @@
 // disimpan lokal dan di-precache, termasuk logo bawaan. Fitur inti (lihat/buat/ubah nota, produk,
 // pelanggan, laporan, cetak, backup lokal) semuanya tetap jalan offline.
 
-const CACHE_VERSION = 'notaku-web-v1.12.8'; // dibuat otomatis dari version.json
+const CACHE_VERSION = 'notaku-web-v1.13.0'; // dibuat otomatis dari version.json
 
 const CORE_ASSETS = [
   './',
@@ -78,6 +78,7 @@ const CORE_ASSETS = [
   './js/services/customerService.js',
   './js/services/expenseService.js',
   './js/services/driveBackupService.js',
+  './js/services/googleSessionService.js',
   './js/services/invoiceNumber.js',
   './js/services/legacyImportService.js',
   './js/services/printerService.js',
@@ -119,6 +120,8 @@ self.addEventListener('fetch', (event) => {
 
   // Dependency eksternal besar (sql.js/html2canvas dari CDN) — biarkan
   // browser HTTP cache yang urus, service worker kita tidak ikut campur.
+  // OAuth redirects and authenticated API responses must never enter the cache.
+  if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) return;
   if (url.origin !== self.location.origin) {
     event.respondWith(
       fetch(event.request)

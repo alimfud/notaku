@@ -32,6 +32,9 @@ import { GOOGLE_CLIENT_ID } from '../config.js';
 import { getSettings, saveSettings } from './settingsService.js';
 import { createBackupBlob } from './backupService.js';
 import * as db from '../db.js';
+import { backendEnabled, persistentAccess, beginPersistentLogin, disconnectPersistentSession, invalidatePersistentAccess, consumeGoogleLoginMessage as readGoogleLoginMessage } from './googleSessionService.js';
+
+export function consumeGoogleLoginMessage() { return readGoogleLoginMessage(); }
 
 const DRIVE_FOLDER_NAME = 'NotaKu Backups';
 // drive.file memberi akses terbatas ke file aplikasi; scope identitas dipakai
@@ -67,6 +70,10 @@ function hasValidToken() {
 /** Minta izin akses Google Drive (membuka popup login Google). Hasil dari klik tombol user. */
 export async function connectAccount({ renew = false } = {}) {
   if (!isConfigured()) throw new Error('GOOGLE_CLIENT_ID belum diisi. Lihat docs/DRIVE_SETUP.md.');
+  if (await backendEnabled()) {
+    const cfg = (await getSettings()).autoBackup;
+    return beginPersistentLogin(renew || cfg.driveConnected ? cfg.driveAccountEmail : '');
+  }
   await loadGis();
   const previous = (await getSettings()).autoBackup;
   const expectedEmail = renew ? previous.driveAccountEmail : '';
@@ -104,9 +111,27 @@ export async function connectAccount({ renew = false } = {}) {
 
 async function ensureToken({ interactive = true } = {}) {
   if (hasValidToken()) return _accessToken;
+  await restoreGoogleAccess();
+  if (hasValidToken()) return _accessToken;
   if (!interactive) throw new Error('Izin akses Google berakhir. Tekan Aktifkan akses Google untuk melanjutkan sinkron dan backup. Akun tidak perlu diputuskan.');
   await connectAccount({ renew: true });
   return _accessToken;
+}
+
+export async function restoreGoogleAccess() {
+  if (hasValidToken() || navigator.onLine === false) return;
+  const session = await persistentAccess();
+  if (!session) return;
+  const settings = await getSettings();
+  const cfg = settings.autoBackup;
+  if (cfg.driveConnected && cfg.driveAccountEmail && cfg.driveAccountEmail.toLowerCase() !== session.email.toLowerCase()) {
+    throw new Error('Akun sesi server berbeda dari akun data perangkat ini. Hubungkan kembali akun yang sesuai.');
+  }
+  _accessToken = session.accessToken;
+  _tokenExpiryMs = session.expiresAt;
+  if (!cfg.driveConnected || cfg.driveAccountEmail !== session.email) {
+    await saveSettings({ autoBackup: { ...cfg, driveConnected: true, driveAccountEmail: session.email } });
+  }
 }
 
 async function fetchAccountEmail() {
@@ -119,7 +144,8 @@ async function fetchAccountEmail() {
 }
 
 export async function disconnectAccount() {
-  if (_accessToken && window.google?.accounts?.oauth2) {
+  const persistent = await disconnectPersistentSession();
+  if (!persistent && _accessToken && window.google?.accounts?.oauth2) {
     window.google.accounts.oauth2.revoke(_accessToken, () => {});
   }
   _accessToken = null;
@@ -179,8 +205,10 @@ let _lastAutoSyncCheckAt = 0;
 let _syncRunning = false;
 
 export async function getSyncDisplayState() {
+  let sessionError = '';
+  try { await restoreGoogleAccess(); } catch (error) { sessionError = error.message; }
   const { autoBackup: cfg } = await getSettings();
-  return { ...cfg, syncing: _syncRunning, needsAuthorization: cfg.driveConnected && !hasValidToken(), offline: navigator.onLine === false };
+  return { ...cfg, ...(sessionError ? { lastSyncProblem: true, lastSyncStatus: sessionError } : {}), syncing: _syncRunning, needsAuthorization: !sessionError && cfg.driveConnected && !hasValidToken(), offline: navigator.onLine === false };
 }
 
 async function publishSyncStatus() {
@@ -190,6 +218,7 @@ async function publishSyncStatus() {
 export function checkAutomaticSync({ force = false } = {}) {
   if (_autoSyncInFlight) return _autoSyncInFlight;
   _autoSyncInFlight = (async () => {
+    await restoreGoogleAccess();
     const settings = await getSettings();
     const cfg = settings.autoBackup;
     if (!cfg?.driveConnected || (!force && !cfg.autoSyncEnabled) || !isConfigured() || navigator.onLine === false) return;
@@ -272,6 +301,7 @@ async function applyCloudPayload(payload) {
  */
 async function readGoogleError(res) {
   if (res.status === 401) {
+    invalidatePersistentAccess();
     _accessToken = null;
     _tokenExpiryMs = 0;
   }
@@ -413,6 +443,7 @@ export function checkScheduleOnAppOpen() {
 }
 
 async function checkSchedule() {
+  await restoreGoogleAccess();
   const settings = await getSettings();
   const cfg = settings.autoBackup;
   if (!cfg?.enabled || !cfg.driveConnected || !isConfigured()) return;

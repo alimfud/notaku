@@ -20,6 +20,7 @@ function fixture({ enabled = true, fail = false } = {}) {
   }
   const context = vm.createContext({
     Date: Clock, GOOGLE_CLIENT_ID: 'configured', navigator: { onLine: true },
+    persistentAccess: async () => null,
     getSettings: async () => settings,
     saveSettings: async (partial) => { settings = { ...settings, ...partial }; },
     db: { dumpAll: async () => data },

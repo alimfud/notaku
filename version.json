@@ -1,4 +1,4 @@
 {
-  "version": "1.12.8",
-  "notes": "Backup berdasarkan perubahan dalam jam aktif, maksimal dua kali sehari, dengan default retensi 15 file."
+  "version": "1.13.0",
+  "notes": "Dukungan sesi Google persisten melalui backend Vercel, aktif setelah konfigurasi server diselesaikan."
 }

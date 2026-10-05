@@ -10,6 +10,7 @@ function fixture({ email = 'owner@example.com', popupError = false } = {}) {
   let request;
   const context = vm.createContext({
     GOOGLE_CLIENT_ID: 'configured', navigator: { onLine: true },
+    backendEnabled: async () => false, persistentAccess: async () => null,
     getSettings: async () => settings,
     saveSettings: async (partial) => { settings = { ...settings, ...partial }; },
     fetch: async () => ({ ok: true, json: async () => ({ email }) }),
