@@ -55,6 +55,7 @@
   button, input, select, textarea { font-family:inherit; }
   button:focus-visible { outline:3px solid #be7b91; outline-offset:2px; }
   .nav-btn--desktop-only, .nav-section-label--desktop, .nav-divider--desktop { display:none; }
+  .nav-btn--mobile-only { display:flex; }
   @media(min-width:800px) {
     #app { display:grid; grid-template-columns:172px minmax(0,1fr); grid-template-rows:auto 1fr; }
     #topbar { grid-column:1 / -1; }

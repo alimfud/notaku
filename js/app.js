@@ -129,7 +129,9 @@ async function handleRouteChange() {
   btnBack.classList.toggle('hidden', isTopLevel);
   btnMenu.classList.toggle('hidden', !isTopLevel);
   bottomnav.classList.toggle('hidden', !isTopLevel && !keepDesktopSettingsNav);
-  const navRoute = ['customers', 'reports'].includes(route) && !hasWideSidebar
+  // Di mobile semua halaman pengaturan memakai satu tombol "Lainnya";
+  // sub-menu tetap bisa memiliki tombol spesifik di sidebar desktop.
+  const navRoute = !hasWideSidebar && (['customers', 'reports'].includes(route) || route === 'settings')
     ? 'settings'
     : route === 'settings' && params.length
       ? (params[0] === 'autobackup' ? 'settings/backup' : `settings/${params[0]}`)

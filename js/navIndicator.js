@@ -93,8 +93,8 @@ export function initBottomNavIndicator(nav) {
   }
 
   function activeButton() {
-    const btn = nav.querySelector('.nav-btn.active');
-    return btn && btn.offsetWidth > 0 ? btn : null;
+    return [...nav.querySelectorAll('.nav-btn.active')]
+      .find((btn) => btn.offsetWidth > 0) || null;
   }
 
   function cancelTween() {
