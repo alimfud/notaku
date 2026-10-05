@@ -16,11 +16,11 @@
 // kalau aplikasinya sedang tidak dibuka SAMA SEKALI (beda dengan aplikasi
 // native Android yang punya background service). Yang dilakukan di sini,
 // dan ini pendekatan terbaik yang tersedia untuk web app:
-//   1. "Catch-up saat dibuka": begitu aplikasi dibuka/kembali aktif, dicek
-//      apakah ada jadwal (mis. 07:00/12:00/17:00) yang harusnya sudah lewat
-//      hari ini tapi belum di-backup — kalau iya, backup dijalankan saat itu
-//      juga.
-//   2. Timer memeriksa jadwal setiap menit selama aplikasi berjalan.
+//   1. Saat aplikasi dibuka/kembali aktif, periksa perubahan data dalam
+//      rentang jam aktif. Di luar rentang itu, tunggu jam aktif berikutnya.
+//   2. Timer memeriksa setiap menit selama aplikasi berjalan. Backup pertama
+//      menunggu 15 menit; backup kedua hanya di 30 menit terakhir jam aktif.
+//      Keduanya hanya berjalan jika data berubah sejak backup terakhir.
 //      Browser dapat menunda timer ketika aplikasi berada di latar belakang.
 // Jadi: backup di jam PERSIS yang kamu jadwalkan hanya terjamin kalau
 // aplikasi kebetulan dibuka di sekitar jam itu. Untuk jaminan penuh 100%
@@ -318,7 +318,7 @@ async function uploadBackupFile(token, folderId, blob, filename) {
   return res.json();
 }
 
-async function deleteOldBackups(token, folderId, keepCount = 10) {
+async function deleteOldBackups(token, folderId, keepCount = 15) {
   if (!Number.isSafeInteger(keepCount) || keepCount < 1) throw new Error('Jumlah backup yang disimpan minimal 1 file.');
   const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and name contains 'notaku-backup-'`);
   const headers = { Authorization: `Bearer ${token}` };
@@ -379,10 +379,20 @@ async function runBackupOnce(options) {
   const token = await ensureToken(options);
   const folderId = await findOrCreateFolder(token);
   const blob = await createBackupBlob();
+  const backedUpFingerprint = fingerprint(JSON.parse(await blob.text()).data);
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   await uploadBackupFile(token, folderId, blob, `notaku-backup-${stamp}.json`);
   const settings = await getSettings();
-  await saveSettings({ autoBackup: { ...settings.autoBackup, lastBackupAt: new Date().toISOString(), lastBackupError: '' } });
+  const dateKey = options.backupDate;
+  await saveSettings({ autoBackup: {
+    ...settings.autoBackup,
+    lastBackupAt: new Date().toISOString(), lastBackupError: '',
+    lastBackupFingerprint: backedUpFingerprint, backupPendingSince: '',
+    ...(options.automatic ? {
+      backupCountDate: dateKey,
+      backupCountToday: (settings.autoBackup.backupCountDate === dateKey ? Number(settings.autoBackup.backupCountToday) || 0 : 0) + 1,
+    } : {}),
+  } });
   // Upload sudah berhasil; kegagalan pembersihan tidak membuat jadwal diulang.
   await deleteOldBackups(token, folderId, settings.autoBackup.backupKeepCount).catch((e) => {
     console.error('[driveBackupService] cleanup failed', e);
@@ -390,9 +400,8 @@ async function runBackupOnce(options) {
 }
 
 /**
- * Dipanggil setiap kali aplikasi dibuka/kembali fokus (lihat app.js). Kalau
- * ada jam terjadwal yang sudah lewat hari ini dan belum dieksekusi, backup
- * dijalankan sekarang ("catch-up"). Lihat catatan batasan di atas file ini.
+ * Dipanggil setiap menit dan saat aplikasi kembali aktif. Hanya membuat
+ * backup jika data berubah, masih dalam jam aktif, dan kuota harian tersedia.
  */
 let _scheduleInFlight = null;
 let _retryAfter = 0;
@@ -413,25 +422,48 @@ async function checkSchedule() {
   const now = new Date();
   // Jadwal mengikuti tanggal lokal yang sama dengan jam pilihan pengguna.
   const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  const slotsToday = cfg.lastCheckedDate === todayKey ? (cfg.lastCheckedSlots || []) : [];
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const dueSlots = (cfg.scheduleTimes || []).filter((t) => {
-    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t) || slotsToday.includes(t)) return false;
-    const [h, m] = t.split(':').map(Number);
-    return nowMinutes >= h * 60 + m;
-  });
-  if (!dueSlots.length) return;
+  const minutes = (value) => {
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return NaN;
+    const [h, m] = value.split(':').map(Number);
+    return h * 60 + m;
+  };
+  const start = minutes(cfg.backupWindowStart || '07:00');
+  const end = minutes(cfg.backupWindowEnd || '17:00');
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end || nowMinutes < start || nowMinutes >= end) return;
+  const count = cfg.backupCountDate === todayKey ? Number(cfg.backupCountToday) || 0 : 0;
+  const limit = cfg.backupDailyLimit === 1 ? 1 : 2;
+  if (count >= limit) return;
 
   try {
-    // Satu snapshot mencakup seluruh jadwal yang terlewat. Jangan membuka popup.
-    await runBackupNow({ interactive: false });
-    const latest = await getSettings();
-    await saveSettings({ autoBackup: {
-      ...latest.autoBackup,
-      lastCheckedDate: todayKey,
-      lastCheckedSlots: [...new Set([...slotsToday, ...dueSlots])],
-      lastBackupError: '',
-    } });
+    const dump = await db.dumpAll();
+    const currentFingerprint = fingerprint(dump);
+    // Instalasi kosong belum memerlukan arsip. Simpan patokan agar perubahan
+    // pertama (termasuk pengaturan toko) dapat terdeteksi pada pemeriksaan berikutnya.
+    if (!cfg.lastBackupFingerprint && !Object.entries(dump).some(([store, rows]) => store !== 'settings' && rows.length > 0)) {
+      const latest = await getSettings();
+      await saveSettings({ autoBackup: { ...latest.autoBackup, lastBackupFingerprint: currentFingerprint, backupPendingSince: '' } });
+      return;
+    }
+    if (currentFingerprint === cfg.lastBackupFingerprint) {
+      if (cfg.backupPendingSince) {
+        const latest = await getSettings();
+        await saveSettings({ autoBackup: { ...latest.autoBackup, backupPendingSince: '' } });
+      }
+      return;
+    }
+    let pendingSince = Date.parse(cfg.backupPendingSince);
+    if (!Number.isFinite(pendingSince) || pendingSince > now.getTime()) {
+      pendingSince = now.getTime();
+      const latest = await getSettings();
+      await saveSettings({ autoBackup: { ...latest.autoBackup, backupPendingSince: now.toISOString() } });
+    }
+    // Backup pertama setelah perubahan terkumpul 15 menit. Backup berikutnya
+    // hanya pada 30 menit terakhir rentang aktif, jika isi data berubah lagi.
+    const closingWindow = nowMinutes >= Math.max(start, end - 30);
+    if (count > 0 && !closingWindow) return;
+    if (!closingWindow && now.getTime() - pendingSince < 15 * 60000) return;
+    await runBackupNow({ interactive: false, automatic: true, backupDate: todayKey });
     _retryAfter = 0;
   } catch (e) {
     // Jadwal tetap tertunda sampai upload benar-benar berhasil.

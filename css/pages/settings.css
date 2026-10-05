@@ -60,6 +60,11 @@
 [data-page="settings"] .settings-backup-slot{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 [data-page="settings"] .settings-time-input{border:1px solid var(--outline);border-radius:8px;padding:6px 8px;}
 [data-page="settings"] .settings-retention{padding:0;margin-bottom:16px;}
+[data-page="settings"] .settings-backup-window{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:10px 0;font-size:13px;color:var(--ink);}
+[data-page="settings"] .settings-backup-window .settings-schedule-label{margin:0;}
+[data-page="settings"] .settings-backup-window-times{display:flex;align-items:center;gap:6px;}
+[data-page="settings"] .settings-backup-window input,[data-page="settings"] .settings-backup-window select{box-sizing:border-box;min-height:40px;padding:6px 8px;border:1px solid var(--outline);border-radius:9px;background:var(--surface);color:var(--ink);font:inherit;}
+[data-page="settings"] .settings-backup-window input{min-width:0;width:105px;}
 [data-page="settings"] .settings-retention-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px;border:1px solid var(--outline);border-radius:12px;background:var(--surface-dim);}
 [data-page="settings"] .settings-retention-row label{font-size:13px;font-weight:600;color:var(--ink);line-height:1.4;}
 [data-page="settings"] .settings-retention-value{display:flex;align-items:center;gap:7px;flex-shrink:0;color:var(--muted);font-size:12px;}

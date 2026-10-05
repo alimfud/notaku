@@ -461,21 +461,22 @@ async function renderAutoBackup(root) {
         </div>
         <button class="settings-button btn small secondary" id="btnDriveConnect">${cfg.driveConnected ? 'Putuskan' : 'Hubungkan'}</button>
       </div>
-      <div class="settings-schedule-header"><div class="settings-schedule-label">Jam backup</div>
-        <button class="btn small secondary" id="btnAddSlot">+ Tambah jam</button>
+      <div class="settings-backup-window">
+        <span class="settings-schedule-label">Jam aktif</span>
+        <div class="settings-backup-window-times">
+          <input id="backupWindowStart" type="time" required value="${escapeHtml(cfg.backupWindowStart || '07:00')}" aria-label="Mulai backup otomatis">
+          <span>–</span>
+          <input id="backupWindowEnd" type="time" required value="${escapeHtml(cfg.backupWindowEnd || '17:00')}" aria-label="Selesai backup otomatis">
+        </div>
       </div>
-      <div id="timeSlots">
-        ${(cfg.scheduleTimes || []).map((t, i) => `
-          <div class="settings-backup-slot" data-slot="${i}">
-            <input type="time" value="${t}" class="settings-time-input slotTime" aria-label="Jam backup">
-            <button class="settings-button btn small ghost removeSlot">Hapus</button>
-          </div>`).join('')}
-      </div>
+      <label class="settings-backup-window" for="backupDailyLimit"><span>Maksimal backup</span>
+        <select id="backupDailyLimit"><option value="1" ${cfg.backupDailyLimit === 1 ? 'selected' : ''}>1 kali sehari</option><option value="2" ${cfg.backupDailyLimit !== 1 ? 'selected' : ''}>2 kali sehari</option></select>
+      </label>
 
       <div class="settings-retention">
         <div class="settings-retention-row">
         <label for="backupKeepCount">Simpan backup terbaru</label>
-        <div class="settings-retention-value"><input id="backupKeepCount" type="number" min="1" step="1" required value="${Number(cfg.backupKeepCount) || 10}" aria-describedby="backupRetentionHelp"><span>file</span></div>
+        <div class="settings-retention-value"><input id="backupKeepCount" type="number" min="1" step="1" required value="${Number(cfg.backupKeepCount) || 15}" aria-describedby="backupRetentionHelp"><span>file</span></div>
         </div>
       </div>
 
@@ -516,8 +517,9 @@ async function renderAutoBackup(root) {
       <details class="settings-backup-details">
         <summary>Panduan backup & sinkronisasi</summary>
         <p>Gunakan akun Google yang sama di semua perangkat. Sinkron otomatis mengikuti interval selama aplikasi terbuka dan izin akses Google aktif.</p>
-        <p>Backup mengikuti jam pilihan tanpa dialog konfirmasi. Jadwal yang terlewat diperiksa saat aplikasi dibuka atau koneksi pulih.</p>
-        <p id="backupRetentionHelp">Jumlah file menentukan berapa backup terbaru yang disimpan. Contoh: 10 menyimpan 10 file terbaru; sisanya dihapus setelah backup baru berhasil.</p>
+        <p>Backup dibuat hanya jika data berubah. Backup pertama menunggu sekitar 15 menit setelah perubahan terdeteksi. Jika dipilih 2 kali sehari, backup kedua dilakukan pada 30 menit terakhir jam aktif, hanya jika ada perubahan lagi. Perubahan yang terdeteksi menjelang penutupan langsung dicadangkan selama kuota masih tersedia.</p>
+        <p>Aplikasi perlu terbuka dan akses Google aktif. Perubahan yang belum dicadangkan menunggu jam aktif berikutnya. Backup Sekarang dapat digunakan kapan saja di luar batas otomatis.</p>
+        <p id="backupRetentionHelp">Jumlah file menentukan berapa backup terbaru yang disimpan. Default 15 file terbaru; sisanya dihapus setelah backup baru berhasil.</p>
         <p>Jika perubahan ada di kedua perangkat, sinkron ditahan. Buka Sinkron manual untuk memilih sumber data. Jika izin Google berakhir, tekan Aktifkan akses Google tanpa memutuskan akun.</p>
       </details>
     </div>
@@ -631,18 +633,9 @@ async function renderAutoBackup(root) {
     } catch (e) { toast(e.message || 'Gagal menghubungkan akun Google.'); }
   };
 
-  root.querySelector('#btnAddSlot').onclick = () => {
-    const container = root.querySelector('#timeSlots');
-    const div = document.createElement('div');
-    div.className = 'settings-backup-slot';
-    div.dataset.slot = 'new';
-    div.innerHTML = `<input type="time" value="09:00" class="settings-time-input slotTime" aria-label="Jam backup"><button class="settings-button btn small ghost removeSlot">Hapus</button>`;
-    container.appendChild(div);
-    div.querySelector('.removeSlot').onclick = () => div.remove();
-  };
-  root.querySelectorAll('.removeSlot').forEach((btn) => {
-    btn.onclick = (e) => e.target.closest('[data-slot]')?.remove();
-  });
+  for (const id of ['backupWindowStart', 'backupWindowEnd', 'backupDailyLimit', 'backupKeepCount']) {
+    root.querySelector(`#${id}`).onchange = () => saveAutoBackupForm(root);
+  }
 
   root.querySelector('#btnBackupNow').onclick = async () => {
     if (!cfg.driveConnected) { toast('Hubungkan akun Google Drive dulu'); return; }
@@ -705,12 +698,20 @@ async function saveAutoBackupForm(root) {
     toast('Jumlah backup harus bilangan bulat minimal 1.');
     return;
   }
-  const times = Array.from(root.querySelectorAll('.slotTime')).map((i) => i.value).filter(Boolean);
+  const startInput = root.querySelector('#backupWindowStart');
+  const endInput = root.querySelector('#backupWindowEnd');
+  if (!startInput.reportValidity() || !endInput.reportValidity()) return;
+  if (startInput.value >= endInput.value) {
+    toast('Jam selesai harus sesudah jam mulai pada hari yang sama.');
+    return;
+  }
   await saveSettings({
     autoBackup: {
       ...s.autoBackup,
       enabled: root.querySelector('#enableToggle').checked,
-      scheduleTimes: times,
+      backupWindowStart: startInput.value,
+      backupWindowEnd: endInput.value,
+      backupDailyLimit: Number(root.querySelector('#backupDailyLimit').value) === 1 ? 1 : 2,
       backupKeepCount,
       confirmBeforeBackup: false,
     },

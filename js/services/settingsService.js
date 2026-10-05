@@ -37,12 +37,16 @@ const DEFAULTS = {
     enabled: false,
     driveConnected: false,
     driveAccountEmail: '',
-    scheduleTimes: ['07:00', '12:00', '17:00'],
-    backupKeepCount: 10,
+    backupWindowStart: '07:00',
+    backupWindowEnd: '17:00',
+    backupDailyLimit: 2,
+    backupKeepCount: 15,
+    lastBackupFingerprint: '',
+    backupPendingSince: '',
+    backupCountDate: '',
+    backupCountToday: 0,
     confirmBeforeBackup: false,
     lastBackupAt: '',       // ISO datetime backup terakhir berhasil
-    lastCheckedDate: '',    // yyyy-MM-dd, dipakai supaya tidak backup berkali-kali di hari yang sama untuk jam yang sama
-    lastCheckedSlots: [],   // daftar jam yang SUDAH dieksekusi hari ini, direset saat lastCheckedDate berganti
     lastSyncPushAt: '',     // ISO datetime terakhir kali PUSH ke file sinkron antar perangkat
     lastSyncPullAt: '',     // ISO datetime terakhir kali PULL dari file sinkron antar perangkat
     lastSyncAt: '',         // ISO datetime sinkron otomatis/manual terakhir
