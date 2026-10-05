@@ -70,6 +70,24 @@
     border-radius:0 0 30px 30px;
     box-shadow:0 12px 20px -10px rgba(176,125,85,.45), inset 0 2px 3px rgba(255,255,255,.95), inset 0 -3px 6px rgba(205,160,115,.18);
   }
+
+  /* Navigasi bawah mengikuti kartu chart: sage gradient, permukaan clay,
+     dan highlight lembut di tepi atas. Tema lain tetap memakai paletnya
+     sendiri dari bottomnav.css. */
+  html[data-theme="clay"] #app #bottomnav {
+    --nav-bar:linear-gradient(180deg,#73a991 0%,#4f866f 100%);
+    --nav-ink:rgba(255,255,255,.86);
+    --nav-rim:#fff6e8;
+    --nav-shadow:drop-shadow(0 -10px 18px rgba(70,130,105,.30));
+  }
+  html[data-theme="clay"] #app #bottomnav .nav-shape,
+  html[data-theme="clay"] #app #bottomnav .nav-bg {
+    border-radius:30px 30px 0 0;
+  }
+  html[data-theme="clay"] #app #bottomnav .nav-bg {
+    border:1px solid rgba(255,255,255,.48);
+    box-shadow:inset 0 2px 4px rgba(255,255,255,.34), inset 0 -4px 8px rgba(30,80,60,.12);
+  }
   #topbar h1 { color:var(--ink); font-weight:800; letter-spacing:-.3px; }
   #topbar .icon-btn { color:#4f7e6a; }
   #topbar .icon-btn:active { background:rgba(95,150,128,.18); }
