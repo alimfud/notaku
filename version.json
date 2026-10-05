@@ -1,4 +1,4 @@
 {
-  "version": "1.12.2",
-  "notes": "Perbaikan indikator ikon Lainnya pada navigasi bawah."
+  "version": "1.12.3",
+  "notes": "Sinkron otomatis Google Drive setiap 5 menit dengan indikator sinkron terakhir."
 }

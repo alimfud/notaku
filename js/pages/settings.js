@@ -493,8 +493,12 @@ async function renderAutoBackup(root) {
       <div class="settings-sync-heading section-title">Sinkronisasi Antar Perangkat</div>
       <div class="settings-sync-info info-card">
         <div class="info-title">Satu database, banyak perangkat</div>
-        <div class="info-text">Dorong (push) data dari perangkat ini ke Drive, lalu tarik (pull) dari perangkat lain yang login akun Google sama supaya datanya ikut sama. <b>Bukan sinkron realtime</b> — siapa yang push TERAKHIR itu yang berlaku; kalau dua HP push beda perubahan bersamaan, yang belakangan menimpa yang duluan. Selalu Pull dulu sebelum mulai kerja di sebuah perangkat, Push setelah selesai.</div>
+        <div class="info-text">Sinkron otomatis memeriksa perubahan tiap 5 menit saat aplikasi terbuka dan sesi Google masih aktif. Jika kedua perangkat berubah bersamaan, sinkronisasi ditahan agar data tidak tertimpa. Untuk file cloud yang sudah ada, pilih Push atau Tarik sekali untuk memulai.</div>
       </div>
+      <label class="settings-backup-toggle">
+        <div class="settings-section-label">Sinkronkan otomatis tiap 5 menit</div>
+        <input class="settings-checkbox" type="checkbox" id="autoSyncToggle" ${cfg.autoSyncEnabled !== false ? 'checked' : ''}>
+      </label>
       <div class="settings-sync-status" id="syncStatus">Memeriksa status...</div>
       <div class="settings-sync-actions">
         <button class="settings-sync-button btn secondary" id="btnPush">⬆ Push ke Cloud</button>
@@ -505,6 +509,18 @@ async function renderAutoBackup(root) {
 
   if (cfg.driveConnected) refreshSyncStatus(root, drive);
   else root.querySelector('#syncStatus').textContent = 'Hubungkan akun Google Drive untuk memeriksa status.';
+  const onSyncStatus = () => {
+    if (!root.querySelector('#syncStatus')) window.removeEventListener('notaku-sync-status', onSyncStatus);
+    else void refreshSyncStatus(root, drive);
+  };
+  window.addEventListener('notaku-sync-status', onSyncStatus);
+
+  root.querySelector('#autoSyncToggle').onchange = async (event) => {
+    const latest = await getSettings();
+    await saveSettings({ autoBackup: { ...latest.autoBackup, autoSyncEnabled: event.target.checked } });
+    toast(event.target.checked ? 'Sinkron otomatis diaktifkan' : 'Sinkron otomatis dijeda');
+    if (event.target.checked) void drive.checkAutomaticSync();
+  };
 
   root.querySelector('#enableToggle').onchange = () => saveAutoBackupForm(root);
   root.querySelector('#btnPush').onclick = async () => {
@@ -559,6 +575,7 @@ async function renderAutoBackup(root) {
       const email = await drive.connectAccount();
       toast(`Tersambung sebagai ${email}`);
       await saveAutoBackupForm(root);
+      await drive.checkAutomaticSync();
       await renderAutoBackup(root);
     } catch (e) { toast(e.message || 'Gagal menghubungkan akun Google.'); }
   };
@@ -597,13 +614,22 @@ async function refreshSyncStatus(root, drive) {
   try {
     const status = await drive.getCloudSyncStatus();
     const parts = [];
-    parts.push(status.cloudExists ? `Data di cloud: ${new Date(status.cloudModifiedTime).toLocaleString('id-ID')}` : 'Belum ada data di cloud');
-    if (status.lastPushedAt) parts.push(`Terakhir push dari sini: ${new Date(status.lastPushedAt).toLocaleString('id-ID')}`);
-    if (status.lastPulledAt) parts.push(`Terakhir pull ke sini: ${new Date(status.lastPulledAt).toLocaleString('id-ID')}`);
+    if (status.cloudError) parts.push(`Status cloud tidak tersedia: ${escapeHtml(status.cloudError)}`);
+    else parts.push(status.cloudExists ? `Data di cloud: ${formatSyncDate(status.cloudModifiedTime)}` : 'Belum ada data di cloud');
+    if (status.lastPushedAt) parts.push(`Terakhir push dari sini: ${formatSyncDate(status.lastPushedAt)}`);
+    if (status.lastPulledAt) parts.push(`Terakhir pull ke sini: ${formatSyncDate(status.lastPulledAt)}`);
+    if (status.lastSyncAt) parts.push(`Terakhir sinkron: ${formatSyncDate(status.lastSyncAt)}`);
+    if (status.lastSyncStatus) parts.push(escapeHtml(status.lastSyncStatus));
     el.innerHTML = parts.join('<br>');
   } catch (e) {
     el.textContent = 'Gagal memeriksa status cloud (' + (e.message || 'koneksi bermasalah') + ')';
   }
+}
+
+function formatSyncDate(value) {
+  return new Date(value).toLocaleString('id-ID', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
+  }).replace(',', '');
 }
 
 async function saveAutoBackupForm(root) {

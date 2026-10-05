@@ -31,6 +31,7 @@
 import { GOOGLE_CLIENT_ID } from '../config.js';
 import { getSettings, saveSettings } from './settingsService.js';
 import { createBackupBlob } from './backupService.js';
+import * as db from '../db.js';
 
 const DRIVE_FOLDER_NAME = 'NotaKu Backups';
 // drive.file memberi akses terbatas ke file aplikasi; scope identitas dipakai
@@ -122,6 +123,110 @@ export async function disconnectAccount() {
   _tokenExpiryMs = 0;
   const settings = await getSettings();
   await saveSettings({ autoBackup: { ...settings.autoBackup, driveConnected: false, driveAccountEmail: '' } });
+}
+
+function stableData(data) {
+  const copy = JSON.parse(JSON.stringify(data));
+  // Konfigurasi backup dan status akun bersifat lokal perangkat, bukan data usaha.
+  for (const row of copy.settings || []) {
+    if (row.id === 1) delete row.autoBackup;
+  }
+  return JSON.stringify(copy);
+}
+
+function fingerprint(data) {
+  const value = stableData(data);
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+async function localFingerprint() {
+  return fingerprint(await db.dumpAll());
+}
+
+async function readSyncFile(token, file) {
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Gagal membaca data sinkron: ' + await readGoogleError(res));
+  const payload = await res.json();
+  if (payload.app !== 'notaku' || !payload.data) throw new Error('File sinkron di Drive bukan data NotaKu yang valid.');
+  return payload;
+}
+
+async function saveSyncState({ fingerprint: value, status = '' }) {
+  const settings = await getSettings();
+  const now = new Date().toISOString();
+  await saveSettings({ autoBackup: {
+    ...settings.autoBackup,
+    ...(value ? { lastSyncAt: now } : {}),
+    lastSyncFingerprint: value || settings.autoBackup.lastSyncFingerprint || '',
+    lastSyncStatus: status,
+  } });
+}
+
+/** Periksa dan sinkronkan perubahan satu arah; perubahan bersamaan ditahan agar tidak tertimpa. */
+let _autoSyncInFlight = null;
+export function checkAutomaticSync() {
+  if (_autoSyncInFlight) return _autoSyncInFlight;
+  _autoSyncInFlight = runAutomaticSync().finally(() => {
+    _autoSyncInFlight = null;
+    window.dispatchEvent(new Event('notaku-sync-status'));
+  });
+  return _autoSyncInFlight;
+}
+
+async function runAutomaticSync() {
+  const settings = await getSettings();
+  const cfg = settings.autoBackup;
+  if (!cfg?.driveConnected || !cfg.autoSyncEnabled || !isConfigured() || navigator.onLine === false) return;
+  try {
+    const token = await ensureToken({ interactive: false });
+    const file = await findSyncFile(token);
+    const localHash = await localFingerprint();
+    if (!file) {
+      await pushToCloud();
+      await saveSyncState({ fingerprint: localHash, status: 'Data lokal dikirim ke cloud.' });
+      return;
+    }
+    const payload = await readSyncFile(token, file);
+    const cloudHash = fingerprint(payload.data);
+    const baseline = cfg.lastSyncFingerprint;
+    if (!baseline) {
+      await saveSyncState({ status: 'Pilih Push atau Tarik sekali untuk memulai sinkron otomatis.' });
+      return;
+    }
+    const localChanged = localHash !== baseline;
+    const cloudChanged = cloudHash !== baseline;
+    if (localChanged && cloudChanged && localHash !== cloudHash) {
+      await saveSyncState({ status: 'Ada perubahan di kedua sisi. Push atau Tarik secara manual untuk menghindari data tertimpa.' });
+    } else if (localChanged && localHash !== cloudHash) {
+      await pushToCloud();
+      await saveSyncState({ fingerprint: localHash, status: 'Perubahan perangkat ini dikirim ke cloud.' });
+    } else if (cloudChanged && localHash !== cloudHash) {
+      await applyCloudPayload(payload);
+      const latest = await getSettings();
+      await saveSettings({ autoBackup: { ...latest.autoBackup, lastSyncPullAt: new Date().toISOString() } });
+      await saveSyncState({ fingerprint: cloudHash, status: 'Perubahan dari cloud ditarik ke perangkat ini.' });
+    } else {
+      await saveSyncState({ fingerprint: localHash, status: 'Data sudah sama.' });
+    }
+  } catch (e) {
+    const latest = await getSettings();
+    await saveSettings({ autoBackup: { ...latest.autoBackup, lastSyncStatus: e.message || 'Sinkronisasi gagal.' } });
+    console.error('[driveBackupService] automatic sync failed', e);
+  }
+}
+
+async function applyCloudPayload(payload) {
+  const localSettings = await getSettings();
+  const { restoreFromFile } = await import('./backupService.js');
+  await restoreFromFile(new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+  await saveSettings({ autoBackup: localSettings.autoBackup });
 }
 
 /**
@@ -319,12 +424,13 @@ async function checkSchedule() {
 // waktu yang sama lalu keduanya push, yang push BELAKANGAN akan menimpa
 // push yang lebih dulu (perubahan yang lebih dulu akan hilang tertimpa).
 //
-// Cara aman memakainya dengan banyak perangkat:
-//   1. Sebelum mulai kerja di sebuah perangkat, PULL dulu (ambil data terbaru).
-//   2. Setelah selesai kerja, PUSH (kirim perubahan ke perangkat lain).
-//   3. Jangan mengedit di dua perangkat bersamaan tanpa pull/push di antaranya.
-// Untuk sinkronisasi otomatis penuh tanpa risiko ini, dibutuhkan server
-// database sungguhan (di luar cakupan web app statis tanpa backend).
+// Sinkron otomatis memeriksa fingerprint data setiap lima menit ketika app
+// terbuka. Jika perubahan hanya ada di satu sisi, sisi lain diperbarui. Jika
+// kedua sisi berubah sejak sinkron terakhir, tidak ada yang ditimpa; pengguna
+// perlu memilih Push atau Pull secara manual. Pemeriksaan pertama untuk file
+// yang sudah ada juga perlu pilihan manual sebagai patokan awal.
+// Halaman yang ditutup tidak bisa menjalankan sinkronisasi. Sesi Google juga
+// perlu masih aktif; setelah token habis pengguna perlu menghubungkan ulang.
 // ============================================================================
 
 const SYNC_FILE_NAME = 'notaku-sync.json';
@@ -341,14 +447,23 @@ async function findSyncFile(token) {
 
 /** Info status sinkron untuk ditampilkan di UI (tanpa mengunduh isi filenya). */
 export async function getCloudSyncStatus() {
-  const token = await ensureToken({ interactive: false });
-  const file = await findSyncFile(token);
   const settings = await getSettings();
+  let file = null;
+  let cloudError = '';
+  try {
+    const token = await ensureToken({ interactive: false });
+    file = await findSyncFile(token);
+  } catch (e) {
+    cloudError = e.message || 'Sesi Google perlu dihubungkan ulang.';
+  }
   return {
     cloudExists: !!file,
     cloudModifiedTime: file?.modifiedTime || null,
+    cloudError,
     lastPushedAt: settings.autoBackup.lastSyncPushAt || null,
     lastPulledAt: settings.autoBackup.lastSyncPullAt || null,
+    lastSyncAt: settings.autoBackup.lastSyncAt || null,
+    lastSyncStatus: settings.autoBackup.lastSyncStatus || '',
   };
 }
 
@@ -376,7 +491,8 @@ export async function pushToCloud() {
   if (!res.ok) throw new Error('Gagal mengirim data ke Drive: ' + await readGoogleError(res));
 
   const settings = await getSettings();
-  await saveSettings({ autoBackup: { ...settings.autoBackup, lastSyncPushAt: new Date().toISOString() } });
+  const localHash = await localFingerprint();
+  await saveSettings({ autoBackup: { ...settings.autoBackup, lastSyncPushAt: new Date().toISOString(), lastSyncFingerprint: localHash, lastSyncAt: new Date().toISOString(), lastSyncStatus: 'Data perangkat ini dikirim ke cloud.' } });
 }
 
 /**
@@ -394,11 +510,10 @@ export async function pullFromCloud() {
   });
   if (!res.ok) throw new Error('Gagal mengambil data dari Drive: ' + await readGoogleError(res));
 
-  const jsonBlob = await res.blob();
-  const { restoreFromFile } = await import('./backupService.js');
-  // restoreFromFile menerima objek mirip File (butuh .text()) — Blob sudah cukup.
-  await restoreFromFile(jsonBlob);
-
+  const payload = await res.json();
+  if (payload.app !== 'notaku' || !payload.data) throw new Error('File sinkron di Drive bukan data NotaKu yang valid.');
+  await applyCloudPayload(payload);
   const settings = await getSettings();
-  await saveSettings({ autoBackup: { ...settings.autoBackup, lastSyncPullAt: new Date().toISOString() } });
+  const cloudHash = fingerprint(payload.data);
+  await saveSettings({ autoBackup: { ...settings.autoBackup, lastSyncPullAt: new Date().toISOString(), lastSyncAt: new Date().toISOString(), lastSyncFingerprint: cloudHash, lastSyncStatus: 'Data terbaru ditarik dari cloud.' } });
 }

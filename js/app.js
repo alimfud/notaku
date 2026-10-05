@@ -238,14 +238,20 @@ function registerServiceWorker() {
   warmNavigation();
   scheduleAutomaticStatusRollover();
   setInterval(() => checkAutomaticBackup(), 60000);
+  setInterval(() => checkAutomaticSync(), 5 * 60000);
+  setTimeout(() => checkAutomaticSync(), 3000);
   window.addEventListener('online', checkAutomaticBackup);
+  window.addEventListener('online', checkAutomaticSync);
 
   // Ulangi pengecekan tiap kali aplikasi kembali aktif (mis. HP dibuka lagi
   // setelah dikunci) — ini bagian dari pendekatan "catch-up" untuk aturan
   // auto-lunas & jadwal backup, lihat komentar di saleService.js dan
   // driveBackupService.js soal batasan "otomatis" pada web app statis.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') runBackgroundChecks();
+    if (document.visibilityState === 'visible') {
+      runBackgroundChecks();
+      checkAutomaticSync();
+    }
   });
 })();
 
@@ -302,5 +308,14 @@ async function checkAutomaticBackup() {
     await checkScheduleOnAppOpen();
   } catch (e) {
     console.error('[runBackgroundChecks] auto-backup', e);
+  }
+}
+
+async function checkAutomaticSync() {
+  try {
+    const { checkAutomaticSync: sync } = await import('./services/driveBackupService.js');
+    await sync();
+  } catch (e) {
+    console.error('[runBackgroundChecks] auto-sync', e);
   }
 }

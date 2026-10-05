@@ -17,7 +17,7 @@ Invoice/transaksi, pembayaran, produk, pelanggan, pengeluaran, laporan, QRIS, ba
 Semua data permanen berada di IndexedDB `notaku-db`: `products`, `customers`, `sales`, `saleItems`, `payments`, `expenses`, dan `settings`. Jangan akses IndexedDB langsung dari halaman; gunakan `js/db.js` atau service terkait. Migrasi store wajib menaikkan `DB_VERSION`.
 
 ## Sync dan backup
-`backupService` selalu dump/restore seluruh store. Google Drive memakai backup arsip dan satu file sync last-write-wins. Setelah restore, cache settings harus di-invalidasi. Jangan mengubah format payload tanpa tetap menerima backup lama.
+`backupService` selalu dump/restore seluruh store. Google Drive memakai backup arsip terjadwal dan satu file sinkron antarperangkat; auto-sync memeriksa tiap lima menit saat app terbuka, mengirim/menarik perubahan satu sisi, dan menahan konflik dua sisi. Setelah restore, cache settings harus di-invalidasi. Jangan mengubah format payload tanpa tetap menerima backup lama.
 
 ## Offline dan cache
 `sw.js` melakukan precache app shell; data tetap tersedia dari IndexedDB offline. Jika menambah modul yang dipakai saat offline, masukkan ke `CORE_ASSETS` dan naikkan `CACHE_VERSION` bersama `version.json`/`js/version.js`.

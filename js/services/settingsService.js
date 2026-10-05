@@ -45,6 +45,10 @@ const DEFAULTS = {
     lastCheckedSlots: [],   // daftar jam yang SUDAH dieksekusi hari ini, direset saat lastCheckedDate berganti
     lastSyncPushAt: '',     // ISO datetime terakhir kali PUSH ke file sinkron antar perangkat
     lastSyncPullAt: '',     // ISO datetime terakhir kali PULL dari file sinkron antar perangkat
+    lastSyncAt: '',         // ISO datetime sinkron otomatis/manual terakhir
+    lastSyncFingerprint: '',// sidik data terakhir yang sama di lokal dan Drive
+    lastSyncStatus: '',     // status terakhir sinkron otomatis
+    autoSyncEnabled: true,
   },
 };
 
