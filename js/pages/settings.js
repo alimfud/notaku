@@ -451,10 +451,12 @@ async function renderAutoBackup(root) {
       <div class="settings-drive-account">
         <div>
           <div class="settings-drive-label">Akun Google Drive</div>
-          <div class="row-meta">${cfg.driveConnected ? escapeHtml(cfg.driveAccountEmail || 'Tersambung') : 'Belum tersambung'}</div>
+          ${cfg.driveConnected
+            ? `<div class="settings-drive-connected"><span class="settings-drive-status-dot" aria-hidden="true"></span><span>Terhubung sebagai</span></div>
+               <div class="settings-drive-email">${escapeHtml(cfg.driveAccountEmail || 'Email tidak tersedia')}</div>`
+            : '<div class="row-meta">Belum tersambung</div>'}
         </div>
         <button class="settings-button btn small secondary" id="btnDriveConnect">${cfg.driveConnected ? 'Putuskan' : 'Hubungkan'}</button>
-        ${cfg.driveConnected ? '<button class="btn small secondary" id="btnDriveReconnect">Hubungkan Ulang</button>' : ''}
       </div>
       <div class="settings-backup-info info-card">
         <div class="info-text">Gunakan akun Google yang sama di semua perangkat kalau ingin semua HP/laptop toko mengakses file backup yang sama.</div>
@@ -505,15 +507,6 @@ async function renderAutoBackup(root) {
   else root.querySelector('#syncStatus').textContent = 'Hubungkan akun Google Drive untuk memeriksa status.';
 
   root.querySelector('#enableToggle').onchange = () => saveAutoBackupForm(root);
-  const reconnect = root.querySelector('#btnDriveReconnect');
-  if (reconnect) reconnect.onclick = async () => {
-    try {
-      await drive.connectAccount();
-      await saveAutoBackupForm(root);
-      await renderAutoBackup(root);
-    } catch (e) { toast(e.message || 'Gagal menghubungkan ulang akun.'); }
-  };
-
   root.querySelector('#btnPush').onclick = async () => {
     if (!cfg.driveConnected) { toast('Hubungkan akun Google Drive dulu'); return; }
     const confirmed = await confirmDialog({

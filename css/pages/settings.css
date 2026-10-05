@@ -52,6 +52,9 @@
 [data-page="settings"] .settings-backup-toggle{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
 [data-page="settings"] .settings-drive-account{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--outline);border-bottom:1px solid var(--outline);margin-bottom:16px;}
 [data-page="settings"] .settings-drive-label{font-size:13.5px;font-weight:700;}
+[data-page="settings"] .settings-drive-connected{display:flex;align-items:center;gap:6px;margin-top:3px;color:var(--text-muted);font-size:12px;}
+[data-page="settings"] .settings-drive-status-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px color-mix(in srgb,#22c55e 18%,transparent);}
+[data-page="settings"] .settings-drive-email{margin-top:2px;font-size:13px;font-weight:600;overflow-wrap:anywhere;}
 [data-page="settings"] .settings-backup-info{margin:0 0 20px;}
 [data-page="settings"] .settings-schedule-label{font-size:13.5px;font-weight:700;margin-bottom:10px;}
 [data-page="settings"] .settings-backup-slot{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
