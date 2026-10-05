@@ -311,26 +311,24 @@ async function uploadBackupFile(token, folderId, blob, filename) {
   return res.json();
 }
 
-async function deleteOldBackups(token, folderId, olderThanDays) {
-  const listRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(`'${folderId}' in parents and trashed=false and name contains 'notaku-backup-'`)}&orderBy=createdTime desc&pageSize=100&fields=files(id,name,createdTime)`, { headers: { Authorization: `Bearer ${token}` } });
-  if (listRes.ok) {
-    const list = await listRes.json();
-    for (const f of (list.files || []).slice(10)) {
-      await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
-    }
-  }
-  if (!olderThanDays || olderThanDays <= 0) return;
-  const cutoff = new Date(Date.now() - olderThanDays * 86400000).toISOString();
-  const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and createdTime < '${cutoff}'`);
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const data = await res.json();
-  for (const f of data.files || []) {
-    await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    }).catch(() => {});
+async function deleteOldBackups(token, folderId, keepCount = 10) {
+  if (!Number.isSafeInteger(keepCount) || keepCount < 1) throw new Error('Jumlah backup yang disimpan minimal 1 file.');
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and name contains 'notaku-backup-'`);
+  const headers = { Authorization: `Bearer ${token}` };
+  const files = [];
+  let pageToken = '';
+  // Baca seluruh halaman sebelum menghapus, agar pagination tidak bergeser.
+  do {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=createdTime desc&pageSize=100&fields=nextPageToken,files(id,name,createdTime)${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`, { headers });
+    if (!res.ok) throw new Error('Gagal membaca daftar backup: ' + await readGoogleError(res));
+    const page = await res.json();
+    files.push(...(page.files || []).filter((file) => file.name?.startsWith('notaku-backup-')));
+    pageToken = page.nextPageToken || '';
+  } while (pageToken);
+  files.sort((a, b) => Date.parse(b.createdTime) - Date.parse(a.createdTime) || a.id.localeCompare(b.id));
+  for (const file of files.slice(keepCount)) {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}`, { method: 'DELETE', headers });
+    if (!res.ok && res.status !== 404) throw new Error('Gagal menghapus backup lama: ' + await readGoogleError(res));
   }
 }
 
@@ -379,7 +377,7 @@ async function runBackupOnce(options) {
   const settings = await getSettings();
   await saveSettings({ autoBackup: { ...settings.autoBackup, lastBackupAt: new Date().toISOString(), lastBackupError: '' } });
   // Upload sudah berhasil; kegagalan pembersihan tidak membuat jadwal diulang.
-  await deleteOldBackups(token, folderId, settings.autoBackup.deleteOlderThanDays).catch((e) => {
+  await deleteOldBackups(token, folderId, settings.autoBackup.backupKeepCount).catch((e) => {
     console.error('[driveBackupService] cleanup failed', e);
   });
 }

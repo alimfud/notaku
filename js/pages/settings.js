@@ -477,8 +477,9 @@ async function renderAutoBackup(root) {
       <button class="settings-backup-info btn small secondary" id="btnAddSlot">+ Tambah Jam</button>
 
       <div class="settings-retention field">
-        <label>Hapus file backup yang lebih lama dari (hari)</label>
-        <input id="deleteOlderThan" type="number" value="${cfg.deleteOlderThanDays}">
+        <label for="backupKeepCount">Jumlah backup terbaru yang disimpan</label>
+        <input id="backupKeepCount" type="number" min="1" step="1" required value="${Number(cfg.backupKeepCount) || 10}" aria-describedby="backupRetentionHelp">
+        <div class="settings-help" id="backupRetentionHelp">Contoh: 10 menyimpan 10 file backup terbaru. File yang lebih lama otomatis dihapus setelah backup baru berhasil.</div>
       </div>
 
       <div class="settings-backup-info info-card"><div class="info-text">Backup otomatis berjalan tanpa dialog konfirmasi atau menghalangi penggunaan aplikasi.</div></div>
@@ -690,13 +691,20 @@ function formatSyncDate(value) {
 async function saveAutoBackupForm(root) {
   const s = await getSettings();
   if (!root.querySelector('#enableToggle')) return;
+  const retentionInput = root.querySelector('#backupKeepCount');
+  if (!retentionInput.reportValidity()) return;
+  const backupKeepCount = Number(retentionInput.value);
+  if (!Number.isSafeInteger(backupKeepCount) || backupKeepCount < 1) {
+    toast('Jumlah backup harus bilangan bulat minimal 1.');
+    return;
+  }
   const times = Array.from(root.querySelectorAll('.slotTime')).map((i) => i.value).filter(Boolean);
   await saveSettings({
     autoBackup: {
       ...s.autoBackup,
       enabled: root.querySelector('#enableToggle').checked,
       scheduleTimes: times,
-      deleteOlderThanDays: Number(root.querySelector('#deleteOlderThan').value) || 0,
+      backupKeepCount,
       confirmBeforeBackup: false,
     },
   });

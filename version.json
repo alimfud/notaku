@@ -1,4 +1,4 @@
 {
-  "version": "1.12.4",
-  "notes": "Indikator sinkron otomatis dan waktu sinkron terakhir diperbarui langsung tanpa reload."
+  "version": "1.12.5",
+  "notes": "Retensi backup Google Drive berdasarkan jumlah file terbaru yang disimpan."
 }

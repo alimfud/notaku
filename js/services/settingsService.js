@@ -38,7 +38,7 @@ const DEFAULTS = {
     driveConnected: false,
     driveAccountEmail: '',
     scheduleTimes: ['07:00', '12:00', '17:00'],
-    deleteOlderThanDays: 30,
+    backupKeepCount: 10,
     confirmBeforeBackup: false,
     lastBackupAt: '',       // ISO datetime backup terakhir berhasil
     lastCheckedDate: '',    // yyyy-MM-dd, dipakai supaya tidak backup berkali-kali di hari yang sama untuk jam yang sama
