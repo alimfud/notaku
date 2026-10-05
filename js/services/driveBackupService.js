@@ -171,9 +171,18 @@ async function saveSyncState({ fingerprint: value, status = '' }) {
 
 /** Periksa dan sinkronkan perubahan satu arah; perubahan bersamaan ditahan agar tidak tertimpa. */
 let _autoSyncInFlight = null;
-export function checkAutomaticSync() {
+let _lastAutoSyncCheckAt = 0;
+export function checkAutomaticSync({ force = false } = {}) {
   if (_autoSyncInFlight) return _autoSyncInFlight;
-  _autoSyncInFlight = runAutomaticSync().finally(() => {
+  _autoSyncInFlight = (async () => {
+    const settings = await getSettings();
+    const cfg = settings.autoBackup;
+    if (!cfg?.driveConnected || !cfg.autoSyncEnabled || !isConfigured() || navigator.onLine === false) return;
+    const interval = Math.max(1, Number(cfg.autoSyncIntervalMinutes) || 5) * 60000;
+    if (!force && Date.now() - _lastAutoSyncCheckAt < interval) return;
+    _lastAutoSyncCheckAt = Date.now();
+    await runAutomaticSync();
+  })().finally(() => {
     _autoSyncInFlight = null;
     window.dispatchEvent(new Event('notaku-sync-status'));
   });
@@ -424,7 +433,7 @@ async function checkSchedule() {
 // waktu yang sama lalu keduanya push, yang push BELAKANGAN akan menimpa
 // push yang lebih dulu (perubahan yang lebih dulu akan hilang tertimpa).
 //
-// Sinkron otomatis memeriksa fingerprint data setiap lima menit ketika app
+// Sinkron otomatis memeriksa fingerprint data pada interval pilihan ketika app
 // terbuka. Jika perubahan hanya ada di satu sisi, sisi lain diperbarui. Jika
 // kedua sisi berubah sejak sinkron terakhir, tidak ada yang ditimpa; pengguna
 // perlu memilih Push atau Pull secara manual. Pemeriksaan pertama untuk file

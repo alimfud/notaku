@@ -238,7 +238,7 @@ function registerServiceWorker() {
   warmNavigation();
   scheduleAutomaticStatusRollover();
   setInterval(() => checkAutomaticBackup(), 60000);
-  setInterval(() => checkAutomaticSync(), 5 * 60000);
+  setInterval(() => checkAutomaticSync(), 60000);
   setTimeout(() => checkAutomaticSync(), 3000);
   window.addEventListener('online', checkAutomaticBackup);
   window.addEventListener('online', checkAutomaticSync);

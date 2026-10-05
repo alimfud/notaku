@@ -490,15 +490,28 @@ async function renderAutoBackup(root) {
         <div class="info-text">Jadwal diperiksa setiap menit selama aplikasi berjalan dan saat aplikasi kembali aktif atau koneksi pulih. Jadwal yang terlewat dicadangkan bersama, dan kegagalan dicoba ulang. Sesi Google harus masih aktif; gunakan Hubungkan Ulang jika sesi berakhir. Saat aplikasi ditutup, backup menunggu aplikasi dibuka kembali.</div>
       </div>
 
-      <div class="settings-sync-heading section-title">Sinkronisasi Antar Perangkat</div>
-      <div class="settings-sync-info info-card">
-        <div class="info-title">Satu database, banyak perangkat</div>
-        <div class="info-text">Sinkron otomatis memeriksa perubahan tiap 5 menit saat aplikasi terbuka dan sesi Google masih aktif. Jika kedua perangkat berubah bersamaan, sinkronisasi ditahan agar data tidak tertimpa. Untuk file cloud yang sudah ada, pilih Push atau Tarik sekali untuk memulai.</div>
+      <div class="settings-sync-panel">
+        <div class="settings-sync-heading section-title">Sinkronisasi Google Drive</div>
+        <div class="settings-sync-account" id="syncAccountStatus">
+          ${cfg.driveConnected
+            ? `<span class="settings-drive-status-dot" aria-hidden="true"></span><span><b>${cfg.lastSyncAt ? 'Tersinkron' : 'Terhubung'}</b> · ${escapeHtml(cfg.driveAccountEmail || 'akun Google')}</span>`
+            : '<span class="row-meta">Akun Google belum terhubung</span>'}
+          ${cfg.lastSyncAt ? `<small>Terakhir sinkron: ${formatSyncDate(cfg.lastSyncAt)}</small>` : '<small>Belum pernah sinkron</small>'}
+        </div>
+        <button class="settings-sync-now btn" id="btnSyncNow" ${cfg.driveConnected ? '' : 'disabled'}>Sinkron sekarang</button>
+        <label class="settings-sync-auto">
+          <span>Sinkron otomatis</span>
+          <input class="settings-checkbox" type="checkbox" id="autoSyncToggle" ${cfg.autoSyncEnabled !== false ? 'checked' : ''}>
+        </label>
+        <label class="settings-sync-interval"><span>Interval sinkron</span>
+          <select id="autoSyncInterval">
+            ${[1, 5, 10, 15, 30].map((minutes) => `<option value="${minutes}" ${(cfg.autoSyncIntervalMinutes || 5) === minutes ? 'selected' : ''}>Tiap ${minutes} menit</option>`).join('')}
+          </select>
+        </label>
+        <div class="settings-sync-info info-card">
+          <div class="info-text">Pengecekan berjalan sesuai interval saat aplikasi terbuka dan sesi Google masih aktif. Jika perubahan hanya ada di satu perangkat, data dikirim atau ditarik otomatis. Jika kedua perangkat berubah bersamaan, sinkronisasi ditahan agar data tidak tertimpa. Untuk file cloud yang sudah ada, pilih Push atau Tarik sekali untuk memulai.</div>
+        </div>
       </div>
-      <label class="settings-backup-toggle">
-        <div class="settings-section-label">Sinkronkan otomatis tiap 5 menit</div>
-        <input class="settings-checkbox" type="checkbox" id="autoSyncToggle" ${cfg.autoSyncEnabled !== false ? 'checked' : ''}>
-      </label>
       <div class="settings-sync-status" id="syncStatus">Memeriksa status...</div>
       <div class="settings-sync-actions">
         <button class="settings-sync-button btn secondary" id="btnPush">⬆ Push ke Cloud</button>
@@ -509,9 +522,17 @@ async function renderAutoBackup(root) {
 
   if (cfg.driveConnected) refreshSyncStatus(root, drive);
   else root.querySelector('#syncStatus').textContent = 'Hubungkan akun Google Drive untuk memeriksa status.';
-  const onSyncStatus = () => {
+  const onSyncStatus = async () => {
     if (!root.querySelector('#syncStatus')) window.removeEventListener('notaku-sync-status', onSyncStatus);
-    else void refreshSyncStatus(root, drive);
+    else {
+      await refreshSyncStatus(root, drive);
+      const latest = await getSettings();
+      const statusLine = root.querySelector('#syncAccountStatus small');
+      if (statusLine) statusLine.textContent = latest.autoBackup.lastSyncAt
+        ? `Terakhir sinkron: ${formatSyncDate(latest.autoBackup.lastSyncAt)}` : 'Belum pernah sinkron';
+      const label = root.querySelector('#syncAccountStatus b');
+      if (label && latest.autoBackup.lastSyncAt) label.textContent = 'Tersinkron';
+    }
   };
   window.addEventListener('notaku-sync-status', onSyncStatus);
 
@@ -519,7 +540,33 @@ async function renderAutoBackup(root) {
     const latest = await getSettings();
     await saveSettings({ autoBackup: { ...latest.autoBackup, autoSyncEnabled: event.target.checked } });
     toast(event.target.checked ? 'Sinkron otomatis diaktifkan' : 'Sinkron otomatis dijeda');
-    if (event.target.checked) void drive.checkAutomaticSync();
+    if (event.target.checked) void drive.checkAutomaticSync({ force: true });
+  };
+  root.querySelector('#autoSyncInterval').onchange = async (event) => {
+    const latest = await getSettings();
+    await saveSettings({ autoBackup: { ...latest.autoBackup, autoSyncIntervalMinutes: Number(event.target.value) } });
+    toast(`Sinkron otomatis diatur tiap ${event.target.value} menit`);
+    if (latest.autoBackup.autoSyncEnabled !== false) void drive.checkAutomaticSync({ force: true });
+  };
+
+  root.querySelector('#btnSyncNow').onclick = async () => {
+    if (!cfg.driveConnected) { toast('Hubungkan akun Google Drive dulu'); return; }
+    const button = root.querySelector('#btnSyncNow');
+    button.disabled = true;
+    button.textContent = 'Menyinkronkan…';
+    try {
+      await drive.checkAutomaticSync({ force: true });
+      await refreshSyncStatus(root, drive);
+      const latest = await getSettings();
+      root.querySelector('#syncAccountStatus small').textContent = latest.autoBackup.lastSyncAt
+        ? `Terakhir sinkron: ${formatSyncDate(latest.autoBackup.lastSyncAt)}` : 'Belum pernah sinkron';
+      if (latest.autoBackup.lastSyncStatus) toast(latest.autoBackup.lastSyncStatus);
+    } finally {
+      if (root.querySelector('#btnSyncNow')) {
+        button.disabled = false;
+        button.textContent = 'Sinkron sekarang';
+      }
+    }
   };
 
   root.querySelector('#enableToggle').onchange = () => saveAutoBackupForm(root);
@@ -575,7 +622,7 @@ async function renderAutoBackup(root) {
       const email = await drive.connectAccount();
       toast(`Tersambung sebagai ${email}`);
       await saveAutoBackupForm(root);
-      await drive.checkAutomaticSync();
+      await drive.checkAutomaticSync({ force: true });
       await renderAutoBackup(root);
     } catch (e) { toast(e.message || 'Gagal menghubungkan akun Google.'); }
   };
@@ -621,6 +668,11 @@ async function refreshSyncStatus(root, drive) {
     if (status.lastSyncAt) parts.push(`Terakhir sinkron: ${formatSyncDate(status.lastSyncAt)}`);
     if (status.lastSyncStatus) parts.push(escapeHtml(status.lastSyncStatus));
     el.innerHTML = parts.join('<br>');
+    const accountTime = root.querySelector('#syncAccountStatus small');
+    if (accountTime) accountTime.textContent = status.lastSyncAt
+      ? `Terakhir sinkron: ${formatSyncDate(status.lastSyncAt)}` : 'Belum pernah sinkron';
+    const accountLabel = root.querySelector('#syncAccountStatus b');
+    if (accountLabel && status.lastSyncAt) accountLabel.textContent = 'Tersinkron';
   } catch (e) {
     el.textContent = 'Gagal memeriksa status cloud (' + (e.message || 'koneksi bermasalah') + ')';
   }
