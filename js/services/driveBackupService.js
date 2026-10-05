@@ -176,6 +176,13 @@ async function uploadBackupFile(token, folderId, blob, filename) {
 }
 
 async function deleteOldBackups(token, folderId, olderThanDays) {
+  const listRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(`'${folderId}' in parents and trashed=false and name contains 'notaku-backup-'`)}&orderBy=createdTime desc&pageSize=100&fields=files(id,name,createdTime)`, { headers: { Authorization: `Bearer ${token}` } });
+  if (listRes.ok) {
+    const list = await listRes.json();
+    for (const f of (list.files || []).slice(10)) {
+      await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    }
+  }
   if (!olderThanDays || olderThanDays <= 0) return;
   const cutoff = new Date(Date.now() - olderThanDays * 86400000).toISOString();
   const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and createdTime < '${cutoff}'`);
@@ -189,6 +196,15 @@ async function deleteOldBackups(token, folderId, olderThanDays) {
       headers: { Authorization: `Bearer ${token}` },
     }).catch(() => {});
   }
+}
+
+export async function listBackupHistory() {
+  const token = await ensureToken();
+  const folderId = await findOrCreateFolder(token);
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and name contains 'notaku-backup-'`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=createdTime desc&pageSize=10&fields=files(id,name,createdTime,size)`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error('Gagal membaca histori backup: ' + await readGoogleError(res));
+  return (await res.json()).files || [];
 }
 
 /** Jalankan satu kali backup ke Drive sekarang juga. */

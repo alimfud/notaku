@@ -477,12 +477,13 @@ async function renderAutoBackup(root) {
 
       <label class="settings-confirm-backup">
         <input class="settings-confirm-checkbox" type="checkbox" id="confirmToggle" ${cfg.confirmBeforeBackup ? 'checked' : ''}>
-        <span class="settings-confirm-label">Konfirmasi sebelum backup (muncul dialog tiap kali sebelum upload)</span>
+        <span class="settings-confirm-label">Konfirmasi sebelum backup (ada dialog sebelum upload)</span>
       </label>
 
       ${cfg.lastBackupAt ? `<div class="settings-last-backup">Backup terakhir: ${new Date(cfg.lastBackupAt).toLocaleString('id-ID')}</div>` : ''}
 
       <button class="btn" id="btnBackupNow">Backup Sekarang</button>
+      <div class="settings-backup-history" id="backupHistory"><div class="settings-section-label">Histori Backup</div><div class="settings-help">Memuat histori backup...</div></div>
 
       <div class="settings-backup-note info-card">
         <div class="info-title">Soal "otomatis"</div>
@@ -503,6 +504,7 @@ async function renderAutoBackup(root) {
   `;
 
   refreshSyncStatus(root, drive);
+  refreshBackupHistory(root, drive);
 
   root.querySelector('#btnPush').onclick = async () => {
     if (!cfg.driveConnected) { toast('Hubungkan akun Google Drive dulu'); return; }
@@ -584,6 +586,15 @@ async function renderAutoBackup(root) {
       document.getElementById('loadingOverlay').classList.add('hidden');
     }
   };
+}
+
+async function refreshBackupHistory(root, drive) {
+  const el = root.querySelector('#backupHistory');
+  if (!el) return;
+  try {
+    const files = await drive.listBackupHistory();
+    el.innerHTML = `<div class="settings-section-label">Histori Backup</div>${files.length ? `<div class="settings-help">${files.map((file) => `${escapeHtml(new Date(file.createdTime).toLocaleString('id-ID'))} · ${escapeHtml(file.name)}`).join('<br>')}</div>` : '<div class="settings-help">Belum ada backup di Google Drive.</div>'}`;
+  } catch (e) { el.innerHTML = '<div class="settings-section-label">Histori Backup</div><div class="settings-help">Histori belum bisa dibaca.</div>'; }
 }
 
 async function refreshSyncStatus(root, drive) {
