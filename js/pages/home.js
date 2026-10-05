@@ -187,7 +187,7 @@ async function renderList(root) {
       : `${dateShort(s.sale.saleDate)} • ${s.sale.saleTime}`;
     return `
       <button class="row" data-id="${s.sale.id}" style="opacity:${s.sale.completed ? 0.55 : 1};">
-        <div class="avatar">${initials(s.sale.customerName)}</div>
+        <div class="avatar"><span>${initials(s.sale.customerName)}</span></div>
         <div class="row-body">
           <div class="row-title">${escapeHtml(s.sale.customerName)}${s.sale.completed ? ' <span class="home-layout-6">SELESAI</span>' : ''}</div>
           ${s.sale.customerAddress?.trim() ? `<div class="nota-address">${escapeHtml(s.sale.customerAddress.trim())}</div>` : ''}

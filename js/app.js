@@ -25,7 +25,7 @@ const drawer = document.getElementById('drawer');
 const drawerOverlay = document.getElementById('drawerOverlay');
 initTheme();
 initBottomNavIndicator(bottomnav); // lekukan + bubble menu bawah (mobile)
-initMotion(); // animasi teks: muncul berurutan, angka menghitung naik
+initMotion(); // animasi angka: ringkasan menghitung naik
 
 const TOP_LEVEL_ROUTES = ['dashboard', 'home', 'products', 'customers', 'expenses', 'reports', 'settings'];
 

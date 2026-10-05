@@ -35,13 +35,13 @@ export function dailyChart(days, { compact = false, dateBasis = 'pickup', period
   const axisLabel = d => granularity === 'month' ? d.date.slice(5, 7) : `${d.date.slice(8)}/${d.date.slice(5, 7)}`;
   const detail = d => `${itemLabel(d)} · ${d.count} nota · ${visible.map(s => `${s.label}: ${rupiah(d[s.key])}`).join(' · ')}`;
   const linePaths = visible.map((item, index) => `<path d="${activityLinePath(days, item.key, ceiling)}" style="--activity-line:${item.color};--activity-delay:${index * 130}ms"/>`).join('');
-  return `<section class="business-chart"><div class="business-chart-heading"><h3>Aktivitas per ${granularity === 'month' ? 'bulan' : 'tanggal'}</h3><p>${periodLabel ? `${escapeHtml(periodLabel)}<br>` : ''}${dateBasis === 'created' ? 'Nilai nota mengikuti tanggal dibuat. Nota impor memakai tanggal nota dari data asal.' : 'Nilai nota mengikuti tanggal pengambilan.'}</p></div>
+  return `<section class="business-chart"><div class="business-chart-heading"><h3>Aktivitas per ${granularity === 'month' ? 'bulan' : 'tanggal'}</h3><p>${periodLabel ? `${escapeHtml(periodLabel)}<br>` : ''}${dateBasis === 'created' ? 'Nilai nota mengikuti tanggal dibuat.' : 'Nilai nota mengikuti tanggal pengambilan.'}</p></div>
     <div class="business-legend">${visible.map(s => `<span><i style="background:${s.color}"></i>${s.label}</span>`).join('')}</div>
     ${max ? '' : '<p class="business-chart-empty">Belum ada nilai transaksi pada periode ini.</p>'}
     <div class="business-plot"><div class="business-axis"><span>${max ? compactMoney(ceiling) : 'Rp0'}</span><span>${max ? compactMoney(ceiling / 2) : ''}</span><span>0</span></div>
       <div class="business-bars-scroll"><div class="business-chart-canvas"><svg class="business-activity-lines" viewBox="0 0 100 155" preserveAspectRatio="none" aria-hidden="true">${linePaths}</svg><div class="business-bars" style="--day-count:${Math.max(1, days.length)}">${days.map(d => `<button type="button" class="business-day" data-chart-detail="${escapeHtml(detail(d))}" aria-label="${escapeHtml(detail(d))}"><span class="business-columns">${visible.map((s, index) => { const value = Math.max(0, d[s.key]); return `<span class="business-column-3d ${value ? '' : 'is-zero'}" style="--column-height:${value / ceiling * 100}%;--column-color:${s.color};--column-delay:${index * 60}ms"><i></i></span>`; }).join('')}</span><span class="business-day-label">${axisLabel(d)}</span></button>`).join('')}</div></div></div></div>
     <p class="business-chart-detail" aria-live="polite">Ketuk batang untuk melihat nominal.</p>
-    <p class="business-chart-note">Pembayaran mengikuti tanggal bayar, termasuk pelunasan otomatis pada tanggal pengambilan. Pengeluaran mengikuti tanggal pencatatan.</p></section>`;
+    <p class="business-chart-note">Pembayaran mengikuti tanggal bayar, termasuk pelunasan saat diambil. Pengeluaran mengikuti tanggal pencatatan.</p></section>`;
 }
 
 export function statusChart(counts) {

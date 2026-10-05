@@ -107,20 +107,21 @@
   font-weight:500;
 }
 [data-page="sale-detail"] .sale-detail-section-heading h3 { color:var(--muted); font-size:12px; font-weight:600; }
-[data-page="sale-detail"] .sale-detail-section-heading small { padding:2px 0; background:transparent; color:var(--muted); font-size:9px; font-weight:500; }
+[data-page="sale-detail"] .sale-detail-section-heading small { padding:2px 0; background:transparent; color:color-mix(in srgb,var(--muted) 72%,transparent); font-size:9px; font-weight:500; }
 [data-page="sale-detail"] .sale-detail-payment-row {
-  border-color:color-mix(in srgb,var(--outline) 65%,transparent);
-  background:color-mix(in srgb,var(--surface-dim) 48%,var(--surface));
-  box-shadow:none;
+  border:1px solid color-mix(in srgb,#fff 54%,var(--outline));
+  border-radius:999px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 78%,var(--surface-dim)),color-mix(in srgb,var(--surface-dim) 74%,var(--surface)));
+  box-shadow:inset 3px 4px 9px color-mix(in srgb,var(--primary) 12%,transparent), inset -3px -4px 9px rgba(255,255,255,.58), 0 -7px 16px -13px color-mix(in srgb,var(--primary) 55%,transparent);
 }
 [data-page="sale-detail"] .sale-detail-payment-row:active { background:var(--surface-dim); }
-[data-page="sale-detail"] .sale-detail-payment-icon { width:30px; height:30px; flex-basis:30px; border-radius:9px; background:var(--surface-dim); color:var(--muted); }
+[data-page="sale-detail"] .sale-detail-payment-icon { width:30px; height:30px; flex-basis:30px; border-radius:999px; background:color-mix(in srgb,var(--primary-container) 40%,var(--surface-dim)); color:color-mix(in srgb,var(--primary) 48%,var(--muted)); box-shadow:inset 2px 2px 5px color-mix(in srgb,var(--primary) 10%,transparent), inset -2px -2px 5px rgba(255,255,255,.5); }
 [data-page="sale-detail"] .sale-detail-payment-icon svg { width:16px; height:16px; }
-[data-page="sale-detail"] .sale-detail-payment-label { color:var(--ink-soft); font-size:11.5px; font-weight:600; }
-[data-page="sale-detail"] .sale-detail-payment-meta { color:var(--muted); }
-[data-page="sale-detail"] .sale-detail-payment-note { color:var(--muted); }
-[data-page="sale-detail"] .sale-detail-payment-trailing strong { color:var(--ink-soft); font-size:11.5px; font-weight:600; }
-[data-page="sale-detail"] .sale-detail-payment-trailing i { color:color-mix(in srgb,var(--muted) 65%,transparent); }
+[data-page="sale-detail"] .sale-detail-payment-label { color:color-mix(in srgb,var(--ink-soft) 76%,transparent); font-size:11.5px; font-weight:600; }
+[data-page="sale-detail"] .sale-detail-payment-meta { color:color-mix(in srgb,var(--muted) 72%,transparent); }
+[data-page="sale-detail"] .sale-detail-payment-note { color:color-mix(in srgb,var(--muted) 70%,transparent); }
+[data-page="sale-detail"] .sale-detail-payment-trailing strong { color:color-mix(in srgb,var(--ink-soft) 78%,transparent); font-size:11.5px; font-weight:600; }
+[data-page="sale-detail"] .sale-detail-payment-trailing i { color:color-mix(in srgb,var(--muted) 45%,transparent); }
 
 [data-page="sale-detail"] .sale-detail-actions {
   display:grid;
