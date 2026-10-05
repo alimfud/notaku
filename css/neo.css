@@ -236,9 +236,11 @@
   .search-input:focus { border-radius:16px; outline-offset:0; }
   [data-page="customers"] .customers-search input, [data-page="products"] .products-search input { color:var(--ink); }
   [data-page="customers"].customer-form-sheet :is(input,textarea),
-  [data-page="home"] .home-layout-3 {
+  [data-page="home"] .home-layout-3,
+  [data-page="home"] .row .avatar {
     background:#121843; border-color:rgba(255,255,255,.07); color:var(--ink); box-shadow:var(--nv-inset);
   }
+  [data-page="home"] .row .avatar { color:#ffc247; }
   .chip { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10); color:var(--ink-soft); border-radius:999px; }
   .chip.active, [data-page="reports"] .reports-layout-1 .chip.active {
     background:var(--g-amber); border-color:transparent; color:var(--navy-text); font-weight:700;

@@ -63,7 +63,7 @@
     .nav-btn { flex:0; flex-direction:row; justify-content:flex-start; gap:8px; padding:10px 8px; }
     .nav-btn--desktop-only { display:flex; }
     .nav-btn--mobile-only { display:none; }
-    .nav-section-label--desktop { display:block; margin:9px 10px 3px; color:#e5bdc9; font-size:9px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+    .nav-section-label--desktop { display:contents; margin:9px 10px 3px; color:#e5bdc9; font-size:9px; font-weight:unset; letter-spacing:.1em; text-transform:uppercase; }
     .nav-divider--desktop { display:block; flex:0 0 1px; height:1px; margin:6px 10px; background:#704459; }
     .nav-btn span { font-size:13px; }
     #app:has(#bottomnav.hidden) { grid-template-columns:minmax(0,1fr); }
