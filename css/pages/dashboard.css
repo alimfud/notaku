@@ -85,6 +85,23 @@
 [data-page="dashboard"] .dashboard-orders .nota-date { display:inline-block; }
 [data-page="dashboard"] .dashboard-orders .nota-invoice { display:inline-block; overflow-wrap:anywhere; }
 [data-page="dashboard"] .dashboard-orders .row-money { font-size:15px; font-variant-numeric:tabular-nums; }
+[data-page="dashboard"] .dashboard-orders .avatar {
+  width:34px;
+  height:34px;
+  border:1px solid color-mix(in srgb,var(--primary) 22%,var(--outline));
+  border-radius:9px;
+  background:color-mix(in srgb,var(--primary) 14%,var(--surface));
+  color:color-mix(in srgb,var(--primary) 72%,var(--ink-soft));
+  box-shadow:none;
+  transform:rotate(45deg);
+}
+[data-page="dashboard"] .dashboard-orders .avatar > span {
+  display:block;
+  transform:rotate(-45deg);
+  font-size:12px;
+  font-weight:700;
+  line-height:1;
+}
 [data-page="dashboard"] .empty-state { padding:34px 20px; }
 
 @media(min-width:680px) {

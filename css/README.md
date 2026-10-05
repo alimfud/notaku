@@ -7,7 +7,7 @@
 - `glass.css`: tema "Glass" (kaca buram biru muda, tombol pil gradasi biru-cyan); hanya aktif saat dipilih di Setting atau menu samping. Struk tidak diubah.
 - `clay.css`: tema "Clay" (pastel 3D ala tanah liat: krem, mint, peach, tombol koral); hanya aktif saat dipilih di Setting atau menu samping. Struk tidak diubah.
 - `bottomnav.css`: menu bawah mobile bergaya notch + bubble yang meluncur (geometri digambar `js/navIndicator.js`); warna per tema lewat variabel `--nav-*`. Dimuat paling akhir; sidebar desktop tidak berubah.
-- `motion.css`: animasi teks saja (teks halaman/sheet muncul berurutan, angka menghitung naik, judul topbar); dipicu `js/motion.js`, otomatis mati pada "reduce motion". Dimuat paling akhir.
+- `motion.css`: animasi angka ringkasan saja; dipicu `js/motion.js`, otomatis mati pada "reduce motion". Dimuat paling akhir.
 - `charts.css`: grafik harian dan diagram status pembayaran pada Beranda/Laporan, tanpa dependensi jaringan.
 - `pages/home.css`: daftar nota, tanggal, dan nomor invoice.
 - `pages/products.css`: daftar produk dan popup tambah/ubah produk.

@@ -342,9 +342,9 @@
 
   /* ---------- Detail nota & pengaturan ---------- */
   [data-page="sale-detail"] .sale-detail-receipt-wrap { background:rgba(255,255,255,.35); border-radius:22px; box-shadow:var(--gl-inset); }
-  [data-page="sale-detail"] .sale-detail-payment-row { background:var(--gl-card); border:1px solid var(--gl-line); border-radius:16px; box-shadow:var(--gl-shadow); }
-  [data-page="sale-detail"] .sale-detail-payment-icon { background:var(--gl-tile); color:var(--primary); }
-  [data-page="sale-detail"] .sale-detail-payment-trailing strong { color:var(--primary); }
+  [data-page="sale-detail"] .sale-detail-payment-row { background:linear-gradient(180deg,rgba(255,255,255,.54),rgba(220,235,248,.32)); border:1px solid rgba(255,255,255,.62); border-radius:999px; box-shadow:inset 3px 4px 9px rgba(60,110,160,.13), inset -3px -4px 9px rgba(255,255,255,.58), 0 -7px 16px -14px rgba(37,165,212,.52); backdrop-filter:blur(12px) saturate(125%); }
+  [data-page="sale-detail"] .sale-detail-payment-icon { background:linear-gradient(145deg,rgba(255,255,255,.64),rgba(204,233,250,.38)); color:color-mix(in srgb,var(--primary) 48%,var(--muted)); border-radius:999px; box-shadow:inset 2px 2px 5px rgba(60,110,160,.11), inset -2px -2px 5px rgba(255,255,255,.56); }
+  [data-page="sale-detail"] .sale-detail-payment-trailing strong { color:color-mix(in srgb,var(--primary) 46%,var(--ink-soft)); }
   [data-page="settings"] .settings-logo-control output { background:var(--gl-btn); color:#fff; }
   [data-page="settings"] #logoMaxWidth::-webkit-slider-thumb { background:#25a5d4; }
   [data-page="settings"] #logoMaxWidth::-moz-range-thumb { background:#25a5d4; }

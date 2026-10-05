@@ -1,36 +1,10 @@
 /*
-  NotaKu — Animasi teks (hanya teks).
+  NotaKu — Animasi angka.
 
-  Dipicu js/motion.js (class .mo-text, .mo-text-fast, .mo-title, .mo-counting).
-  Tidak ada animasi untuk kartu, tombol, sheet, drawer, atau elemen lain.
-  Berlaku di semua tema. Struk dan cetak tidak berubah.
+  Dipicu js/motion.js (class .mo-counting).
+  Animasi teks sengaja tidak dipakai supaya konten terasa instan.
   Perangkat dengan "reduce motion" otomatis tanpa animasi.
 */
 @media screen {
-  @keyframes moText {
-    from { opacity:0; transform:translate3d(var(--mo-dx,0px),10px,0); }
-    to   { opacity:1; transform:none; }
-  }
-  @keyframes moTextInline {
-    from { opacity:0; }
-    to   { opacity:1; }
-  }
-  @keyframes moTitle {
-    from { opacity:0; transform:translate3d(0,9px,0); }
-    to   { opacity:1; transform:none; }
-  }
-
-  .mo-text { animation:moText .6s cubic-bezier(.22,1,.36,1) backwards; }
-  .mo-text-fast { animation:moText .3s cubic-bezier(.22,1,.36,1) backwards; }
-  /* teks inline tidak bisa digeser (transform), jadi cukup memudar */
-  span.mo-text, span.mo-text-fast, a.mo-text, a.mo-text-fast, strong.mo-text, strong.mo-text-fast,
-  small.mo-text, small.mo-text-fast, b.mo-text, b.mo-text-fast, em.mo-text, em.mo-text-fast {
-    animation-name:moTextInline;
-  }
-  #pageTitle.mo-title { animation:moTitle .45s cubic-bezier(.22,1,.36,1); }
   .mo-counting { font-variant-numeric:tabular-nums; }
-}
-
-@media (prefers-reduced-motion:reduce) {
-  .mo-text, .mo-text-fast, #pageTitle.mo-title { animation:none !important; }
 }

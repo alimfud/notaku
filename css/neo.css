@@ -343,9 +343,9 @@
 
   /* ---------- Detail nota & pengaturan ---------- */
   [data-page="sale-detail"] .sale-detail-receipt-wrap { background:rgba(8,11,36,.55); border-radius:22px; box-shadow:var(--nv-inset); }
-  [data-page="sale-detail"] .sale-detail-payment-row { background:rgba(255,255,255,.05); border:1px solid var(--nv-line); border-radius:16px; box-shadow:var(--nv-shadow); }
-  [data-page="sale-detail"] .sale-detail-payment-icon { background:rgba(255,255,255,.08); color:var(--ink-soft); }
-  [data-page="sale-detail"] .sale-detail-payment-trailing strong { color:#ffc247; }
+  [data-page="sale-detail"] .sale-detail-payment-row { background:linear-gradient(180deg,rgba(42,52,117,.46),rgba(18,24,64,.50)); border:1px solid rgba(255,255,255,.07); border-radius:999px; box-shadow:inset 4px 5px 10px rgba(3,5,24,.34), inset -3px -4px 9px rgba(255,255,255,.035), 0 -7px 16px -14px rgba(255,138,61,.58); }
+  [data-page="sale-detail"] .sale-detail-payment-icon { background:rgba(255,194,71,.075); color:color-mix(in srgb,#ffc247 52%,var(--muted)); border-radius:999px; box-shadow:inset 2px 2px 5px rgba(3,5,24,.24), inset -2px -2px 5px rgba(255,255,255,.035); }
+  [data-page="sale-detail"] .sale-detail-payment-trailing strong { color:color-mix(in srgb,#ffc247 46%,var(--ink-soft)); }
   [data-page="settings"] .settings-logo-control output { background:var(--g-amber); color:var(--navy-text); }
   [data-page="settings"] #logoMaxWidth::-webkit-slider-thumb { background:#ffb23e; }
   [data-page="settings"] #logoMaxWidth::-moz-range-thumb { background:#ffb23e; }

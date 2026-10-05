@@ -1,12 +1,8 @@
-// motion.js — animasi TEKS NotaKu.
+// motion.js — animasi angka NotaKu.
 //
-// Hanya teks yang beranimasi (tidak ada kartu, tombol, sheet, atau riak):
-// 1. Teks halaman muncul berurutan (naik + memudar), arah geser mengikuti navigasi.
-// 2. Teks di dalam sheet/dialog muncul berurutan saat dibuka.
-// 3. Angka ringkasan (omzet, total, dll) menghitung naik dari 0.
-// 4. Judul topbar bergeser masuk saat berganti halaman.
-// Tidak mengubah logika halaman. Dimatikan otomatis bila perangkat memakai
-// "reduce motion". Gaya ada di css/motion.css.
+// Animasi teks sengaja tidak dipakai supaya perpindahan konten terasa instan.
+// Yang tersisa hanya angka ringkasan (omzet, total, dll) menghitung naik dari 0.
+// Dimatikan otomatis bila perangkat memakai "reduce motion".
 
 const reduceMq = window.matchMedia('(prefers-reduced-motion:reduce)');
 const reduced = () => reduceMq.matches;
@@ -19,54 +15,10 @@ const COUNT = [
   '.sale-checkout-total',
 ].join(',');
 
-// Setelah halaman selesai dibuka, teks di dalam daftar ini tetap dianimasikan
-// singkat saat berubah (mis. hasil pencarian/filter).
-const LATE = [
-  '.row', '.item-line', '.customer-card', '.expense-row', '.reports-product-row',
-  '.reports-month-row', '.sale-customer-card', '.dashboard-attention-item', '.empty-state', '.info-card',
-].join(',');
-
 // Teks di area ini tidak disentuh (struk/cetak harus tetap utuh).
 const SKIP = '.receipt, #receiptCapture, .print-preview-wrap, svg, script, style, textarea, select, option, input, canvas, [contenteditable]';
 
-// Urutan menu untuk menentukan arah geser antarhalaman.
-const RANK = { dashboard: 0, home: 1, sale: 2, products: 3, customers: 4, expenses: 4, reports: 4, settings: 5 };
-
 let started = false;
-
-function routeInfo() {
-  const parts = window.location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
-  return { rank: RANK[parts[0] || 'dashboard'] ?? 0, depth: parts.length };
-}
-
-// Kumpulkan elemen yang punya teks langsung di dalam `nodes`.
-function collectTextParents(nodes) {
-  const out = new Set();
-  nodes.forEach((n) => {
-    if (n.nodeType === 3) {
-      if (n.nodeValue.trim() && n.parentElement) out.add(n.parentElement);
-      return;
-    }
-    if (n.nodeType !== 1) return;
-    const walker = document.createTreeWalker(n, NodeFilter.SHOW_TEXT);
-    let t;
-    while ((t = walker.nextNode())) {
-      if (t.nodeValue.trim() && t.parentElement) out.add(t.parentElement);
-    }
-  });
-  return out;
-}
-
-function playText(el, delay, fast) {
-  el.style.animationDelay = `${delay}ms`;
-  el.classList.add(fast ? 'mo-text-fast' : 'mo-text');
-  const clean = () => {
-    el.classList.remove('mo-text', 'mo-text-fast');
-    el.style.animationDelay = '';
-  };
-  el.addEventListener('animationend', (e) => { if (e.target === el) clean(); });
-  setTimeout(clean, 2000); // jaring pengaman
-}
 
 export function initMotion() {
   if (started) return;
@@ -75,21 +27,7 @@ export function initMotion() {
   const root = document.getElementById('pageRoot');
   if (!root) return;
 
-  let prev = routeInfo();
-  let entranceUntil = performance.now() + 1400; // buka aplikasi pertama kali
   const seenCount = new WeakSet();
-
-  // ---------- Arah geser mengikuti navigasi ----------
-  window.addEventListener('hashchange', () => {
-    const cur = routeInfo();
-    let dir = 0;
-    if (cur.depth > prev.depth) dir = 1;
-    else if (cur.depth < prev.depth) dir = -1;
-    else dir = Math.sign(cur.rank - prev.rank);
-    root.style.setProperty('--mo-dx', `${dir * 14}px`);
-    prev = cur;
-    entranceUntil = performance.now() + 900;
-  });
 
   // ---------- Angka menghitung naik ----------
   function countUp(el) {
@@ -118,29 +56,15 @@ export function initMotion() {
     requestAnimationFrame(step);
   }
 
-  // ---------- Teks baru di halaman ----------
-  function handleAdded(nodes, { baseDelay = 0, forceEntrance = false } = {}) {
+  function handleAdded(nodes) {
     if (reduced()) return;
-    const inEntrance = forceEntrance || performance.now() < entranceUntil;
     const counters = [];
     nodes.forEach((n) => {
       if (n.nodeType !== 1) return;
+      if (n.closest(SKIP)) return;
       if (n.matches(COUNT)) counters.push(n);
       n.querySelectorAll(COUNT).forEach((e) => counters.push(e));
     });
-
-    let i = 0;
-    let lateCount = 0;
-    collectTextParents(nodes).forEach((el) => {
-      if (el.closest(SKIP) || el.matches(COUNT) || el.classList.contains('mo-text')) return;
-      if (!inEntrance && !el.closest(LATE)) return;
-      const r = el.getBoundingClientRect();
-      if (!r.width && !r.height) return;
-      if (r.bottom < 0 || r.top > window.innerHeight) return; // di luar layar: tidak perlu
-      if (inEntrance) playText(el, baseDelay + Math.min(i++, 26) * 30, false);
-      else if (lateCount++ < 40) playText(el, 0, true);
-    });
-
     counters.forEach(countUp);
   }
 
@@ -153,22 +77,11 @@ export function initMotion() {
     if (added.length) handleAdded(added);
   }).observe(root, { childList: true, subtree: true });
 
-  // ---------- Teks di sheet / dialog ----------
+  // ---------- Angka di sheet / dialog ----------
   new MutationObserver((records) => {
     records.forEach((r) => r.addedNodes.forEach((n) => {
       if (n.nodeType !== 1 || !(n.classList.contains('sheet-backdrop') || n.classList.contains('dialog-backdrop'))) return;
-      handleAdded([n], { baseDelay: 90, forceEntrance: true });
+      handleAdded([n]);
     }));
   }).observe(document.body, { childList: true });
-
-  // ---------- Judul topbar ----------
-  const title = document.getElementById('pageTitle');
-  if (title) {
-    new MutationObserver(() => {
-      if (reduced()) return;
-      title.classList.remove('mo-title');
-      void title.offsetWidth;
-      title.classList.add('mo-title');
-    }).observe(title, { childList: true, characterData: true, subtree: true });
-  }
 }
