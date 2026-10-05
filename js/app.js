@@ -23,6 +23,7 @@ const btnMenu = document.getElementById('btnMenu');
 const bottomnav = document.getElementById('bottomnav');
 const drawer = document.getElementById('drawer');
 const drawerOverlay = document.getElementById('drawerOverlay');
+const routeLoadingOverlay = document.getElementById('routeLoadingOverlay');
 initTheme();
 initBottomNavIndicator(bottomnav); // lekukan + bubble menu bawah (mobile)
 initMotion(); // animasi angka: ringkasan menghitung naik
@@ -41,6 +42,17 @@ const PAGE_LOADERS = {
 };
 
 let currentToken = 0;
+
+function startRouteLoading() {
+  pageRoot.setAttribute('aria-busy', 'true');
+  routeLoadingOverlay?.classList.remove('hidden');
+}
+
+function finishRouteLoading(token) {
+  if (token !== currentToken) return;
+  pageRoot.removeAttribute('aria-busy');
+  routeLoadingOverlay?.classList.add('hidden');
+}
 
 export function setPageTitle(title) {
   pageTitleEl.textContent = title;
@@ -121,6 +133,7 @@ function parseHash() {
 
 async function handleRouteChange() {
   const token = ++currentToken;
+  startRouteLoading();
   const { route, params } = parseHash();
 
   const isTopLevel = TOP_LEVEL_ROUTES.includes(route) && params.length === 0;
@@ -156,6 +169,7 @@ async function handleRouteChange() {
     delete pageRoot.dataset.pendingPage;
     delete pageRoot.dataset.pendingSection;
     pageRoot.innerHTML = `<div class="empty-state"><p>Halaman tidak ditemukan.</p></div>`;
+    finishRouteLoading(token);
     return;
   }
 
@@ -170,6 +184,7 @@ async function handleRouteChange() {
     pageRoot.dataset.section = section;
     delete pageRoot.dataset.pendingPage;
     delete pageRoot.dataset.pendingSection;
+    finishRouteLoading(token);
   } catch (e) {
     console.error('[router]', e);
     if (token !== currentToken) return;
@@ -178,6 +193,7 @@ async function handleRouteChange() {
     delete pageRoot.dataset.pendingPage;
     delete pageRoot.dataset.pendingSection;
     pageRoot.innerHTML = `<div class="empty-state"><p>Gagal memuat halaman. Coba muat ulang aplikasi.</p></div>`;
+    finishRouteLoading(token);
   }
 }
 
