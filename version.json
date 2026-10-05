@@ -1,4 +1,4 @@
 {
-  "version": "1.12.6",
-  "notes": "Perbarui akses Google tanpa putuskan akun dan perapihan pengaturan jumlah backup."
+  "version": "1.12.7",
+  "notes": "Halaman backup otomatis lebih ringkas dengan panduan dan sinkron manual yang dapat dibuka sesuai kebutuhan."
 }

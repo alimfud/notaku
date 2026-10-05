@@ -451,6 +451,24 @@
   margin-bottom:7px;
 }
 
+[data-page="settings"] .settings-schedule-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 8px;}
+[data-page="settings"] .settings-schedule-header .settings-schedule-label{margin:0;}
+[data-page="settings"] .settings-schedule-header .btn{margin:0;}
+[data-page="settings"] #timeSlots{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:6px;margin-bottom:10px;}
+#pageRoot[data-page="settings"][data-section="autobackup"] .settings-backup-slot{margin:0;padding:5px;border:1px solid var(--outline);border-radius:9px;}
+[data-page="settings"] .settings-backup-slot .slotTime{width:100%;min-width:0;flex:1;min-height:36px;background:var(--surface);color:var(--ink);}
+[data-page="settings"] .settings-backup-slot .removeSlot{margin:0;min-height:36px;}
+[data-page="settings"] .settings-backup-details{border-top:1px solid var(--outline);padding:0;margin:0;}
+[data-page="settings"] .settings-backup-details summary{cursor:pointer;padding:12px 0;color:var(--ink);font-size:12.5px;font-weight:600;min-height:44px;box-sizing:border-box;}
+[data-page="settings"] .settings-backup-details summary:focus-visible{outline:2px solid var(--primary,var(--ink));outline-offset:2px;border-radius:6px;}
+[data-page="settings"] .settings-backup-details p{font-size:12px;line-height:1.5;color:var(--muted);margin:0 0 10px;}
+[data-page="settings"] .settings-backup-details .settings-sync-actions{margin-bottom:12px;flex-wrap:wrap;}
+[data-page="settings"] .settings-sync-status:empty{display:none;}
+#pageRoot[data-page="settings"][data-section="autobackup"] .settings-sync-panel{margin:12px 0 8px;padding:10px;}
+#pageRoot[data-page="settings"][data-section="autobackup"] .settings-retention{margin-bottom:10px;}
+#pageRoot[data-page="settings"][data-section="autobackup"] #btnBackupNow{margin:6px 0;}
+#pageRoot[data-page="settings"][data-section="autobackup"] .settings-last-backup{margin-bottom:6px;font-size:11.5px;}
+
 @media(max-width:390px) {
   #pageRoot[data-page="settings"]:is(
     [data-section="store"],

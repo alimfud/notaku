@@ -447,7 +447,7 @@ async function renderAutoBackup(root) {
   root.innerHTML = `
     <div class="settings-section">
       <label class="settings-backup-toggle">
-        <div class="settings-section-label">Aktifkan Backup Otomatis</div>
+        <div class="settings-section-label">Backup otomatis</div>
         <input class="settings-checkbox" type="checkbox" id="enableToggle" ${cfg.enabled ? 'checked' : ''}>
       </label>
 
@@ -461,40 +461,29 @@ async function renderAutoBackup(root) {
         </div>
         <button class="settings-button btn small secondary" id="btnDriveConnect">${cfg.driveConnected ? 'Putuskan' : 'Hubungkan'}</button>
       </div>
-      <div class="settings-backup-info info-card">
-        <div class="info-text">Gunakan akun Google yang sama di semua perangkat kalau ingin semua HP/laptop toko mengakses file backup yang sama.</div>
+      <div class="settings-schedule-header"><div class="settings-schedule-label">Jam backup</div>
+        <button class="btn small secondary" id="btnAddSlot">+ Tambah jam</button>
       </div>
-
-      <div class="settings-schedule-label">Jam Backup</div>
       <div id="timeSlots">
         ${(cfg.scheduleTimes || []).map((t, i) => `
           <div class="settings-backup-slot" data-slot="${i}">
-            <input type="checkbox" checked disabled>
-            <input type="time" value="${t}" class="settings-time-input slotTime">
+            <input type="time" value="${t}" class="settings-time-input slotTime" aria-label="Jam backup">
             <button class="settings-button btn small ghost removeSlot">Hapus</button>
           </div>`).join('')}
       </div>
-      <button class="settings-backup-info btn small secondary" id="btnAddSlot">+ Tambah Jam</button>
 
       <div class="settings-retention">
         <div class="settings-retention-row">
-        <label for="backupKeepCount">Jumlah backup terbaru yang disimpan</label>
+        <label for="backupKeepCount">Simpan backup terbaru</label>
         <div class="settings-retention-value"><input id="backupKeepCount" type="number" min="1" step="1" required value="${Number(cfg.backupKeepCount) || 10}" aria-describedby="backupRetentionHelp"><span>file</span></div>
         </div>
-        <div class="settings-help" id="backupRetentionHelp">Contoh: 10 menyimpan 10 file backup terbaru. File yang lebih lama otomatis dihapus setelah backup baru berhasil.</div>
       </div>
 
-      <div class="settings-backup-info info-card"><div class="info-text">Backup otomatis berjalan tanpa dialog konfirmasi atau menghalangi penggunaan aplikasi.</div></div>
       ${cfg.lastBackupError ? `<div class="settings-backup-info info-card"><div class="info-text">Backup tertunda: ${escapeHtml(cfg.lastBackupError)}</div></div>` : ''}
 
       ${cfg.lastBackupAt ? `<div class="settings-last-backup">Backup terakhir: ${new Date(cfg.lastBackupAt).toLocaleString('id-ID')}</div>` : ''}
 
       <button class="btn" id="btnBackupNow">Backup Sekarang</button>
-
-      <div class="settings-backup-note info-card">
-        <div class="info-title">Soal "otomatis"</div>
-        <div class="info-text">Jadwal diperiksa setiap menit selama aplikasi berjalan dan saat aplikasi kembali aktif atau koneksi pulih. Jadwal yang terlewat dicadangkan bersama, dan kegagalan dicoba ulang. Jika izin akses Google berakhir, tekan Aktifkan akses Google tanpa memutuskan akun. Saat aplikasi ditutup, backup menunggu aplikasi dibuka kembali.</div>
-      </div>
 
       <div class="settings-sync-panel">
         <div class="settings-sync-heading section-title">Sinkronisasi Google Drive</div>
@@ -514,15 +503,23 @@ async function renderAutoBackup(root) {
             ${[1, 5, 10, 15, 30].map((minutes) => `<option value="${minutes}" ${(cfg.autoSyncIntervalMinutes || 5) === minutes ? 'selected' : ''}>Tiap ${minutes} menit</option>`).join('')}
           </select>
         </label>
-        <div class="settings-sync-info info-card">
-          <div class="info-text">Pengecekan berjalan sesuai interval saat aplikasi terbuka dan sesi Google masih aktif. Jika perubahan hanya ada di satu perangkat, data dikirim atau ditarik otomatis. Jika kedua perangkat berubah bersamaan, sinkronisasi ditahan agar data tidak tertimpa. Untuk file cloud yang sudah ada, pilih Push atau Tarik sekali untuk memulai.</div>
-        </div>
       </div>
       <div class="settings-sync-status" id="syncStatus">Memeriksa status...</div>
-      <div class="settings-sync-actions">
+      <details class="settings-backup-details">
+        <summary>Sinkron manual / pilih sumber data</summary>
+        <p>Gunakan untuk sinkron pertama atau saat ada perubahan di kedua perangkat. Push mengganti data cloud; Tarik mengganti data perangkat ini.</p>
+        <div class="settings-sync-actions">
         <button class="settings-sync-button btn secondary" id="btnPush">⬆ Push ke Cloud</button>
         <button class="settings-sync-button btn secondary" id="btnPull">⬇ Tarik dari Cloud</button>
-      </div>
+        </div>
+      </details>
+      <details class="settings-backup-details">
+        <summary>Panduan backup & sinkronisasi</summary>
+        <p>Gunakan akun Google yang sama di semua perangkat. Sinkron otomatis mengikuti interval selama aplikasi terbuka dan izin akses Google aktif.</p>
+        <p>Backup mengikuti jam pilihan tanpa dialog konfirmasi. Jadwal yang terlewat diperiksa saat aplikasi dibuka atau koneksi pulih.</p>
+        <p id="backupRetentionHelp">Jumlah file menentukan berapa backup terbaru yang disimpan. Contoh: 10 menyimpan 10 file terbaru; sisanya dihapus setelah backup baru berhasil.</p>
+        <p>Jika perubahan ada di kedua perangkat, sinkron ditahan. Buka Sinkron manual untuk memilih sumber data. Jika izin Google berakhir, tekan Aktifkan akses Google tanpa memutuskan akun.</p>
+      </details>
     </div>
   `;
 
@@ -639,7 +636,7 @@ async function renderAutoBackup(root) {
     const div = document.createElement('div');
     div.className = 'settings-backup-slot';
     div.dataset.slot = 'new';
-    div.innerHTML = `<input type="checkbox" checked disabled><input type="time" value="09:00" class="settings-time-input slotTime"><button class="settings-button btn small ghost removeSlot">Hapus</button>`;
+    div.innerHTML = `<input type="time" value="09:00" class="settings-time-input slotTime" aria-label="Jam backup"><button class="settings-button btn small ghost removeSlot">Hapus</button>`;
     container.appendChild(div);
     div.querySelector('.removeSlot').onclick = () => div.remove();
   };
