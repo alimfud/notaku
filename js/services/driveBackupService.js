@@ -65,9 +65,11 @@ function hasValidToken() {
 }
 
 /** Minta izin akses Google Drive (membuka popup login Google). Hasil dari klik tombol user. */
-export async function connectAccount() {
+export async function connectAccount({ renew = false } = {}) {
   if (!isConfigured()) throw new Error('GOOGLE_CLIENT_ID belum diisi. Lihat docs/DRIVE_SETUP.md.');
   await loadGis();
+  const previous = (await getSettings()).autoBackup;
+  const expectedEmail = renew ? previous.driveAccountEmail : '';
   _retryAfter = 0;
   return new Promise((resolve, reject) => {
     _tokenClient = window.google.accounts.oauth2.initTokenClient({
@@ -79,30 +81,31 @@ export async function connectAccount() {
         _tokenExpiryMs = Date.now() + (resp.expires_in || 3600) * 1000;
         try {
           const email = await fetchAccountEmail();
+          if (expectedEmail && email.toLowerCase() !== expectedEmail.toLowerCase()) {
+            _accessToken = null;
+            _tokenExpiryMs = 0;
+            throw new Error('Pilih akun Google yang sudah terhubung: ' + expectedEmail);
+          }
           await saveSettings({ autoBackup: { ...(await getSettings()).autoBackup, driveConnected: true, driveAccountEmail: email } });
           resolve(email);
-        } catch (e) { reject(e); }
+        } catch (e) {
+          _accessToken = null;
+          _tokenExpiryMs = 0;
+          reject(e);
+        }
       },
+      error_callback: (error) => reject(new Error(error.type === 'popup_closed'
+        ? 'Pembaruan akses Google dibatalkan. Akun tetap terhubung.'
+        : 'Jendela Google tidak dapat dibuka. Izinkan popup lalu coba lagi.')),
     });
-    _tokenClient.requestAccessToken({ prompt: 'consent' });
+    _tokenClient.requestAccessToken({ prompt: renew ? '' : 'consent', ...(expectedEmail ? { hint: expectedEmail } : {}) });
   });
 }
 
 async function ensureToken({ interactive = true } = {}) {
   if (hasValidToken()) return _accessToken;
-  if (!interactive) throw new Error('Sesi Google berakhir. Hubungkan ulang akun untuk melanjutkan backup otomatis.');
-  if (!_tokenClient) await connectAccount();
-  else {
-    await new Promise((resolve, reject) => {
-      _tokenClient.callback = (resp) => {
-        if (resp.error) { reject(new Error('Sesi Google berakhir, silakan hubungkan ulang.')); return; }
-        _accessToken = resp.access_token;
-        _tokenExpiryMs = Date.now() + (resp.expires_in || 3600) * 1000;
-        resolve();
-      };
-      _tokenClient.requestAccessToken({ prompt: '' });
-    });
-  }
+  if (!interactive) throw new Error('Izin akses Google berakhir. Tekan Aktifkan akses Google untuk melanjutkan sinkron dan backup. Akun tidak perlu diputuskan.');
+  await connectAccount({ renew: true });
   return _accessToken;
 }
 
@@ -110,7 +113,7 @@ async function fetchAccountEmail() {
   const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: { Authorization: `Bearer ${_accessToken}` },
   });
-  if (!res.ok) return '';
+  if (!res.ok) throw new Error('Gagal memastikan akun Google. Silakan coba lagi.');
   const data = await res.json();
   return data.email || '';
 }
@@ -177,7 +180,7 @@ let _syncRunning = false;
 
 export async function getSyncDisplayState() {
   const { autoBackup: cfg } = await getSettings();
-  return { ...cfg, syncing: _syncRunning, offline: navigator.onLine === false };
+  return { ...cfg, syncing: _syncRunning, needsAuthorization: cfg.driveConnected && !hasValidToken(), offline: navigator.onLine === false };
 }
 
 async function publishSyncStatus() {
@@ -268,6 +271,10 @@ async function applyCloudPayload(payload) {
  * diaktifkan, scope tidak diizinkan, dst).
  */
 async function readGoogleError(res) {
+  if (res.status === 401) {
+    _accessToken = null;
+    _tokenExpiryMs = 0;
+  }
   try {
     const data = await res.json();
     const msg = data?.error?.message || data?.error_description || JSON.stringify(data);

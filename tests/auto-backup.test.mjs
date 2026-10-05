@@ -62,7 +62,7 @@ test('expired sessions defer backups without prompting the user', async () => {
   assert.equal(f.uploads, 0);
   assert.equal(f.popups, 0);
   assert.equal(f.settings.autoBackup.lastCheckedSlots.length, 0);
-  assert.match(f.settings.autoBackup.lastBackupError, /Hubungkan ulang/);
+  assert.match(f.settings.autoBackup.lastBackupError, /Aktifkan akses Google/);
 });
 
 test('offline and disabled backups perform no uploads', async () => {

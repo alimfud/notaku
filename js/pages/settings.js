@@ -455,7 +455,7 @@ async function renderAutoBackup(root) {
         <div>
           <div class="settings-drive-label">Akun Google Drive</div>
           ${cfg.driveConnected
-            ? `<div class="settings-drive-connected"><span class="settings-drive-status-dot" aria-hidden="true"></span><span>Terhubung sebagai</span></div>
+            ? `<div class="settings-drive-connected"><span class="settings-drive-status-dot" aria-hidden="true"></span><span id="driveAccessLabel">Akun tersimpan</span></div>
                <div class="settings-drive-email">${escapeHtml(cfg.driveAccountEmail || 'Email tidak tersedia')}</div>`
             : '<div class="row-meta">Belum tersambung</div>'}
         </div>
@@ -476,9 +476,11 @@ async function renderAutoBackup(root) {
       </div>
       <button class="settings-backup-info btn small secondary" id="btnAddSlot">+ Tambah Jam</button>
 
-      <div class="settings-retention field">
+      <div class="settings-retention">
+        <div class="settings-retention-row">
         <label for="backupKeepCount">Jumlah backup terbaru yang disimpan</label>
-        <input id="backupKeepCount" type="number" min="1" step="1" required value="${Number(cfg.backupKeepCount) || 10}" aria-describedby="backupRetentionHelp">
+        <div class="settings-retention-value"><input id="backupKeepCount" type="number" min="1" step="1" required value="${Number(cfg.backupKeepCount) || 10}" aria-describedby="backupRetentionHelp"><span>file</span></div>
+        </div>
         <div class="settings-help" id="backupRetentionHelp">Contoh: 10 menyimpan 10 file backup terbaru. File yang lebih lama otomatis dihapus setelah backup baru berhasil.</div>
       </div>
 
@@ -491,7 +493,7 @@ async function renderAutoBackup(root) {
 
       <div class="settings-backup-note info-card">
         <div class="info-title">Soal "otomatis"</div>
-        <div class="info-text">Jadwal diperiksa setiap menit selama aplikasi berjalan dan saat aplikasi kembali aktif atau koneksi pulih. Jadwal yang terlewat dicadangkan bersama, dan kegagalan dicoba ulang. Sesi Google harus masih aktif; gunakan Hubungkan Ulang jika sesi berakhir. Saat aplikasi ditutup, backup menunggu aplikasi dibuka kembali.</div>
+        <div class="info-text">Jadwal diperiksa setiap menit selama aplikasi berjalan dan saat aplikasi kembali aktif atau koneksi pulih. Jadwal yang terlewat dicadangkan bersama, dan kegagalan dicoba ulang. Jika izin akses Google berakhir, tekan Aktifkan akses Google tanpa memutuskan akun. Saat aplikasi ditutup, backup menunggu aplikasi dibuka kembali.</div>
       </div>
 
       <div class="settings-sync-panel">
@@ -556,14 +558,20 @@ async function renderAutoBackup(root) {
     button.disabled = true;
     button.textContent = 'Menyinkronkan…';
     try {
+      const access = await drive.getSyncDisplayState();
+      if (access.needsAuthorization) {
+        await drive.connectAccount({ renew: true });
+        await drive.checkScheduleOnAppOpen();
+      }
       await drive.checkAutomaticSync({ force: true });
       await refreshSyncStatus(root, drive);
       const latest = await getSettings();
       if (latest.autoBackup.lastSyncStatus) toast(latest.autoBackup.lastSyncStatus);
+    } catch (error) {
+      toast(error.message || 'Gagal memperbarui akses Google.');
     } finally {
       if (root.querySelector('#btnSyncNow')) {
-        button.disabled = false;
-        button.textContent = 'Sinkron sekarang';
+        await refreshSyncStatus(root, drive);
       }
     }
   };
@@ -663,11 +671,13 @@ async function refreshSyncStatus(root, drive) {
 function renderSyncStatus(root, state) {
   const panel = root.querySelector('#syncAccountStatus');
   if (!panel) return;
+  const accessLabel = root.querySelector('#driveAccessLabel');
+  if (accessLabel) accessLabel.textContent = state.needsAuthorization ? 'Akun tersimpan · izin akses perlu diperbarui' : 'Terhubung · akses aktif';
   const phase = state.syncing ? 'syncing' : !state.driveConnected ? 'disconnected'
-    : state.offline || state.lastSyncProblem ? 'pending' : state.lastSyncAt ? 'synced' : 'connected';
+    : state.offline || state.needsAuthorization || state.lastSyncProblem ? 'pending' : state.lastSyncAt ? 'synced' : 'connected';
   const label = { syncing: 'Menyinkronkan…', disconnected: 'Belum terhubung', pending: 'Sinkron tertunda', synced: 'Tersinkron', connected: 'Terhubung' }[phase];
   const message = state.syncing ? 'Menyinkronkan…' : !state.driveConnected ? 'Hubungkan akun Google untuk sinkronisasi.'
-    : state.offline ? 'Menunggu koneksi internet.' : state.lastSyncStatus || 'Menunggu sinkronisasi pertama.';
+    : state.offline ? 'Menunggu koneksi internet.' : state.needsAuthorization ? 'Akun tetap terhubung. Aktifkan kembali izin akses Google untuk melanjutkan sinkron dan backup.' : state.lastSyncStatus || 'Menunggu sinkronisasi pertama.';
   panel.dataset.state = phase;
   panel.innerHTML = `<span class="settings-drive-status-dot" aria-hidden="true"></span>
     <span><b>${label}</b>${state.driveConnected ? ` · ${escapeHtml(state.driveAccountEmail || 'akun Google')}` : ''}</span>
@@ -678,7 +688,7 @@ function renderSyncStatus(root, state) {
   const button = root.querySelector('#btnSyncNow');
   if (button) {
     button.disabled = state.syncing || !state.driveConnected;
-    button.textContent = state.syncing ? 'Menyinkronkan…' : 'Sinkron sekarang';
+    button.textContent = state.syncing ? 'Menyinkronkan…' : state.needsAuthorization ? 'Aktifkan akses Google' : 'Sinkron sekarang';
   }
 }
 

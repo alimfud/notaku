@@ -1,4 +1,4 @@
 {
-  "version": "1.12.5",
-  "notes": "Retensi backup Google Drive berdasarkan jumlah file terbaru yang disimpan."
+  "version": "1.12.6",
+  "notes": "Perbarui akses Google tanpa putuskan akun dan perapihan pengaturan jumlah backup."
 }

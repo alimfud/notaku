@@ -60,6 +60,11 @@
 [data-page="settings"] .settings-backup-slot{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 [data-page="settings"] .settings-time-input{border:1px solid var(--outline);border-radius:8px;padding:6px 8px;}
 [data-page="settings"] .settings-retention{padding:0;margin-bottom:16px;}
+[data-page="settings"] .settings-retention-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px;border:1px solid var(--outline);border-radius:12px;background:var(--surface-dim);}
+[data-page="settings"] .settings-retention-row label{font-size:13px;font-weight:600;color:var(--ink);line-height:1.4;}
+[data-page="settings"] .settings-retention-value{display:flex;align-items:center;gap:7px;flex-shrink:0;color:var(--muted);font-size:12px;}
+[data-page="settings"] .settings-retention-value input{box-sizing:border-box;width:76px;min-height:40px;border:1px solid var(--outline);border-radius:9px;background:var(--surface);color:var(--ink);padding:8px;font:inherit;font-size:15px;font-weight:700;text-align:center;}
+[data-page="settings"] .settings-retention-value input:focus-visible{outline:2px solid var(--primary,var(--ink));outline-offset:2px;}
 [data-page="settings"] .settings-confirm-backup{display:flex;align-items:flex-start;gap:10px;margin-bottom:20px;}
 [data-page="settings"] .settings-confirm-checkbox{margin-top:2px;}
 [data-page="settings"] .settings-confirm-label{font-size:13.5px;}
