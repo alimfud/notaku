@@ -65,7 +65,7 @@
 
   /* ---------- Topbar & navigasi ---------- */
   #topbar {
-    background:linear-gradient(180deg,#fffaf0 0%,#fbeedb 100%);
+    background:linear-gradient(180deg,#fffaf0 0%,#fbe3a8 100%);
     color:var(--ink); border-bottom:1px solid var(--cl-line);
     border-radius:0 0 30px 30px;
     box-shadow:0 12px 20px -10px rgba(176,125,85,.45), inset 0 2px 3px rgba(255,255,255,.95), inset 0 -3px 6px rgba(205,160,115,.18);
