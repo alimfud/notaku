@@ -33,7 +33,9 @@ import { getSettings, saveSettings } from './settingsService.js';
 import { createBackupBlob } from './backupService.js';
 
 const DRIVE_FOLDER_NAME = 'NotaKu Backups';
-const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+// drive.file memberi akses terbatas ke file aplikasi; scope identitas dipakai
+// hanya untuk menampilkan akun Google yang sedang tersambung di pengaturan.
+const SCOPES = 'openid email profile https://www.googleapis.com/auth/drive.file';
 
 let _tokenClient = null;
 let _accessToken = null;
