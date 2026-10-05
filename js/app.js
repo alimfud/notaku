@@ -143,8 +143,18 @@ async function handleRouteChange() {
     else b.removeAttribute('aria-current');
   });
 
+  const page = route === 'sale'
+    ? (params[0] === 'new' ? 'sale-new' : params[1] === 'edit' ? 'sale-edit' : 'sale-detail')
+    : route;
+  const section = route === 'settings' ? (params[0] || 'hub') : '';
   const loader = PAGE_LOADERS[route];
+  pageRoot.dataset.pendingPage = page;
+  pageRoot.dataset.pendingSection = section;
   if (!loader) {
+    pageRoot.dataset.page = 'not-found';
+    pageRoot.dataset.section = '';
+    delete pageRoot.dataset.pendingPage;
+    delete pageRoot.dataset.pendingSection;
     pageRoot.innerHTML = `<div class="empty-state"><p>Halaman tidak ditemukan.</p></div>`;
     return;
   }
@@ -152,13 +162,21 @@ async function handleRouteChange() {
   try {
     const mod = await loader();
     if (token !== currentToken) return; // route berubah lagi sebelum modul selesai dimuat — buang hasil ini
-    pageRoot.dataset.page = route === 'sale'
-      ? (params[0] === 'new' ? 'sale-new' : params[1] === 'edit' ? 'sale-edit' : 'sale-detail')
-      : route;
-    pageRoot.dataset.section = route === 'settings' ? (params[0] || 'hub') : '';
     await mod.render(pageRoot, params);
+    if (token !== currentToken) return;
+    // Pertahankan CSS halaman lama sampai DOM halaman baru siap agar tidak
+    // menampilkan konten lama dengan selector CSS milik halaman tujuan.
+    pageRoot.dataset.page = page;
+    pageRoot.dataset.section = section;
+    delete pageRoot.dataset.pendingPage;
+    delete pageRoot.dataset.pendingSection;
   } catch (e) {
     console.error('[router]', e);
+    if (token !== currentToken) return;
+    pageRoot.dataset.page = page;
+    pageRoot.dataset.section = section;
+    delete pageRoot.dataset.pendingPage;
+    delete pageRoot.dataset.pendingSection;
     pageRoot.innerHTML = `<div class="empty-state"><p>Gagal memuat halaman. Coba muat ulang aplikasi.</p></div>`;
   }
 }
