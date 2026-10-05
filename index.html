@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#fbf0e0">
 <title>NotaKu</title>
 <meta name="description" content="Aplikasi kasir & nota penjualan sederhana.">
+<style>html:not(.theme-ready) body{visibility:hidden}</style>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -33,14 +34,25 @@
 <link rel="stylesheet" href="css/bottomnav.css">
 <link rel="stylesheet" href="css/motion.css">
 <script>
-/* Terapkan tema tersimpan sebelum tampil (tanpa kedip). Logika lengkap: js/theme.js */
-(function(){var t='clay';try{var v=localStorage.getItem('notaku-theme');if(v==='light'||v==='dark'||v==='glass'||v==='clay')t=v;}catch(e){}
-document.documentElement.setAttribute('data-theme',t);
-var n=document.getElementById('themeNeo');if(n)n.media=(t==='dark')?'all':'not all';
-var g=document.getElementById('themeGlass');if(g)g.media=(t==='glass')?'all':'not all';
-var y=document.getElementById('themeClay');if(y)y.media=(t==='clay')?'all':'not all';
-var c={light:'#791e38',dark:'#1b2354',glass:'#bcd9f2',clay:'#fbf0e0'};
-var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c[t]);})();
+/* Tema tersimpan dan stylesheet-nya harus siap sebelum UI terlihat. */
+(function(){
+  var t='clay';
+  try{var v=localStorage.getItem('notaku-theme');if(v==='light'||v==='dark'||v==='glass'||v==='clay')t=v;}catch(e){}
+  var root=document.documentElement;
+  root.setAttribute('data-theme',t);
+  var n=document.getElementById('themeNeo');if(n)n.media=(t==='dark')?'all':'not all';
+  var g=document.getElementById('themeGlass');if(g)g.media=(t==='glass')?'all':'not all';
+  var y=document.getElementById('themeClay');if(y)y.media=(t==='clay')?'all':'not all';
+  var c={light:'#791e38',dark:'#1b2354',glass:'#bcd9f2',clay:'#fbf0e0'};
+  var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c[t]);
+
+  var themeLink={dark:n,glass:g,clay:y}[t];
+  var reveal=function(){root.classList.add('theme-ready');};
+  if(!themeLink){reveal();return;}
+  themeLink.addEventListener('load',reveal,{once:true});
+  themeLink.addEventListener('error',reveal,{once:true});
+  try{if(themeLink.sheet&&themeLink.sheet.cssRules.length>0)reveal();}catch(e){}
+})();
 </script>
 </head>
 <body>
