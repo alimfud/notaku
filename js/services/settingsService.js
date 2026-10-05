@@ -54,7 +54,7 @@ export async function getSettings() {
   if (_cache) return _cache;
   const existing = await db.get('settings', 1);
   if (existing) {
-    _cache = { ...DEFAULTS, ...existing };
+    _cache = { ...DEFAULTS, ...existing, autoBackup: { ...DEFAULTS.autoBackup, ...existing.autoBackup } };
     return _cache;
   }
   await db.put('settings', DEFAULTS);

@@ -430,7 +430,7 @@ async function renderAutoBackup(root) {
   const drive = await import('../services/driveBackupService.js');
   const configured = drive.isConfigured();
 
-  setTopbarActions([{ icon: 'edit', title: 'Simpan', onClick: () => saveAutoBackupForm(root) }]);
+  setTopbarActions(configured ? [{ icon: 'save', title: 'Simpan', onClick: () => saveAutoBackupForm(root) }] : []);
 
   if (!configured) {
     root.innerHTML = `
@@ -454,6 +454,7 @@ async function renderAutoBackup(root) {
           <div class="row-meta">${cfg.driveConnected ? escapeHtml(cfg.driveAccountEmail || 'Tersambung') : 'Belum tersambung'}</div>
         </div>
         <button class="settings-button btn small secondary" id="btnDriveConnect">${cfg.driveConnected ? 'Putuskan' : 'Hubungkan'}</button>
+        ${cfg.driveConnected ? '<button class="btn small secondary" id="btnDriveReconnect">Hubungkan Ulang</button>' : ''}
       </div>
       <div class="settings-backup-info info-card">
         <div class="info-text">Gunakan akun Google yang sama di semua perangkat kalau ingin semua HP/laptop toko mengakses file backup yang sama.</div>
@@ -475,19 +476,16 @@ async function renderAutoBackup(root) {
         <input id="deleteOlderThan" type="number" value="${cfg.deleteOlderThanDays}">
       </div>
 
-      <label class="settings-confirm-backup">
-        <input class="settings-confirm-checkbox" type="checkbox" id="confirmToggle" ${cfg.confirmBeforeBackup ? 'checked' : ''}>
-        <span class="settings-confirm-label">Konfirmasi sebelum backup (ada dialog sebelum upload)</span>
-      </label>
+      <div class="settings-backup-info info-card"><div class="info-text">Backup otomatis berjalan tanpa dialog konfirmasi atau menghalangi penggunaan aplikasi.</div></div>
+      ${cfg.lastBackupError ? `<div class="settings-backup-info info-card"><div class="info-text">Backup tertunda: ${escapeHtml(cfg.lastBackupError)}</div></div>` : ''}
 
       ${cfg.lastBackupAt ? `<div class="settings-last-backup">Backup terakhir: ${new Date(cfg.lastBackupAt).toLocaleString('id-ID')}</div>` : ''}
 
       <button class="btn" id="btnBackupNow">Backup Sekarang</button>
-      <div class="settings-backup-history" id="backupHistory"><div class="settings-section-label">Histori Backup</div><div class="settings-help">Memuat histori backup...</div></div>
 
       <div class="settings-backup-note info-card">
         <div class="info-title">Soal "otomatis"</div>
-        <div class="info-text">Backup di jam yang dijadwalkan akan berjalan begitu aplikasi dibuka/kembali aktif SETELAH jam tersebut lewat — bukan persis di jam itu kalau aplikasi sedang tidak dibuka sama sekali (keterbatasan web app tanpa server, lihat docs/DRIVE_SETUP.md).</div>
+        <div class="info-text">Jadwal diperiksa setiap menit selama aplikasi berjalan dan saat aplikasi kembali aktif atau koneksi pulih. Jadwal yang terlewat dicadangkan bersama, dan kegagalan dicoba ulang. Sesi Google harus masih aktif; gunakan Hubungkan Ulang jika sesi berakhir. Saat aplikasi ditutup, backup menunggu aplikasi dibuka kembali.</div>
       </div>
 
       <div class="settings-sync-heading section-title">Sinkronisasi Antar Perangkat</div>
@@ -503,8 +501,18 @@ async function renderAutoBackup(root) {
     </div>
   `;
 
-  refreshSyncStatus(root, drive);
-  refreshBackupHistory(root, drive);
+  if (cfg.driveConnected) refreshSyncStatus(root, drive);
+  else root.querySelector('#syncStatus').textContent = 'Hubungkan akun Google Drive untuk memeriksa status.';
+
+  root.querySelector('#enableToggle').onchange = () => saveAutoBackupForm(root);
+  const reconnect = root.querySelector('#btnDriveReconnect');
+  if (reconnect) reconnect.onclick = async () => {
+    try {
+      await drive.connectAccount();
+      await saveAutoBackupForm(root);
+      await renderAutoBackup(root);
+    } catch (e) { toast(e.message || 'Gagal menghubungkan ulang akun.'); }
+  };
 
   root.querySelector('#btnPush').onclick = async () => {
     if (!cfg.driveConnected) { toast('Hubungkan akun Google Drive dulu'); return; }
@@ -557,6 +565,7 @@ async function renderAutoBackup(root) {
     try {
       const email = await drive.connectAccount();
       toast(`Tersambung sebagai ${email}`);
+      await saveAutoBackupForm(root);
       await renderAutoBackup(root);
     } catch (e) { toast(e.message || 'Gagal menghubungkan akun Google.'); }
   };
@@ -565,6 +574,7 @@ async function renderAutoBackup(root) {
     const container = root.querySelector('#timeSlots');
     const div = document.createElement('div');
     div.className = 'settings-backup-slot';
+    div.dataset.slot = 'new';
     div.innerHTML = `<input type="checkbox" checked disabled><input type="time" value="09:00" class="settings-time-input slotTime"><button class="settings-button btn small ghost removeSlot">Hapus</button>`;
     container.appendChild(div);
     div.querySelector('.removeSlot').onclick = () => div.remove();
@@ -588,15 +598,6 @@ async function renderAutoBackup(root) {
   };
 }
 
-async function refreshBackupHistory(root, drive) {
-  const el = root.querySelector('#backupHistory');
-  if (!el) return;
-  try {
-    const files = await drive.listBackupHistory();
-    el.innerHTML = `<div class="settings-section-label">Histori Backup</div>${files.length ? `<div class="settings-help">${files.map((file) => `${escapeHtml(new Date(file.createdTime).toLocaleString('id-ID'))} · ${escapeHtml(file.name)}`).join('<br>')}</div>` : '<div class="settings-help">Belum ada backup di Google Drive.</div>'}`;
-  } catch (e) { el.innerHTML = '<div class="settings-section-label">Histori Backup</div><div class="settings-help">Histori belum bisa dibaca.</div>'; }
-}
-
 async function refreshSyncStatus(root, drive) {
   const el = root.querySelector('#syncStatus');
   if (!el) return;
@@ -614,6 +615,7 @@ async function refreshSyncStatus(root, drive) {
 
 async function saveAutoBackupForm(root) {
   const s = await getSettings();
+  if (!root.querySelector('#enableToggle')) return;
   const times = Array.from(root.querySelectorAll('.slotTime')).map((i) => i.value).filter(Boolean);
   await saveSettings({
     autoBackup: {
@@ -621,8 +623,10 @@ async function saveAutoBackupForm(root) {
       enabled: root.querySelector('#enableToggle').checked,
       scheduleTimes: times,
       deleteOlderThanDays: Number(root.querySelector('#deleteOlderThan').value) || 0,
-      confirmBeforeBackup: root.querySelector('#confirmToggle').checked,
+      confirmBeforeBackup: false,
     },
   });
   toast('Pengaturan backup otomatis disimpan');
+  const drive = await import('../services/driveBackupService.js');
+  void drive.checkScheduleOnAppOpen().catch((e) => console.error('[auto-backup]', e));
 }

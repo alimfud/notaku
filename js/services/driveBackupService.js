@@ -20,12 +20,8 @@
 //      apakah ada jadwal (mis. 07:00/12:00/17:00) yang harusnya sudah lewat
 //      hari ini tapi belum di-backup — kalau iya, backup dijalankan saat itu
 //      juga.
-//   2. "Periodic Background Sync" (Chrome/Android, HANYA kalau aplikasi
-//      sudah di-install ke HP) — Chrome MUNGKIN membangunkan service worker
-//      secara periodik untuk sinkronisasi, tapi jadwalnya ditentukan browser
-//      sendiri berdasarkan seberapa sering kamu memakai app (bisa cuma
-//      sekali per beberapa jam sampai sehari), BUKAN persis jam 07:00/12:00/
-//      17:00. Chrome TIDAK menjamin ini akan selalu berjalan.
+//   2. Timer memeriksa jadwal setiap menit selama aplikasi berjalan.
+//      Browser dapat menunda timer ketika aplikasi berada di latar belakang.
 // Jadi: backup di jam PERSIS yang kamu jadwalkan hanya terjamin kalau
 // aplikasi kebetulan dibuka di sekitar jam itu. Untuk jaminan penuh 100%
 // tepat waktu tanpa perlu membuka aplikasi sama sekali, itu butuh server
@@ -69,6 +65,7 @@ function hasValidToken() {
 export async function connectAccount() {
   if (!isConfigured()) throw new Error('GOOGLE_CLIENT_ID belum diisi. Lihat docs/DRIVE_SETUP.md.');
   await loadGis();
+  _retryAfter = 0;
   return new Promise((resolve, reject) => {
     _tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
@@ -88,8 +85,9 @@ export async function connectAccount() {
   });
 }
 
-async function ensureToken() {
+async function ensureToken({ interactive = true } = {}) {
   if (hasValidToken()) return _accessToken;
+  if (!interactive) throw new Error('Sesi Google berakhir. Hubungkan ulang akun untuk melanjutkan backup otomatis.');
   if (!_tokenClient) await connectAccount();
   else {
     await new Promise((resolve, reject) => {
@@ -208,9 +206,17 @@ export async function listBackupHistory() {
 }
 
 /** Jalankan satu kali backup ke Drive sekarang juga. */
-export async function runBackupNow() {
+let _backupInFlight = null;
+
+export function runBackupNow(options = {}) {
+  if (_backupInFlight) return _backupInFlight;
+  _backupInFlight = runBackupWithRetry(options).finally(() => { _backupInFlight = null; });
+  return _backupInFlight;
+}
+
+async function runBackupWithRetry(options) {
   try {
-    await runBackupOnce();
+    await runBackupOnce(options);
   } catch (e) {
     // Kalau gagalnya karena token invalid/kedaluwarsa (401), coba SEKALI lagi
     // dengan token baru sebelum benar-benar menyerah — banyak kasus "gagal
@@ -219,22 +225,25 @@ export async function runBackupNow() {
     if (String(e.message).includes('401') || String(e.message).toLowerCase().includes('invalid')) {
       _accessToken = null;
       _tokenExpiryMs = 0;
-      await runBackupOnce();
+      await runBackupOnce(options);
     } else {
       throw e;
     }
   }
 }
 
-async function runBackupOnce() {
-  const token = await ensureToken();
+async function runBackupOnce(options) {
+  const token = await ensureToken(options);
   const folderId = await findOrCreateFolder(token);
   const blob = await createBackupBlob();
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   await uploadBackupFile(token, folderId, blob, `notaku-backup-${stamp}.json`);
   const settings = await getSettings();
-  await deleteOldBackups(token, folderId, settings.autoBackup.deleteOlderThanDays);
-  await saveSettings({ autoBackup: { ...settings.autoBackup, lastBackupAt: new Date().toISOString() } });
+  await saveSettings({ autoBackup: { ...settings.autoBackup, lastBackupAt: new Date().toISOString(), lastBackupError: '' } });
+  // Upload sudah berhasil; kegagalan pembersihan tidak membuat jadwal diulang.
+  await deleteOldBackups(token, folderId, settings.autoBackup.deleteOlderThanDays).catch((e) => {
+    console.error('[driveBackupService] cleanup failed', e);
+  });
 }
 
 /**
@@ -242,44 +251,51 @@ async function runBackupOnce() {
  * ada jam terjadwal yang sudah lewat hari ini dan belum dieksekusi, backup
  * dijalankan sekarang ("catch-up"). Lihat catatan batasan di atas file ini.
  */
-export async function checkScheduleOnAppOpen({ onConfirm } = {}) {
+let _scheduleInFlight = null;
+let _retryAfter = 0;
+
+export function checkScheduleOnAppOpen() {
+  if (_scheduleInFlight) return _scheduleInFlight;
+  _scheduleInFlight = checkSchedule().finally(() => { _scheduleInFlight = null; });
+  return _scheduleInFlight;
+}
+
+async function checkSchedule() {
   const settings = await getSettings();
   const cfg = settings.autoBackup;
-  if (!cfg?.enabled || !cfg?.driveConnected || !isConfigured()) return;
+  if (!cfg?.enabled || !cfg.driveConnected || !isConfigured()) return;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+  if (Date.now() < _retryAfter) return;
 
   const now = new Date();
-  const todayKey = now.toISOString().slice(0, 10);
-  let slotsToday = cfg.lastCheckedSlots || [];
-  if (cfg.lastCheckedDate !== todayKey) slotsToday = [];
-
+  // Jadwal mengikuti tanggal lokal yang sama dengan jam pilihan pengguna.
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const slotsToday = cfg.lastCheckedDate === todayKey ? (cfg.lastCheckedSlots || []) : [];
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const dueSlot = (cfg.scheduleTimes || []).find((t) => {
-    if (slotsToday.includes(t)) return false;
+  const dueSlots = (cfg.scheduleTimes || []).filter((t) => {
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t) || slotsToday.includes(t)) return false;
     const [h, m] = t.split(':').map(Number);
     return nowMinutes >= h * 60 + m;
   });
-  if (!dueSlot) {
-    if (cfg.lastCheckedDate !== todayKey) {
-      await saveSettings({ autoBackup: { ...cfg, lastCheckedDate: todayKey, lastCheckedSlots: [] } });
-    }
-    return;
-  }
-
-  if (cfg.confirmBeforeBackup && onConfirm) {
-    const proceed = await onConfirm(dueSlot);
-    if (!proceed) {
-      await saveSettings({ autoBackup: { ...cfg, lastCheckedDate: todayKey, lastCheckedSlots: [...slotsToday, dueSlot] } });
-      return;
-    }
-  }
+  if (!dueSlots.length) return;
 
   try {
-    await runBackupNow();
-  } catch (e) {
-    console.error('[driveBackupService] scheduled backup failed', e);
-  } finally {
+    // Satu snapshot mencakup seluruh jadwal yang terlewat. Jangan membuka popup.
+    await runBackupNow({ interactive: false });
     const latest = await getSettings();
-    await saveSettings({ autoBackup: { ...latest.autoBackup, lastCheckedDate: todayKey, lastCheckedSlots: [...slotsToday, dueSlot] } });
+    await saveSettings({ autoBackup: {
+      ...latest.autoBackup,
+      lastCheckedDate: todayKey,
+      lastCheckedSlots: [...new Set([...slotsToday, ...dueSlots])],
+      lastBackupError: '',
+    } });
+    _retryAfter = 0;
+  } catch (e) {
+    // Jadwal tetap tertunda sampai upload benar-benar berhasil.
+    _retryAfter = Date.now() + 60000;
+    const latest = await getSettings();
+    await saveSettings({ autoBackup: { ...latest.autoBackup, lastBackupError: e.message } });
+    console.error('[driveBackupService] scheduled backup failed', e);
   }
 }
 
@@ -323,7 +339,7 @@ async function findSyncFile(token) {
 
 /** Info status sinkron untuk ditampilkan di UI (tanpa mengunduh isi filenya). */
 export async function getCloudSyncStatus() {
-  const token = await ensureToken();
+  const token = await ensureToken({ interactive: false });
   const file = await findSyncFile(token);
   const settings = await getSettings();
   return {

@@ -51,6 +51,7 @@ const ICONS = {
   bluetoothPrint: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8V3h8v5M6 17H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v2M7 14h8v7H7z"/><path d="m19 13 3 3-3 3v-6Zm0 3-2-2m2 2-2 2"/></svg>',
   payment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h4M17 13v4M15 15h4"/></svg>',
   delete: '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  save: '<svg viewBox="0 0 24 24"><path d="M5 3h12l4 4v14H3V3h2zm2 0v6h10V3M7 21v-8h10v8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a1.5 1.5 0 000-2.12l-1.88-1.88a1.5 1.5 0 00-2.12 0L4 16v4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
 };
 
@@ -206,6 +207,8 @@ function registerServiceWorker() {
   runBackgroundChecks();
   warmNavigation();
   scheduleAutomaticStatusRollover();
+  setInterval(() => checkAutomaticBackup(), 60000);
+  window.addEventListener('online', checkAutomaticBackup);
 
   // Ulangi pengecekan tiap kali aplikasi kembali aktif (mis. HP dibuka lagi
   // setelah dikunci) — ini bagian dari pendekatan "catch-up" untuk aturan
@@ -260,18 +263,13 @@ async function refreshAutomaticStatuses() {
 async function runBackgroundChecks() {
   await refreshAutomaticStatuses();
 
+  await checkAutomaticBackup();
+}
+
+async function checkAutomaticBackup() {
   try {
     const { checkScheduleOnAppOpen } = await import('./services/driveBackupService.js');
-    await checkScheduleOnAppOpen({
-      onConfirm: async (slot) => {
-        const { confirmDialog } = await import('./ui/dialog.js');
-        return confirmDialog({
-          title: 'Backup Terjadwal',
-          message: `Sudah waktunya backup otomatis (jadwal ${slot}). Lanjutkan sekarang?`,
-          confirmLabel: 'Backup Sekarang',
-        });
-      },
-    });
+    await checkScheduleOnAppOpen();
   } catch (e) {
     console.error('[runBackgroundChecks] auto-backup', e);
   }
