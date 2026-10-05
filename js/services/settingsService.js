@@ -48,6 +48,7 @@ const DEFAULTS = {
     lastSyncAt: '',         // ISO datetime sinkron otomatis/manual terakhir
     lastSyncFingerprint: '',// sidik data terakhir yang sama di lokal dan Drive
     lastSyncStatus: '',     // status terakhir sinkron otomatis
+    lastSyncProblem: false,
     autoSyncEnabled: true,
     autoSyncIntervalMinutes: 5,
   },

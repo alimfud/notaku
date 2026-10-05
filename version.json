@@ -1,4 +1,4 @@
 {
-  "version": "1.12.3",
-  "notes": "Status sinkron Google Drive dengan tombol sinkron sekarang dan pilihan interval otomatis."
+  "version": "1.12.4",
+  "notes": "Indikator sinkron otomatis dan waktu sinkron terakhir diperbarui langsung tanpa reload."
 }

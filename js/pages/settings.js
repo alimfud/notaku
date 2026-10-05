@@ -423,7 +423,10 @@ async function renderBackup(root) {
   };
 }
 
+let removeSyncStatusListener = null;
+
 async function renderAutoBackup(root) {
+  removeSyncStatusListener?.();
   setPageTitle('Atur Backup Otomatis');
   const s = await getSettings();
   const cfg = s.autoBackup;
@@ -492,7 +495,7 @@ async function renderAutoBackup(root) {
 
       <div class="settings-sync-panel">
         <div class="settings-sync-heading section-title">Sinkronisasi Google Drive</div>
-        <div class="settings-sync-account" id="syncAccountStatus">
+        <div class="settings-sync-account" id="syncAccountStatus" role="status" aria-live="polite" aria-atomic="true">
           ${cfg.driveConnected
             ? `<span class="settings-drive-status-dot" aria-hidden="true"></span><span><b>${cfg.lastSyncAt ? 'Tersinkron' : 'Terhubung'}</b> · ${escapeHtml(cfg.driveAccountEmail || 'akun Google')}</span>`
             : '<span class="row-meta">Akun Google belum terhubung</span>'}
@@ -520,26 +523,23 @@ async function renderAutoBackup(root) {
     </div>
   `;
 
-  if (cfg.driveConnected) refreshSyncStatus(root, drive);
-  else root.querySelector('#syncStatus').textContent = 'Hubungkan akun Google Drive untuk memeriksa status.';
-  const onSyncStatus = async () => {
-    if (!root.querySelector('#syncStatus')) window.removeEventListener('notaku-sync-status', onSyncStatus);
-    else {
-      await refreshSyncStatus(root, drive);
-      const latest = await getSettings();
-      const statusLine = root.querySelector('#syncAccountStatus small');
-      if (statusLine) statusLine.textContent = latest.autoBackup.lastSyncAt
-        ? `Terakhir sinkron: ${formatSyncDate(latest.autoBackup.lastSyncAt)}` : 'Belum pernah sinkron';
-      const label = root.querySelector('#syncAccountStatus b');
-      if (label && latest.autoBackup.lastSyncAt) label.textContent = 'Tersinkron';
+  const accountPanel = root.querySelector('#syncAccountStatus');
+  const onSyncStatus = (event) => {
+    if (!accountPanel.isConnected || root.querySelector('#syncAccountStatus') !== accountPanel) {
+      window.removeEventListener('notaku-sync-status', onSyncStatus);
+      return;
     }
+    renderSyncStatus(root, event.detail);
   };
   window.addEventListener('notaku-sync-status', onSyncStatus);
+  removeSyncStatusListener = () => window.removeEventListener('notaku-sync-status', onSyncStatus);
+  await refreshSyncStatus(root, drive);
 
   root.querySelector('#autoSyncToggle').onchange = async (event) => {
     const latest = await getSettings();
     await saveSettings({ autoBackup: { ...latest.autoBackup, autoSyncEnabled: event.target.checked } });
     toast(event.target.checked ? 'Sinkron otomatis diaktifkan' : 'Sinkron otomatis dijeda');
+    await refreshSyncStatus(root, drive);
     if (event.target.checked) void drive.checkAutomaticSync({ force: true });
   };
   root.querySelector('#autoSyncInterval').onchange = async (event) => {
@@ -558,8 +558,6 @@ async function renderAutoBackup(root) {
       await drive.checkAutomaticSync({ force: true });
       await refreshSyncStatus(root, drive);
       const latest = await getSettings();
-      root.querySelector('#syncAccountStatus small').textContent = latest.autoBackup.lastSyncAt
-        ? `Terakhir sinkron: ${formatSyncDate(latest.autoBackup.lastSyncAt)}` : 'Belum pernah sinkron';
       if (latest.autoBackup.lastSyncStatus) toast(latest.autoBackup.lastSyncStatus);
     } finally {
       if (root.querySelector('#btnSyncNow')) {
@@ -656,25 +654,30 @@ async function renderAutoBackup(root) {
 }
 
 async function refreshSyncStatus(root, drive) {
-  const el = root.querySelector('#syncStatus');
-  if (!el) return;
-  try {
-    const status = await drive.getCloudSyncStatus();
-    const parts = [];
-    if (status.cloudError) parts.push(`Status cloud tidak tersedia: ${escapeHtml(status.cloudError)}`);
-    else parts.push(status.cloudExists ? `Data di cloud: ${formatSyncDate(status.cloudModifiedTime)}` : 'Belum ada data di cloud');
-    if (status.lastPushedAt) parts.push(`Terakhir push dari sini: ${formatSyncDate(status.lastPushedAt)}`);
-    if (status.lastPulledAt) parts.push(`Terakhir pull ke sini: ${formatSyncDate(status.lastPulledAt)}`);
-    if (status.lastSyncAt) parts.push(`Terakhir sinkron: ${formatSyncDate(status.lastSyncAt)}`);
-    if (status.lastSyncStatus) parts.push(escapeHtml(status.lastSyncStatus));
-    el.innerHTML = parts.join('<br>');
-    const accountTime = root.querySelector('#syncAccountStatus small');
-    if (accountTime) accountTime.textContent = status.lastSyncAt
-      ? `Terakhir sinkron: ${formatSyncDate(status.lastSyncAt)}` : 'Belum pernah sinkron';
-    const accountLabel = root.querySelector('#syncAccountStatus b');
-    if (accountLabel && status.lastSyncAt) accountLabel.textContent = 'Tersinkron';
-  } catch (e) {
-    el.textContent = 'Gagal memeriksa status cloud (' + (e.message || 'koneksi bermasalah') + ')';
+  const panel = root.querySelector('#syncAccountStatus');
+  const state = await drive.getSyncDisplayState();
+  if (panel && root.querySelector('#syncAccountStatus') === panel) renderSyncStatus(root, state);
+}
+
+function renderSyncStatus(root, state) {
+  const panel = root.querySelector('#syncAccountStatus');
+  if (!panel) return;
+  const phase = state.syncing ? 'syncing' : !state.driveConnected ? 'disconnected'
+    : state.offline || state.lastSyncProblem ? 'pending' : state.lastSyncAt ? 'synced' : 'connected';
+  const label = { syncing: 'Menyinkronkan…', disconnected: 'Belum terhubung', pending: 'Sinkron tertunda', synced: 'Tersinkron', connected: 'Terhubung' }[phase];
+  const message = state.syncing ? 'Menyinkronkan…' : !state.driveConnected ? 'Hubungkan akun Google untuk sinkronisasi.'
+    : state.offline ? 'Menunggu koneksi internet.' : state.lastSyncStatus || 'Menunggu sinkronisasi pertama.';
+  panel.dataset.state = phase;
+  panel.innerHTML = `<span class="settings-drive-status-dot" aria-hidden="true"></span>
+    <span><b>${label}</b>${state.driveConnected ? ` · ${escapeHtml(state.driveAccountEmail || 'akun Google')}` : ''}</span>
+    <small>Terakhir sinkron: ${state.lastSyncAt ? formatSyncDate(state.lastSyncAt) : 'Belum pernah sinkron'}</small>
+    <small>${escapeHtml(message)}</small>`;
+  const details = root.querySelector('#syncStatus');
+  if (details) details.textContent = state.driveConnected && !state.autoSyncEnabled ? 'Sinkron otomatis dijeda.' : '';
+  const button = root.querySelector('#btnSyncNow');
+  if (button) {
+    button.disabled = state.syncing || !state.driveConnected;
+    button.textContent = state.syncing ? 'Menyinkronkan…' : 'Sinkron sekarang';
   }
 }
 

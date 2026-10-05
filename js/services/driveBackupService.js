@@ -166,25 +166,43 @@ async function saveSyncState({ fingerprint: value, status = '' }) {
     ...(value ? { lastSyncAt: now } : {}),
     lastSyncFingerprint: value || settings.autoBackup.lastSyncFingerprint || '',
     lastSyncStatus: status,
+    lastSyncProblem: !value,
   } });
 }
 
 /** Periksa dan sinkronkan perubahan satu arah; perubahan bersamaan ditahan agar tidak tertimpa. */
 let _autoSyncInFlight = null;
 let _lastAutoSyncCheckAt = 0;
+let _syncRunning = false;
+
+export async function getSyncDisplayState() {
+  const { autoBackup: cfg } = await getSettings();
+  return { ...cfg, syncing: _syncRunning, offline: navigator.onLine === false };
+}
+
+async function publishSyncStatus() {
+  window.dispatchEvent(new CustomEvent('notaku-sync-status', { detail: await getSyncDisplayState() }));
+}
+
 export function checkAutomaticSync({ force = false } = {}) {
   if (_autoSyncInFlight) return _autoSyncInFlight;
   _autoSyncInFlight = (async () => {
     const settings = await getSettings();
     const cfg = settings.autoBackup;
-    if (!cfg?.driveConnected || !cfg.autoSyncEnabled || !isConfigured() || navigator.onLine === false) return;
+    if (!cfg?.driveConnected || (!force && !cfg.autoSyncEnabled) || !isConfigured() || navigator.onLine === false) return;
     const interval = Math.max(1, Number(cfg.autoSyncIntervalMinutes) || 5) * 60000;
     if (!force && Date.now() - _lastAutoSyncCheckAt < interval) return;
     _lastAutoSyncCheckAt = Date.now();
-    await runAutomaticSync();
+    _syncRunning = true;
+    await publishSyncStatus();
+    try {
+      await runAutomaticSync();
+    } finally {
+      _syncRunning = false;
+      await publishSyncStatus();
+    }
   })().finally(() => {
     _autoSyncInFlight = null;
-    window.dispatchEvent(new Event('notaku-sync-status'));
   });
   return _autoSyncInFlight;
 }
@@ -192,7 +210,7 @@ export function checkAutomaticSync({ force = false } = {}) {
 async function runAutomaticSync() {
   const settings = await getSettings();
   const cfg = settings.autoBackup;
-  if (!cfg?.driveConnected || !cfg.autoSyncEnabled || !isConfigured() || navigator.onLine === false) return;
+  if (!cfg?.driveConnected || !isConfigured() || navigator.onLine === false) return;
   try {
     const token = await ensureToken({ interactive: false });
     const file = await findSyncFile(token);
@@ -205,6 +223,10 @@ async function runAutomaticSync() {
     const payload = await readSyncFile(token, file);
     const cloudHash = fingerprint(payload.data);
     const baseline = cfg.lastSyncFingerprint;
+    if (localHash === cloudHash) {
+      await saveSyncState({ fingerprint: localHash, status: 'Data sudah sama.' });
+      return;
+    }
     if (!baseline) {
       await saveSyncState({ status: 'Pilih Push atau Tarik sekali untuk memulai sinkron otomatis.' });
       return;
@@ -226,7 +248,7 @@ async function runAutomaticSync() {
     }
   } catch (e) {
     const latest = await getSettings();
-    await saveSettings({ autoBackup: { ...latest.autoBackup, lastSyncStatus: e.message || 'Sinkronisasi gagal.' } });
+    await saveSettings({ autoBackup: { ...latest.autoBackup, lastSyncProblem: true, lastSyncStatus: e.message || 'Sinkronisasi gagal.' } });
     console.error('[driveBackupService] automatic sync failed', e);
   }
 }
@@ -501,7 +523,7 @@ export async function pushToCloud() {
 
   const settings = await getSettings();
   const localHash = await localFingerprint();
-  await saveSettings({ autoBackup: { ...settings.autoBackup, lastSyncPushAt: new Date().toISOString(), lastSyncFingerprint: localHash, lastSyncAt: new Date().toISOString(), lastSyncStatus: 'Data perangkat ini dikirim ke cloud.' } });
+  await saveSettings({ autoBackup: { ...settings.autoBackup, lastSyncPushAt: new Date().toISOString(), lastSyncFingerprint: localHash, lastSyncAt: new Date().toISOString(), lastSyncProblem: false, lastSyncStatus: 'Data perangkat ini dikirim ke cloud.' } });
 }
 
 /**
@@ -524,5 +546,5 @@ export async function pullFromCloud() {
   await applyCloudPayload(payload);
   const settings = await getSettings();
   const cloudHash = fingerprint(payload.data);
-  await saveSettings({ autoBackup: { ...settings.autoBackup, lastSyncPullAt: new Date().toISOString(), lastSyncAt: new Date().toISOString(), lastSyncFingerprint: cloudHash, lastSyncStatus: 'Data terbaru ditarik dari cloud.' } });
+  await saveSettings({ autoBackup: { ...settings.autoBackup, lastSyncPullAt: new Date().toISOString(), lastSyncAt: new Date().toISOString(), lastSyncFingerprint: cloudHash, lastSyncProblem: false, lastSyncStatus: 'Data terbaru ditarik dari cloud.' } });
 }
