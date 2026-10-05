@@ -234,7 +234,9 @@
   .search-input:focus { outline:2px solid rgba(224,105,63,.5); outline-offset:0; }
   .field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible { outline:2px solid rgba(224,105,63,.5); outline-offset:3px; border-radius:6px; }
   [data-page="customers"].customer-form-sheet :is(input,textarea),
-  [data-page="home"] .home-layout-3 { background:#f7e9d6; border-color:transparent; color:var(--ink); box-shadow:var(--cl-inset); }
+  [data-page="home"] .home-layout-3,
+  [data-page="home"] .row .avatar { background:#f7e9d6; border-color:transparent; color:var(--ink); box-shadow:var(--cl-inset); }
+  [data-page="home"] .row .avatar { color:#b6532d; }
   .chip { background:var(--cl-card); border:1px solid var(--cl-line); color:var(--ink-soft); border-radius:999px; box-shadow:var(--cl-shadow-sm); }
   .chip.active, [data-page="reports"] .reports-layout-1 .chip.active {
     background:var(--cl-sage); border-color:transparent; color:#fff; font-weight:700;

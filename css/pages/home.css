@@ -17,9 +17,9 @@
   height:34px;
   border:1px solid color-mix(in srgb,var(--primary) 22%,var(--outline));
   border-radius:9px;
-  background:color-mix(in srgb,var(--primary) 14%,var(--surface));
+  background:var(--surface-dim);
   color:color-mix(in srgb,var(--primary) 72%,var(--ink-soft));
-  box-shadow:none;
+  box-shadow:inset 2px 3px 6px color-mix(in srgb,var(--ink) 18%,transparent), inset -2px -2px 5px color-mix(in srgb,var(--surface) 85%,transparent);
   transform:rotate(45deg);
 }
 [data-page="home"] .row .avatar > span {
