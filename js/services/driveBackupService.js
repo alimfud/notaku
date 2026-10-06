@@ -218,20 +218,29 @@ async function publishSyncStatus() {
 export function checkAutomaticSync({ force = false, promptIfNeeded = false } = {}) {
   if (_autoSyncInFlight) return _autoSyncInFlight;
   _autoSyncInFlight = (async () => {
-    await restoreGoogleAccess();
+    let restoreError = null;
+    try {
+      await restoreGoogleAccess();
+    } catch (error) {
+      restoreError = error;
+    }
     const settings = await getSettings();
     const cfg = settings.autoBackup;
-    if (!cfg?.driveConnected || !isConfigured() || navigator.onLine === false) return;
+    if (!cfg?.driveConnected || !cfg.lastSyncAt || !isConfigured()) return;
     const interval = Math.max(1, Number(cfg.autoSyncIntervalMinutes) || 5) * 60000;
     if (!force && Date.now() - _lastAutoSyncCheckAt < interval) return;
     _lastAutoSyncCheckAt = Date.now();
     if (promptIfNeeded) {
-      const prompt = await checkSyncNeeded();
-      if (prompt.needsSync) {
+      const prompt = restoreError
+        ? { pendingCheck: true, reason: restoreError.message || 'Akses Google Drive perlu diperiksa kembali.' }
+        : await checkSyncNeeded();
+      if (prompt.needsSync || prompt.pendingCheck) {
         window.dispatchEvent(new CustomEvent('notaku-sync-required', { detail: prompt }));
         return;
       }
     }
+    if (restoreError) throw restoreError;
+    if (navigator.onLine === false) return;
     _syncRunning = true;
     await publishSyncStatus();
     try {
@@ -254,8 +263,12 @@ export function checkAutomaticSync({ force = false, promptIfNeeded = false } = {
 export async function checkSyncNeeded() {
   const settings = await getSettings();
   const cfg = settings.autoBackup;
-  if (!cfg?.driveConnected || !cfg.autoSyncEnabled || !cfg.lastSyncAt || !isConfigured() || navigator.onLine === false) {
+  if (!cfg?.driveConnected || !cfg.lastSyncAt || !isConfigured()) {
     return { needsSync: false };
+  }
+
+  if (navigator.onLine === false) {
+    return { pendingCheck: true, reason: 'Koneksi internet belum tersedia.' };
   }
 
   try {
@@ -271,7 +284,7 @@ export async function checkSyncNeeded() {
     };
   } catch (error) {
     console.error('[driveBackupService] sync-needed check failed', error);
-    return { needsSync: false };
+    return { pendingCheck: true, reason: error.message || 'Akses Google Drive perlu diperiksa kembali.' };
   }
 }
 

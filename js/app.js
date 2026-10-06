@@ -72,9 +72,10 @@ function closeSyncPrompt(backdrop) {
   syncPromptOpen = false;
 }
 
-function showSyncPrompt() {
+function showSyncPrompt(event = {}) {
   if (syncPromptOpen || document.querySelector('.sync-required-backdrop')) return;
   syncPromptOpen = true;
+  const pendingCheck = Boolean(event.detail?.pendingCheck);
   const backdrop = document.createElement('div');
   backdrop.className = 'sync-required-backdrop';
   backdrop.setAttribute('role', 'dialog');
@@ -84,9 +85,9 @@ function showSyncPrompt() {
     <section class="sync-required-dialog">
       <button class="sync-required-close" type="button" aria-label="Tutup pengingat sinkronisasi">×</button>
       <div class="sync-required-icon" aria-hidden="true">↻</div>
-      <h2 id="syncRequiredTitle">Sinkronisasi diperlukan</h2>
-      <p>Ada perubahan data yang perlu diselaraskan dengan Google Drive sebelum kamu melanjutkan.</p>
-      <button class="sync-required-action btn" type="button">Sinkron sekarang</button>
+      <h2 id="syncRequiredTitle">${pendingCheck ? 'Pemeriksaan sinkronisasi tertunda' : 'Sinkronisasi diperlukan'}</h2>
+      <p>${pendingCheck ? 'Aplikasi belum dapat memeriksa data terbaru di Google Drive. Pemeriksaan akan dilanjutkan saat koneksi dan akses Google tersedia.' : 'Ada perubahan data yang perlu diselaraskan dengan Google Drive sebelum kamu melanjutkan.'}</p>
+      <button class="sync-required-action btn" type="button">${pendingCheck ? 'Periksa lagi' : 'Sinkron sekarang'}</button>
     </section>`;
   document.body.appendChild(backdrop);
   const close = () => closeSyncPrompt(backdrop);
@@ -94,7 +95,7 @@ function showSyncPrompt() {
   backdrop.querySelector('.sync-required-action').onclick = async () => {
     const action = backdrop.querySelector('.sync-required-action');
     action.disabled = true;
-    action.textContent = 'Menyinkronkan…';
+      action.textContent = pendingCheck ? 'Memeriksa…' : 'Menyinkronkan…';
     try {
       await checkAutomaticSync({ force: true });
       const { getSyncDisplayState } = await import('./services/driveBackupService.js');
@@ -105,7 +106,7 @@ function showSyncPrompt() {
       close();
     } catch (error) {
       action.disabled = false;
-      action.textContent = 'Coba sinkron lagi';
+      action.textContent = pendingCheck ? 'Coba periksa lagi' : 'Coba sinkron lagi';
       console.error('[sync-prompt] manual sync failed', error);
     }
   };
@@ -292,7 +293,7 @@ function registerServiceWorker() {
   setInterval(() => checkAutomaticBackup(), 60000);
   setInterval(() => checkAutomaticSync(), 60000);
   window.addEventListener('online', checkAutomaticBackup);
-  window.addEventListener('online', checkAutomaticSync);
+  window.addEventListener('online', () => checkAutomaticSync({ force: true, promptIfNeeded: true }));
 
   // Ulangi pengecekan tiap kali aplikasi kembali aktif (mis. HP dibuka lagi
   // setelah dikunci) — ini bagian dari pendekatan "catch-up" untuk aturan
