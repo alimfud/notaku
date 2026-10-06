@@ -8,7 +8,7 @@ Hubungkan satu database Upstash Redis melalui Vercel Storage/Marketplace, atau g
 
 Backend menerima `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`, atau nama integrasi lama `KV_REST_API_URL` + `KV_REST_API_TOKEN`. Gunakan token tulis, bukan read-only.
 
-Refresh token dan access token disimpan dalam record terenkripsi AES-256-GCM. Browser hanya memegang cookie session ID acak, HttpOnly, Secure, SameSite=Lax, tanpa refresh token. Session ID di database di-hash dan terikat domain. Sesi kedaluwarsa setelah 30 hari tanpa permintaan sesi ke backend; aktivitas sesi memperpanjangnya. Putuskan akun menghapus sesi perangkat tersebut, tanpa memutus sesi perangkat lain.
+Refresh token dan access token disimpan dalam record terenkripsi AES-256-GCM. Browser hanya memegang cookie session ID acak, HttpOnly, Secure, SameSite=Lax, tanpa refresh token. Session ID di database di-hash dan terikat domain. Sesi default kedaluwarsa setelah 180 hari tanpa permintaan sesi ke backend; setiap pembukaan aplikasi memperpanjang masa sesi kembali 180 hari. Durasi dapat diatur dengan environment variable `SESSION_DAYS` (maksimum 365). Putuskan akun menghapus sesi perangkat tersebut, tanpa memutus sesi perangkat lain.
 
 ## 2. Environment variables Vercel
 
@@ -22,6 +22,7 @@ Pada proyek `notaku`, Settings → Environment Variables, isi untuk Production:
 | `SESSION_ENCRYPTION_KEY` | 32 byte acak, dikodekan base64 |
 | `UPSTASH_REDIS_REST_URL` | REST URL database Redis |
 | `UPSTASH_REDIS_REST_TOKEN` | REST token database Redis |
+| `SESSION_DAYS` | Opsional, masa sesi bergulir dalam hari; default `180`, maksimum `365` |
 
 Jangan menyimpan secret di GitHub, kode frontend, chat, atau prefix publik seperti `VITE_`/`NEXT_PUBLIC_`. Simpan encryption key yang sama lintas deployment. Mengganti key membuat sesi lama tidak dapat dibaca.
 

@@ -10,4 +10,4 @@
  *
  * Cara mendapatkannya: lihat docs/DRIVE_SETUP.md (gratis, sekali setup).
  */
-export const GOOGLE_CLIENT_ID = '329437953527-38n9974qpmmdkir650nscd7uqs8bc2kp.apps.googleusercontent.com';
+export const GOOGLE_CLIENT_ID = '329437953527-hloho20c8qv1kt25j09r46vvunc8vrlt.apps.googleusercontent.com';

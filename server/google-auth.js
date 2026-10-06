@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
 
 const SESSION_COOKIE = '__Host-notaku-session';
 const FLOW_COOKIE = '__Host-notaku-google-flow';
-const SESSION_SECONDS = 30 * 86400;
+const DEFAULT_SESSION_DAYS = 180;
 const FLOW_SECONDS = 600;
 const SCOPE = 'openid email profile https://www.googleapis.com/auth/drive.file';
 const digest = (value) => createHash('sha256').update(value).digest('base64url');
@@ -15,7 +15,10 @@ function config() {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || key.length !== 32 || !redisUrl || !redisToken || !origins.length) return null;
   if (origins.some((origin) => !origin.startsWith('https://') || new URL(origin).origin !== origin)) return null;
   if (!redisUrl.startsWith('https://')) return null;
-  return { origins, key, redisUrl, redisToken, clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET };
+  const sessionDays = Number.parseInt(process.env.SESSION_DAYS || String(DEFAULT_SESSION_DAYS), 10);
+  const safeSessionDays = Number.isFinite(sessionDays) ? Math.min(Math.max(sessionDays, 1), 365) : DEFAULT_SESSION_DAYS;
+  return { origins, key, redisUrl, redisToken, clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    sessionSeconds: safeSessionDays * 86400 };
 }
 
 function seal(value, key, purpose) {
@@ -155,11 +158,11 @@ export default async function googleAuth(req, res) {
       const id = randomBytes(32).toString('base64url');
       const data = { sub: identity.sub, email: identity.email, refreshToken: tokens.refresh_token,
         accessToken: tokens.access_token, tokenExpiresAt: Date.now() + Number(tokens.expires_in || 3600) * 1000,
-        expiresAt: Date.now() + SESSION_SECONDS * 1000 };
-      await redis(cfg, ['SET', sessionKey(id, origin), seal(data, cfg.key, 'session:' + origin), 'EX', SESSION_SECONDS, 'NX']);
+        expiresAt: Date.now() + cfg.sessionSeconds * 1000 };
+      await redis(cfg, ['SET', sessionKey(id, origin), seal(data, cfg.key, 'session:' + origin), 'EX', cfg.sessionSeconds, 'NX']);
       const oldId = cookie(req, SESSION_COOKIE);
       if (validId(oldId)) await redis(cfg, ['DEL', sessionKey(oldId, origin)]);
-      setCookie(res, SESSION_COOKIE, id, SESSION_SECONDS);
+      setCookie(res, SESSION_COOKIE, id, cfg.sessionSeconds);
       return redirect(res, returnUri('connected'));
     }
     if (action !== 'session' && action !== 'disconnect') return json(res, 404, { error: 'not_found' });
@@ -187,10 +190,10 @@ export default async function googleAuth(req, res) {
       data.refreshToken = tokens.refresh_token || data.refreshToken;
       data.tokenExpiresAt = Date.now() + Number(tokens.expires_in || 3600) * 1000;
     }
-    data.expiresAt = Date.now() + SESSION_SECONDS * 1000;
-    const saved = await redis(cfg, ['SET', session.key, seal(data, cfg.key, 'session:' + origin), 'EX', SESSION_SECONDS, 'XX']);
+    data.expiresAt = Date.now() + cfg.sessionSeconds * 1000;
+    const saved = await redis(cfg, ['SET', session.key, seal(data, cfg.key, 'session:' + origin), 'EX', cfg.sessionSeconds, 'XX']);
     if (saved !== 'OK') return json(res, 401, { error: 'authorization_required' });
-    setCookie(res, SESSION_COOKIE, session.id, SESSION_SECONDS);
+    setCookie(res, SESSION_COOKIE, session.id, cfg.sessionSeconds);
     return json(res, 200, { email: data.email, accessToken: data.accessToken, expiresAt: data.tokenExpiresAt });
   } catch {
     // Never put OAuth codes, provider error bodies, cookies, or tokens in logs/responses.
