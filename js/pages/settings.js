@@ -343,32 +343,40 @@ async function renderBackup(root) {
   setTopbarActions([]);
   root.innerHTML = `
     <div class="settings-section">
-      <div class="settings-heading">Cadangkan Data</div>
-      <div class="settings-description">Unduh file cadangan seluruh data NotaKu (nota, produk, pelanggan, pengaturan), lalu simpan ke Google Drive atau tempat lain lewat aplikasi file HP kamu.</div>
+      <div class="settings-heading settings-heading-with-info"><span>Cadangkan Data</span><button type="button" class="backup-info-toggle" aria-expanded="false" aria-label="Info cadangkan data">ⓘ</button></div>
+      <div class="settings-description backup-info-text" hidden>Unduh file cadangan seluruh data NotaKu (nota, produk, pelanggan, pengaturan), lalu simpan ke Google Drive atau tempat lain lewat aplikasi file HP kamu.</div>
       <button class="settings-button btn" id="btnBackup">Unduh Cadangan</button>
     </div>
     <div class="settings-section-bottom">
       ${tile('⏱️', 'Atur Backup Otomatis', 'Jadwalkan backup ke Google Drive', 'settings/autobackup')}
     </div>
     <div class="settings-section-bottom">
-      <div class="settings-heading">Pulihkan dari Cadangan NotaKu</div>
-      <div class="settings-description">Pilih file cadangan .json yang pernah dibuat NotaKu. <b>PERHATIAN:</b> ini akan MENGGANTI seluruh data yang ada saat ini.</div>
+      <div class="settings-heading settings-heading-with-info"><span>Pulihkan dari Cadangan NotaKu</span><button type="button" class="backup-info-toggle" aria-expanded="false" aria-label="Info pulihkan cadangan">ⓘ</button></div>
+      <div class="settings-description backup-info-text" hidden>Pilih file cadangan .json yang pernah dibuat NotaKu. <b>PERHATIAN:</b> ini akan MENGGANTI seluruh data yang ada saat ini.</div>
       <button class="settings-button btn secondary" id="btnRestore">Pilih File &amp; Pulihkan</button>
       <input class="settings-file-input" type="file" id="fileRestore" accept="application/json,.json">
     </div>
     <div class="settings-section-bottom">
-      <div class="settings-heading">Impor Database Aplikasi Lama</div>
-      <div class="settings-printer-info info-card">
+      <div class="settings-heading settings-heading-with-info"><span>Impor Database Aplikasi Lama</span><button type="button" class="backup-info-toggle" aria-expanded="false" aria-label="Info impor database">ⓘ</button></div>
+      <div class="settings-printer-info info-card backup-info-text" hidden>
         <div class="info-title">Pindah dari aplikasi nota lain?</div>
         <div class="info-text">Kalau kamu punya file .db dari aplikasi nota sebelumnya (di HP atau Google Drive), NotaKu bisa membaca dan MENAMBAHKAN riwayat nota, produk, dan pelanggan dari file itu — data yang sudah ada di NotaKu tetap aman.</div>
       </div>
       <button class="settings-button btn secondary" id="btnImport">Pilih File &amp; Impor</button>
       <input class="settings-file-input" type="file" id="fileImport" accept=".db,application/octet-stream">
-      <div class="settings-help">Tips: kalau file tersimpan di Google Drive, pilih "Files"/"Berkas" pada layar pemilih file lalu masuk ke akun Drive-mu — file akan diunduh sementara secara otomatis oleh browser untuk dibaca.</div>
+      <div class="settings-help backup-info-text" hidden>Tips: kalau file tersimpan di Google Drive, pilih "Files"/"Berkas" pada layar pemilih file lalu masuk ke akun Drive-mu — file akan diunduh sementara secara otomatis oleh browser untuk dibaca.</div>
     </div>
   `;
 
   root.querySelectorAll('[data-route]').forEach((el) => { el.onclick = () => navigate(el.dataset.route); });
+  root.querySelectorAll('.backup-info-toggle').forEach((button) => {
+    button.onclick = () => {
+      const info = button.closest('.settings-section, .settings-section-bottom').querySelector('.backup-info-text');
+      const visible = info.hasAttribute('hidden');
+      info.toggleAttribute('hidden', !visible);
+      button.setAttribute('aria-expanded', String(visible));
+    };
+  });
 
   root.querySelector('#btnBackup').onclick = async () => {
     try {

@@ -45,6 +45,9 @@
 [data-page="settings"] .settings-file-input{display:none}
 [data-page="settings"] .settings-remove-image{margin-left:8px;}
 [data-page="settings"] .settings-heading{font-size:16px;font-weight:800;margin-bottom:6px;}
+[data-page="settings"] .settings-heading-with-info{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+[data-page="settings"] .backup-info-toggle{width:28px;height:28px;padding:0;border:1px solid var(--outline);border-radius:50%;background:var(--surface);color:var(--muted);font:700 16px/1 var(--font);cursor:pointer;}
+[data-page="settings"] .backup-info-toggle[aria-expanded="true"]{background:var(--surface-dim);color:var(--ink);}
 [data-page="settings"] .settings-description{font-size:13px;color:var(--ink-soft);margin-bottom:12px;}
 [data-page="settings"] .settings-section-bottom{padding:0 16px 16px;}
 [data-page="settings"] .settings-help{font-size:11.5px;color:var(--muted);margin-top:10px;}
