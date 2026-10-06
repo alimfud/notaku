@@ -477,6 +477,15 @@
   line-height:1.4;
 }
 
+/* Backup cards get their visual rhythm from the active theme. */
+#pageRoot[data-page="settings"][data-section="backup"] .backup-section {
+  position:relative;
+}
+
+#pageRoot[data-page="settings"][data-section="backup"] .backup-section--auto .settings-tile {
+  min-height:58px;
+}
+
 #pageRoot[data-page="settings"][data-section="autobackup"] .settings-backup-toggle,
 #pageRoot[data-page="settings"][data-section="autobackup"] .settings-drive-account,
 #pageRoot[data-page="settings"][data-section="autobackup"] .settings-confirm-backup {

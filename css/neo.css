@@ -377,4 +377,32 @@
   [data-page="settings"] .settings-theme { background:var(--nv-card); border:1px solid var(--nv-line); border-radius:22px; box-shadow:var(--nv-shadow); }
   [data-page="settings"] .theme-switch { background:#121843; box-shadow:var(--nv-inset); border-radius:16px; }
   [data-page="settings"] .theme-switch button.active { background:var(--g-amber); color:var(--navy-text); border-radius:12px; box-shadow:0 6px 14px -3px rgba(255,160,40,.55), inset 0 1px 0 rgba(255,255,255,.6); }
+
+  /* ---------- Backup: low-contrast neo rhythm ---------- */
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section {
+    background:linear-gradient(155deg,#29346f 0%,#202a5d 100%);
+    border-color:rgba(255,255,255,.10);
+    box-shadow:0 10px 22px -12px rgba(4,6,28,.72), inset 0 1px 0 rgba(255,255,255,.09);
+  }
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--download { background:linear-gradient(155deg,#303b78 0%,#263165 100%); }
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--auto { background:linear-gradient(155deg,#263f6d 0%,#20345d 100%); }
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--restore,
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--import { background:linear-gradient(155deg,#29336b 0%,#222b5d 100%); }
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--download .settings-button {
+    background:linear-gradient(180deg,#e7b95b 0%,#d99e3e 100%);
+    color:#22294f;
+    box-shadow:0 7px 14px -8px rgba(255,160,40,.45), inset 0 1px 0 rgba(255,255,255,.52), inset 0 -2px 4px rgba(150,70,0,.18);
+  }
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--restore .settings-button,
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--import .settings-button {
+    background:rgba(255,255,255,.07); color:var(--ink-soft); border-color:rgba(255,255,255,.12);
+    box-shadow:0 4px 10px -8px rgba(4,6,28,.7), inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--auto .icon-box { background:rgba(31,214,176,.16); color:#72e5ca; box-shadow:0 4px 9px -7px rgba(31,214,176,.35), inset 0 1px 0 rgba(255,255,255,.10); }
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--restore,
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--import { margin-left:8px; margin-right:8px; }
+  @media(max-width:390px) {
+    #pageRoot[data-page="settings"][data-section="backup"] .backup-section--restore,
+    #pageRoot[data-page="settings"][data-section="backup"] .backup-section--import { margin-left:4px; margin-right:4px; }
+  }
 }

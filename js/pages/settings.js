@@ -342,21 +342,21 @@ async function renderBackup(root) {
   setPageTitle('Backup / Restore');
   setTopbarActions([]);
   root.innerHTML = `
-    <div class="settings-section">
+    <div class="settings-section backup-section backup-section--download">
       <div class="settings-heading settings-heading-with-info"><span>Cadangkan Data</span><button type="button" class="backup-info-toggle" aria-expanded="false" aria-label="Info cadangkan data">ⓘ</button></div>
       <div class="settings-description backup-info-text" hidden>Unduh file cadangan seluruh data NotaKu (nota, produk, pelanggan, pengaturan), lalu simpan ke Google Drive atau tempat lain lewat aplikasi file HP kamu.</div>
       <button class="settings-button btn" id="btnBackup">Unduh Cadangan</button>
     </div>
-    <div class="settings-section-bottom">
+    <div class="settings-section-bottom backup-section backup-section--auto">
       ${tile('⏱️', 'Atur Backup Otomatis', 'Jadwalkan backup ke Google Drive', 'settings/autobackup')}
     </div>
-    <div class="settings-section-bottom">
+    <div class="settings-section-bottom backup-section backup-section--restore">
       <div class="settings-heading settings-heading-with-info"><span>Pulihkan dari Cadangan NotaKu</span><button type="button" class="backup-info-toggle" aria-expanded="false" aria-label="Info pulihkan cadangan">ⓘ</button></div>
       <div class="settings-description backup-info-text" hidden>Pilih file cadangan .json yang pernah dibuat NotaKu. <b>PERHATIAN:</b> ini akan MENGGANTI seluruh data yang ada saat ini.</div>
       <button class="settings-button btn secondary" id="btnRestore">Pilih File &amp; Pulihkan</button>
       <input class="settings-file-input" type="file" id="fileRestore" accept="application/json,.json">
     </div>
-    <div class="settings-section-bottom">
+    <div class="settings-section-bottom backup-section backup-section--import">
       <div class="settings-heading settings-heading-with-info"><span>Impor Database Aplikasi Lama</span><button type="button" class="backup-info-toggle" aria-expanded="false" aria-label="Info impor database">ⓘ</button></div>
       <div class="settings-printer-info info-card backup-info-text" hidden>
         <div class="info-title">Pindah dari aplikasi nota lain?</div>

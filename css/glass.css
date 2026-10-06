@@ -372,6 +372,33 @@
   html[data-theme="glass"] #app #bottomnav .nav-bg { border-radius:30px 30px 0 0; }
   html[data-theme="glass"] #app #bottomnav .nav-bg { border:1px solid rgba(255,255,255,.42); box-shadow:inset 0 2px 4px rgba(255,255,255,.35),inset 0 -4px 8px rgba(20,90,150,.14); }
 
+  /* ---------- Backup: low-contrast glass rhythm ---------- */
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section {
+    background:linear-gradient(145deg,rgba(255,255,255,.68),rgba(226,241,252,.58));
+    border-color:rgba(255,255,255,.74);
+    box-shadow:0 9px 20px -12px rgba(35,85,135,.28), inset 0 1px 0 rgba(255,255,255,.88);
+  }
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--download { background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(231,243,251,.76)); }
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--auto { background:linear-gradient(145deg,rgba(231,247,244,.78),rgba(208,237,239,.62)); }
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--restore,
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--import { background:linear-gradient(145deg,rgba(255,255,255,.72),rgba(226,238,248,.62)); }
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--download .settings-button {
+    background:linear-gradient(180deg,#55b5cf 0%,#359bbd 100%);
+    box-shadow:0 7px 14px -8px rgba(24,125,190,.48), inset 0 1px 0 rgba(255,255,255,.65), inset 0 -2px 4px rgba(10,70,130,.14);
+  }
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--restore .settings-button,
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--import .settings-button {
+    background:rgba(255,255,255,.48); color:var(--ink-soft); border-color:rgba(255,255,255,.82);
+    box-shadow:0 4px 10px -8px rgba(35,85,135,.3), inset 0 1px 0 rgba(255,255,255,.82);
+  }
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--auto .icon-box { background:rgba(203,235,228,.78); color:#197f78; box-shadow:0 4px 9px -7px rgba(20,120,130,.34), inset 0 1px 0 rgba(255,255,255,.85); }
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--restore,
+  #pageRoot[data-page="settings"][data-section="backup"] .backup-section--import { margin-left:8px; margin-right:8px; }
+  @media(max-width:390px) {
+    #pageRoot[data-page="settings"][data-section="backup"] .backup-section--restore,
+    #pageRoot[data-page="settings"][data-section="backup"] .backup-section--import { margin-left:4px; margin-right:4px; }
+  }
+
   /* Tanpa dukungan blur: naikkan keburaman agar tetap terbaca */
   @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
     :root { --gl-card:linear-gradient(145deg,rgba(255,255,255,.88),rgba(240,248,254,.80)); }
