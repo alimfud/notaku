@@ -2,8 +2,14 @@ import googleAuth from '../../server/google-auth.js';
 
 function createNodeRequest(request) {
   const headers = {};
+  const url = new URL(request.url);
   request.headers.forEach((value, key) => { headers[key.toLowerCase()] = value; });
-  return { method: request.method, url: new URL(request.url).pathname + new URL(request.url).search, headers };
+  // Cloudflare's Fetch Request does not always expose Host in the same way as
+  // Vercel's Node request. Pass the canonical origin explicitly to the shared
+  // OAuth handler instead of trusting a forwarded header from the client.
+  headers.host = url.host;
+  headers['x-forwarded-host'] = url.host;
+  return { method: request.method, url: url.pathname + url.search, origin: url.origin, headers };
 }
 
 function createNodeResponse() {

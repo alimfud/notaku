@@ -111,7 +111,8 @@ export async function handleGoogleAuth(req, res, env = process.env) {
   const action = url.searchParams.get('action') || 'status';
   if (!cfg) return json(res, action === 'status' ? 200 : 503, { configured: false, error: 'backend_not_configured' });
   // Accept only explicitly configured production hosts; never trust a supplied redirect URI.
-  const origin = `https://${req.headers.host}`;
+  const requestHost = req.headers['x-forwarded-host'] || req.headers.host;
+  const origin = req.origin || `https://${requestHost}`;
   if (!cfg.origins.includes(origin)) return json(res, 403, { error: 'origin_not_allowed' });
   const method = req.method || 'GET';
   if (action === 'status' && method === 'GET') return json(res, 200, { configured: true });
