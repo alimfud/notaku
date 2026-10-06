@@ -454,16 +454,6 @@ async function renderAutoBackup(root) {
         <input class="settings-checkbox" type="checkbox" id="enableToggle" ${cfg.enabled ? 'checked' : ''}>
       </label>
 
-      <div class="settings-drive-account">
-        <div>
-          <div class="settings-drive-label">Akun Google Drive</div>
-          ${cfg.driveConnected
-            ? `<div class="settings-drive-connected"><span class="settings-drive-status-dot" aria-hidden="true"></span><span id="driveAccessLabel">Akun tersimpan</span></div>
-               <div class="settings-drive-email">${escapeHtml(cfg.driveAccountEmail || 'Email tidak tersedia')}</div>`
-            : '<div class="row-meta">Belum tersambung</div>'}
-        </div>
-        <button class="settings-button btn small secondary" id="btnDriveConnect">${cfg.driveConnected ? 'Putuskan' : 'Hubungkan'}</button>
-      </div>
       <div class="settings-backup-window">
         <span class="settings-schedule-label">Jam aktif</span>
         <div class="settings-backup-window-times">
@@ -490,7 +480,13 @@ async function renderAutoBackup(root) {
       <button class="btn" id="btnBackupNow">Backup Sekarang</button>
 
       <div class="settings-sync-panel">
-        <div class="settings-sync-heading section-title">Sinkronisasi Google Drive</div>
+        <div class="settings-sync-header">
+          <div>
+            <div class="settings-sync-heading section-title">Google Drive</div>
+            <div class="settings-drive-label">Akun dan sinkronisasi</div>
+          </div>
+          <button class="settings-button btn small secondary" id="btnDriveConnect">${cfg.driveConnected ? 'Putuskan' : 'Hubungkan'}</button>
+        </div>
         <div class="settings-sync-account" id="syncAccountStatus" role="status" aria-live="polite" aria-atomic="true">
           ${cfg.driveConnected
             ? `<span class="settings-drive-status-dot" aria-hidden="true"></span><span><b>${cfg.lastSyncAt ? 'Tersinkron' : 'Terhubung'}</b> · ${escapeHtml(cfg.driveAccountEmail || 'akun Google')}</span>`
