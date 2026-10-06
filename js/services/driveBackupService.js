@@ -221,7 +221,7 @@ export function checkAutomaticSync({ force = false } = {}) {
     await restoreGoogleAccess();
     const settings = await getSettings();
     const cfg = settings.autoBackup;
-    if (!cfg?.driveConnected || (!force && !cfg.autoSyncEnabled) || !isConfigured() || navigator.onLine === false) return;
+    if (!cfg?.driveConnected || !isConfigured() || navigator.onLine === false) return;
     const interval = Math.max(1, Number(cfg.autoSyncIntervalMinutes) || 5) * 60000;
     if (!force && Date.now() - _lastAutoSyncCheckAt < interval) return;
     _lastAutoSyncCheckAt = Date.now();

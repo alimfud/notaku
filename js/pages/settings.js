@@ -494,10 +494,6 @@ async function renderAutoBackup(root) {
           ${cfg.lastSyncAt ? `<small>Terakhir sinkron: ${formatSyncDate(cfg.lastSyncAt)}</small>` : '<small>Belum pernah sinkron</small>'}
         </div>
         <button class="settings-sync-now btn" id="btnSyncNow" ${cfg.driveConnected ? '' : 'disabled'}>Sinkron sekarang</button>
-        <label class="settings-sync-auto">
-          <span>Sinkron otomatis</span>
-          <input class="settings-checkbox" type="checkbox" id="autoSyncToggle" ${cfg.autoSyncEnabled !== false ? 'checked' : ''}>
-        </label>
         <label class="settings-sync-interval"><span>Interval sinkron</span>
           <select id="autoSyncInterval">
             ${[1, 5, 10, 15, 30].map((minutes) => `<option value="${minutes}" ${(cfg.autoSyncIntervalMinutes || 5) === minutes ? 'selected' : ''}>Tiap ${minutes} menit</option>`).join('')}
@@ -536,18 +532,11 @@ async function renderAutoBackup(root) {
   removeSyncStatusListener = () => window.removeEventListener('notaku-sync-status', onSyncStatus);
   await refreshSyncStatus(root, drive);
 
-  root.querySelector('#autoSyncToggle').onchange = async (event) => {
-    const latest = await getSettings();
-    await saveSettings({ autoBackup: { ...latest.autoBackup, autoSyncEnabled: event.target.checked } });
-    toast(event.target.checked ? 'Sinkron otomatis diaktifkan' : 'Sinkron otomatis dijeda');
-    await refreshSyncStatus(root, drive);
-    if (event.target.checked) void drive.checkAutomaticSync({ force: true });
-  };
   root.querySelector('#autoSyncInterval').onchange = async (event) => {
     const latest = await getSettings();
-    await saveSettings({ autoBackup: { ...latest.autoBackup, autoSyncIntervalMinutes: Number(event.target.value) } });
+    await saveSettings({ autoBackup: { ...latest.autoBackup, autoSyncEnabled: true, autoSyncIntervalMinutes: Number(event.target.value) } });
     toast(`Sinkron otomatis diatur tiap ${event.target.value} menit`);
-    if (latest.autoBackup.autoSyncEnabled !== false) void drive.checkAutomaticSync({ force: true });
+    void drive.checkAutomaticSync({ force: true });
   };
 
   root.querySelector('#btnSyncNow').onclick = async () => {
@@ -675,7 +664,7 @@ function renderSyncStatus(root, state) {
     <small>Terakhir sinkron: ${state.lastSyncAt ? formatSyncDate(state.lastSyncAt) : 'Belum pernah sinkron'}</small>
     <small>${escapeHtml(message)}</small>`;
   const details = root.querySelector('#syncStatus');
-  if (details) details.textContent = state.driveConnected && !state.autoSyncEnabled ? 'Sinkron otomatis dijeda.' : '';
+  if (details) details.textContent = '';
   const button = root.querySelector('#btnSyncNow');
   if (button) {
     button.disabled = state.syncing || !state.driveConnected;
