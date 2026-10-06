@@ -7,17 +7,17 @@ const FLOW_SECONDS = 600;
 const SCOPE = 'openid email profile https://www.googleapis.com/auth/drive.file';
 const digest = (value) => createHash('sha256').update(value).digest('base64url');
 
-function config() {
-  const origins = (process.env.APP_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean);
-  const key = Buffer.from(process.env.SESSION_ENCRYPTION_KEY || '', 'base64');
-  const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || key.length !== 32 || !redisUrl || !redisToken || !origins.length) return null;
+function config(env = process.env) {
+  const origins = (env.APP_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const key = Buffer.from(env.SESSION_ENCRYPTION_KEY || '', 'base64');
+  const redisUrl = env.UPSTASH_REDIS_REST_URL || env.KV_REST_API_URL;
+  const redisToken = env.UPSTASH_REDIS_REST_TOKEN || env.KV_REST_API_TOKEN;
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || key.length !== 32 || !redisUrl || !redisToken || !origins.length) return null;
   if (origins.some((origin) => !origin.startsWith('https://') || new URL(origin).origin !== origin)) return null;
   if (!redisUrl.startsWith('https://')) return null;
   const sessionDays = Number.parseInt(process.env.SESSION_DAYS || String(DEFAULT_SESSION_DAYS), 10);
   const safeSessionDays = Number.isFinite(sessionDays) ? Math.min(Math.max(sessionDays, 1), 365) : DEFAULT_SESSION_DAYS;
-  return { origins, key, redisUrl, redisToken, clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  return { origins, key, redisUrl, redisToken, clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET,
     sessionSeconds: safeSessionDays * 86400 };
 }
 
@@ -99,14 +99,14 @@ async function tokenRequest(cfg, values) {
   return data;
 }
 
-export default async function googleAuth(req, res) {
+export async function handleGoogleAuth(req, res, env = process.env) {
   res.setHeader('Cache-Control', 'no-store, private');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Vary', 'Cookie, Origin');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
   let cfg;
-  try { cfg = config(); } catch { cfg = null; }
+  try { cfg = config(env); } catch { cfg = null; }
   const url = new URL(req.url, 'https://localhost');
   const action = url.searchParams.get('action') || 'status';
   if (!cfg) return json(res, action === 'status' ? 200 : 503, { configured: false, error: 'backend_not_configured' });
@@ -201,3 +201,5 @@ export default async function googleAuth(req, res) {
     return json(res, 503, { error: 'service_unavailable' });
   }
 }
+
+export default handleGoogleAuth;
