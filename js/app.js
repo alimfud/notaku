@@ -41,6 +41,7 @@ const PAGE_LOADERS = {
 };
 
 let currentToken = 0;
+let syncPromptOpen = false;
 
 // Keep the old page's styles while a destination waits for data. Once its
 // first markup is inserted, switch page-scoped CSS in the same DOM checkpoint
@@ -64,6 +65,54 @@ const ICONS = {
   save: '<svg viewBox="0 0 24 24"><path d="M5 3h12l4 4v14H3V3h2zm2 0v6h10V3M7 21v-8h10v8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a1.5 1.5 0 000-2.12l-1.88-1.88a1.5 1.5 0 00-2.12 0L4 16v4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
 };
+
+function closeSyncPrompt(backdrop) {
+  if (!backdrop?.isConnected) return;
+  backdrop.remove();
+  syncPromptOpen = false;
+}
+
+function showSyncPrompt() {
+  if (syncPromptOpen || document.querySelector('.sync-required-backdrop')) return;
+  syncPromptOpen = true;
+  const backdrop = document.createElement('div');
+  backdrop.className = 'sync-required-backdrop';
+  backdrop.setAttribute('role', 'dialog');
+  backdrop.setAttribute('aria-modal', 'true');
+  backdrop.setAttribute('aria-labelledby', 'syncRequiredTitle');
+  backdrop.innerHTML = `
+    <section class="sync-required-dialog">
+      <button class="sync-required-close" type="button" aria-label="Tutup pengingat sinkronisasi">×</button>
+      <div class="sync-required-icon" aria-hidden="true">↻</div>
+      <h2 id="syncRequiredTitle">Sinkronisasi diperlukan</h2>
+      <p>Ada perubahan data yang perlu diselaraskan dengan Google Drive sebelum kamu melanjutkan.</p>
+      <button class="sync-required-action btn" type="button">Sinkron sekarang</button>
+    </section>`;
+  document.body.appendChild(backdrop);
+  const close = () => closeSyncPrompt(backdrop);
+  backdrop.querySelector('.sync-required-close').onclick = close;
+  backdrop.querySelector('.sync-required-action').onclick = async () => {
+    const action = backdrop.querySelector('.sync-required-action');
+    action.disabled = true;
+    action.textContent = 'Menyinkronkan…';
+    try {
+      await checkAutomaticSync({ force: true });
+      const { getSyncDisplayState } = await import('./services/driveBackupService.js');
+      const state = await getSyncDisplayState();
+      if (state.lastSyncProblem || state.needsAuthorization || state.offline) {
+        throw new Error(state.lastSyncStatus || 'Sinkronisasi belum berhasil.');
+      }
+      close();
+    } catch (error) {
+      action.disabled = false;
+      action.textContent = 'Coba sinkron lagi';
+      console.error('[sync-prompt] manual sync failed', error);
+    }
+  };
+  backdrop.addEventListener('click', (event) => { if (event.target === backdrop) close(); });
+}
+
+window.addEventListener('notaku-sync-required', showSyncPrompt);
 
 export function setTopbarActions(actions) {
   topbarActionsEl.innerHTML = '';
@@ -232,6 +281,9 @@ function registerServiceWorker() {
 (async function boot() {
   if (!window.location.hash) window.location.hash = '#/dashboard';
   await handleRouteChange();
+  // Pastikan pengingat sinkronisasi tampil sebelum aplikasi mulai memuat
+  // navigasi tambahan atau menjalankan aktivitas latar belakang lain.
+  await checkAutomaticSync({ promptIfNeeded: true });
   registerServiceWorker();
   import('./installPrompt.js').then(({ initInstallPrompt }) => initInstallPrompt());
   runBackgroundChecks();
@@ -239,7 +291,6 @@ function registerServiceWorker() {
   scheduleAutomaticStatusRollover();
   setInterval(() => checkAutomaticBackup(), 60000);
   setInterval(() => checkAutomaticSync(), 60000);
-  setTimeout(() => checkAutomaticSync(), 3000);
   window.addEventListener('online', checkAutomaticBackup);
   window.addEventListener('online', checkAutomaticSync);
 
@@ -250,7 +301,7 @@ function registerServiceWorker() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       runBackgroundChecks();
-      checkAutomaticSync();
+      checkAutomaticSync({ promptIfNeeded: true });
     }
   });
 })();
@@ -311,10 +362,10 @@ async function checkAutomaticBackup() {
   }
 }
 
-async function checkAutomaticSync() {
+async function checkAutomaticSync(options = {}) {
   try {
     const { checkAutomaticSync: sync } = await import('./services/driveBackupService.js');
-    await sync();
+    await sync(options);
   } catch (e) {
     console.error('[runBackgroundChecks] auto-sync', e);
   }

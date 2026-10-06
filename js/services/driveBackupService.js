@@ -215,7 +215,7 @@ async function publishSyncStatus() {
   window.dispatchEvent(new CustomEvent('notaku-sync-status', { detail: await getSyncDisplayState() }));
 }
 
-export function checkAutomaticSync({ force = false } = {}) {
+export function checkAutomaticSync({ force = false, promptIfNeeded = false } = {}) {
   if (_autoSyncInFlight) return _autoSyncInFlight;
   _autoSyncInFlight = (async () => {
     await restoreGoogleAccess();
@@ -225,6 +225,13 @@ export function checkAutomaticSync({ force = false } = {}) {
     const interval = Math.max(1, Number(cfg.autoSyncIntervalMinutes) || 5) * 60000;
     if (!force && Date.now() - _lastAutoSyncCheckAt < interval) return;
     _lastAutoSyncCheckAt = Date.now();
+    if (promptIfNeeded) {
+      const prompt = await checkSyncNeeded();
+      if (prompt.needsSync) {
+        window.dispatchEvent(new CustomEvent('notaku-sync-required', { detail: prompt }));
+        return;
+      }
+    }
     _syncRunning = true;
     await publishSyncStatus();
     try {
@@ -237,6 +244,35 @@ export function checkAutomaticSync({ force = false } = {}) {
     _autoSyncInFlight = null;
   });
   return _autoSyncInFlight;
+}
+
+/**
+ * Periksa apakah perangkat ini perlu meminta sinkronisasi sebelum aktivitas
+ * dilanjutkan. Pemeriksaan hanya berlaku setelah perangkat pernah tersinkron.
+ * Tidak mengubah data dan tidak melakukan push/pull.
+ */
+export async function checkSyncNeeded() {
+  const settings = await getSettings();
+  const cfg = settings.autoBackup;
+  if (!cfg?.driveConnected || !cfg.autoSyncEnabled || !cfg.lastSyncAt || !isConfigured() || navigator.onLine === false) {
+    return { needsSync: false };
+  }
+
+  try {
+    const token = await ensureToken({ interactive: false });
+    const file = await findSyncFile(token);
+    if (!file) return { needsSync: true, reason: 'File sinkron di Google Drive tidak ditemukan.' };
+    const payload = await readSyncFile(token, file);
+    const localHash = await localFingerprint();
+    const cloudHash = fingerprint(payload.data);
+    return {
+      needsSync: localHash !== cloudHash,
+      reason: localHash !== cloudHash ? 'Ada perubahan data yang belum tersinkron.' : '',
+    };
+  } catch (error) {
+    console.error('[driveBackupService] sync-needed check failed', error);
+    return { needsSync: false };
+  }
 }
 
 async function runAutomaticSync() {
