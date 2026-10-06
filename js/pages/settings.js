@@ -447,6 +447,18 @@ async function renderAutoBackup(root) {
     return;
   }
 
+  const timeOptions = (value) => Array.from({ length: 48 }, (_, index) => {
+    const hour = String(Math.floor(index / 2)).padStart(2, '0');
+    const minute = String((index % 2) * 30).padStart(2, '0');
+    const time = `${hour}:${minute}`;
+    return `<button type="button" class="settings-time-option${time === value ? ' selected' : ''}" data-time-value="${time}">${time}</button>`;
+  }).join('');
+  const timePicker = (id, value, label) => `<div class="settings-time-picker">
+    <input id="${id}" type="hidden" value="${escapeHtml(value)}" required>
+    <button type="button" class="settings-time-trigger" data-time-toggle="${id}" aria-label="${label}" aria-expanded="false">${escapeHtml(value)}⌄</button>
+    <div class="settings-time-menu" data-time-menu="${id}">${timeOptions(value)}</div>
+  </div>`;
+
   root.innerHTML = `
     <div class="settings-section">
       <label class="settings-backup-toggle">
@@ -454,22 +466,22 @@ async function renderAutoBackup(root) {
         <input class="settings-checkbox" type="checkbox" id="enableToggle" ${cfg.enabled ? 'checked' : ''}>
       </label>
 
-      <div class="settings-backup-window">
-        <span class="settings-schedule-label">Jam aktif</span>
-        <div class="settings-backup-window-times">
-          <input id="backupWindowStart" type="time" required value="${escapeHtml(cfg.backupWindowStart || '07:00')}" aria-label="Mulai backup otomatis">
-          <span>–</span>
-          <input id="backupWindowEnd" type="time" required value="${escapeHtml(cfg.backupWindowEnd || '17:00')}" aria-label="Selesai backup otomatis">
+      <div class="settings-backup-options">
+        <div class="settings-backup-options-title">Jadwal &amp; penyimpanan</div>
+        <div class="settings-backup-option-row settings-backup-window">
+          <div><span class="settings-schedule-label">Jam aktif</span><small>Waktu backup berjalan</small></div>
+          <div class="settings-backup-window-times">
+            ${timePicker('backupWindowStart', cfg.backupWindowStart || '07:00', 'Mulai backup otomatis')}
+            <span>–</span>
+            ${timePicker('backupWindowEnd', cfg.backupWindowEnd || '19:00', 'Selesai backup otomatis')}
+          </div>
         </div>
-      </div>
-      <label class="settings-backup-window" for="backupDailyLimit"><span>Maksimal backup</span>
-        <select id="backupDailyLimit"><option value="1" ${cfg.backupDailyLimit === 1 ? 'selected' : ''}>1 kali sehari</option><option value="2" ${cfg.backupDailyLimit !== 1 ? 'selected' : ''}>2 kali sehari</option></select>
-      </label>
-
-      <div class="settings-retention">
-        <div class="settings-retention-row">
-        <label for="backupKeepCount">Simpan backup terbaru</label>
-        <div class="settings-retention-value"><input id="backupKeepCount" type="number" min="1" step="1" required value="${Number(cfg.backupKeepCount) || 15}" aria-describedby="backupRetentionHelp"><span>file</span></div>
+        <label class="settings-backup-option-row" for="backupDailyLimit"><span><b>Maksimal backup</b><small>Batas backup otomatis per hari</small></span>
+          <select id="backupDailyLimit"><option value="1" ${cfg.backupDailyLimit === 1 ? 'selected' : ''}>1 kali sehari</option><option value="2" ${cfg.backupDailyLimit !== 1 ? 'selected' : ''}>2 kali sehari</option></select>
+        </label>
+        <div class="settings-backup-option-row settings-retention">
+          <label for="backupKeepCount"><b>Simpan backup terbaru</b><small>File backup yang dipertahankan</small></label>
+          <div class="settings-retention-value"><input id="backupKeepCount" type="number" min="1" step="1" required value="${Number(cfg.backupKeepCount) || 15}" aria-describedby="backupRetentionHelp"><span>file</span></div>
         </div>
       </div>
 
@@ -519,6 +531,29 @@ async function renderAutoBackup(root) {
       </details>
     </div>
   `;
+
+  root.querySelectorAll('[data-time-toggle]').forEach((trigger) => {
+    trigger.onclick = () => {
+      const menu = root.querySelector(`[data-time-menu="${trigger.dataset.timeToggle}"]`);
+      const open = menu.classList.toggle('open');
+      trigger.setAttribute('aria-expanded', String(open));
+      root.querySelectorAll('.settings-time-menu.open').forEach((other) => {
+        if (other !== menu) other.classList.remove('open');
+      });
+    };
+  });
+  root.querySelectorAll('.settings-time-option').forEach((option) => {
+    option.onclick = () => {
+      const picker = option.closest('.settings-time-picker');
+      const input = picker.querySelector('input[type="hidden"]');
+      const trigger = picker.querySelector('.settings-time-trigger');
+      input.value = option.dataset.timeValue;
+      trigger.childNodes[0].textContent = option.dataset.timeValue;
+      picker.querySelectorAll('.settings-time-option').forEach((item) => item.classList.toggle('selected', item === option));
+      picker.querySelector('.settings-time-menu').classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+    };
+  });
 
   const accountPanel = root.querySelector('#syncAccountStatus');
   const onSyncStatus = (event) => {

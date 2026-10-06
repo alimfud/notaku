@@ -38,7 +38,7 @@ const DEFAULTS = {
     driveConnected: false,
     driveAccountEmail: '',
     backupWindowStart: '07:00',
-    backupWindowEnd: '17:00',
+    backupWindowEnd: '19:00',
     backupDailyLimit: 2,
     backupKeepCount: 15,
     lastBackupFingerprint: '',

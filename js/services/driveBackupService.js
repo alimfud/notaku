@@ -460,7 +460,7 @@ async function checkSchedule() {
     return h * 60 + m;
   };
   const start = minutes(cfg.backupWindowStart || '07:00');
-  const end = minutes(cfg.backupWindowEnd || '17:00');
+  const end = minutes(cfg.backupWindowEnd || '19:00');
   if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end || nowMinutes < start || nowMinutes >= end) return;
   const count = cfg.backupCountDate === todayKey ? Number(cfg.backupCountToday) || 0 : 0;
   const limit = cfg.backupDailyLimit === 1 ? 1 : 2;

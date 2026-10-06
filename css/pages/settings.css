@@ -61,6 +61,24 @@
 [data-page="settings"] .settings-time-input{border:1px solid var(--outline);border-radius:8px;padding:6px 8px;}
 [data-page="settings"] .settings-retention{padding:0;margin-bottom:16px;}
 [data-page="settings"] .settings-backup-window{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:10px 0;font-size:13px;color:var(--ink);}
+[data-page="settings"] .settings-backup-options{margin:9px 0 12px;border:1px solid var(--outline);border-radius:12px;background:var(--surface-dim);overflow:hidden;}
+[data-page="settings"] .settings-backup-options-title{padding:8px 11px;border-bottom:1px solid var(--outline);font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}
+[data-page="settings"] .settings-backup-option-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:46px;padding:7px 11px;margin:0;border-bottom:1px solid color-mix(in srgb,var(--outline) 70%,transparent);font-size:12.5px;color:var(--ink);}
+[data-page="settings"] .settings-backup-option-row:last-child{border-bottom:0;}
+[data-page="settings"] .settings-backup-option-row > span:first-child,
+[data-page="settings"] .settings-backup-option-row > div:first-child,
+[data-page="settings"] .settings-backup-option-row > label{min-width:0;}
+[data-page="settings"] .settings-backup-option-row small{display:block;margin-top:1px;color:var(--muted);font-size:10px;line-height:1.2;}
+[data-page="settings"] .settings-backup-options .settings-backup-window{margin:0;}
+[data-page="settings"] .settings-backup-options .settings-schedule-label{display:block;margin:0;font-size:13px;}
+[data-page="settings"] .settings-backup-options select{min-height:36px;padding:5px 9px;border:1px solid var(--outline);border-radius:9px;background:var(--surface);color:var(--ink);font:inherit;font-size:12px;}
+[data-page="settings"] .settings-backup-window-times select{width:70px;min-height:36px;padding:5px 2px;font-size:12px;}
+[data-page="settings"] .settings-time-picker{position:relative;}
+[data-page="settings"] .settings-time-trigger{width:68px;min-height:36px;padding:5px 3px;border:1px solid var(--outline);border-radius:9px;background:var(--surface);color:var(--ink);font:inherit;font-size:12px;white-space:nowrap;cursor:pointer;}
+[data-page="settings"] .settings-time-menu{display:none;position:absolute;z-index:20;top:calc(100% + 4px);left:50%;width:92px;max-height:180px;overflow-y:auto;transform:translateX(-50%);padding:4px;border:1px solid var(--outline);border-radius:10px;background:var(--surface);box-shadow:0 8px 20px rgba(73,29,48,.18);}
+[data-page="settings"] .settings-time-menu.open{display:flex;flex-direction:column;}
+[data-page="settings"] .settings-time-option{border:0;border-radius:6px;padding:7px 8px;background:transparent;color:var(--ink);font:inherit;font-size:12px;text-align:left;cursor:pointer;}
+[data-page="settings"] .settings-time-option:hover,[data-page="settings"] .settings-time-option.selected{background:var(--surface-dim);font-weight:700;}
 [data-page="settings"] .settings-backup-window .settings-schedule-label{margin:0;}
 [data-page="settings"] .settings-backup-window-times{display:flex;align-items:center;gap:6px;}
 [data-page="settings"] .settings-backup-window input,[data-page="settings"] .settings-backup-window select{box-sizing:border-box;min-height:40px;padding:6px 8px;border:1px solid var(--outline);border-radius:9px;background:var(--surface);color:var(--ink);font:inherit;}
