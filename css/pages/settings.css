@@ -35,6 +35,7 @@
 [data-page="settings"] .settings-preview-toggle{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-top:1px solid var(--outline);}
 [data-page="settings"] .settings-preview-checkbox{width:44px;height:24px;flex-shrink:0;margin-left:12px;}
 [data-page="settings"] .settings-section{padding:16px;}
+[data-page="settings"][data-section="autobackup"] .settings-section{display:flex;flex-direction:column;}
 [data-page="settings"] .settings-toggle-row{display:flex;align-items:center;justify-content:space-between;}
 [data-page="settings"] .settings-section-label{font-size:15px;font-weight:700;}
 [data-page="settings"] .settings-checkbox{width:44px;height:24px;}
@@ -48,6 +49,10 @@
 [data-page="settings"] .settings-heading-with-info{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 [data-page="settings"] .backup-info-toggle{width:28px;height:28px;padding:0;border:1px solid var(--outline);border-radius:50%;background:var(--surface);color:var(--muted);font:700 16px/1 var(--font);cursor:pointer;}
 [data-page="settings"] .backup-info-toggle[aria-expanded="true"]{background:var(--surface-dim);color:var(--ink);}
+[data-page="settings"] .autobackup-info-text{margin:8px 0 10px;padding:9px 10px;border-radius:9px;background:var(--surface-dim);color:var(--muted);font-size:11px;line-height:1.45;}
+[data-page="settings"] .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+[data-page="settings"] .settings-sync-heading .backup-info-toggle{margin-left:auto;}
+[data-page="settings"] .settings-backup-options-title .backup-info-toggle{width:24px;height:24px;font-size:14px;}
 [data-page="settings"] .settings-description{font-size:13px;color:var(--ink-soft);margin-bottom:12px;}
 [data-page="settings"] .settings-section-bottom{padding:0 16px 16px;}
 [data-page="settings"] .settings-help{font-size:11.5px;color:var(--muted);margin-top:10px;}
@@ -99,6 +104,7 @@
 [data-page="settings"] .settings-sync-heading{padding-left:0;margin-top:24px;}
 [data-page="settings"] .settings-sync-info{margin:0 0 14px;}
 [data-page="settings"] .settings-sync-panel{border:1px solid var(--outline);border-radius:12px;padding:12px;margin:18px 0 14px;background:var(--surface);}
+[data-page="settings"][data-section="autobackup"] .settings-sync-panel{order:-1;margin-top:0;}
 [data-page="settings"] .settings-sync-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:nowrap;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--outline);}
 [data-page="settings"] .settings-sync-header > div{min-width:0;}
 [data-page="settings"] .settings-sync-header .settings-button{flex:0 0 auto;white-space:nowrap;}

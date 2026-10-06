@@ -475,7 +475,8 @@ async function renderAutoBackup(root) {
       </label>
 
       <div class="settings-backup-options">
-        <div class="settings-backup-options-title">Jadwal &amp; penyimpanan</div>
+        <div class="settings-backup-options-title settings-heading-with-info"><span>Jadwal &amp; penyimpanan</span><button type="button" class="backup-info-toggle" data-autobackup-info="schedule" aria-expanded="false" aria-label="Info jadwal dan penyimpanan">ⓘ</button></div>
+        <div class="backup-info-text autobackup-info-text" data-autobackup-info-panel="schedule" hidden>Backup otomatis berjalan selama aplikasi terbuka dan koneksi internet tersedia. Jumlah file menentukan berapa cadangan terbaru yang dipertahankan.</div>
         <div class="settings-backup-option-row settings-backup-window">
           <div><span class="settings-schedule-label">Jam aktif</span><small>Waktu backup berjalan</small></div>
           <div class="settings-backup-window-times">
@@ -502,11 +503,12 @@ async function renderAutoBackup(root) {
       <div class="settings-sync-panel">
         <div class="settings-sync-header">
           <div>
-            <div class="settings-sync-heading section-title">Google Drive</div>
+            <div class="settings-sync-heading section-title settings-heading-with-info"><span>Google Drive</span><button type="button" class="backup-info-toggle" data-autobackup-info="drive" aria-expanded="false" aria-label="Info Google Drive">ⓘ</button></div>
             <div class="settings-drive-label">Akun dan sinkronisasi</div>
           </div>
           <button class="settings-button btn small secondary" id="btnDriveConnect">${cfg.driveConnected ? 'Putuskan' : 'Hubungkan'}</button>
         </div>
+        <div class="backup-info-text autobackup-info-text" data-autobackup-info-panel="drive" hidden>Gunakan akun Google yang sama di semua perangkat. Akun ini dipakai untuk backup dan sinkronisasi selama akses Google masih aktif.</div>
         <div class="settings-sync-account" id="syncAccountStatus" role="status" aria-live="polite" aria-atomic="true">
           ${cfg.driveConnected
             ? `<span class="settings-drive-status-dot" aria-hidden="true"></span><span><b>${cfg.lastSyncAt ? 'Tersinkron' : 'Terhubung'}</b> · ${escapeHtml(cfg.driveAccountEmail || 'akun Google')}</span>`
@@ -522,23 +524,25 @@ async function renderAutoBackup(root) {
       </div>
       <div class="settings-sync-status" id="syncStatus">Memeriksa status...</div>
       <details class="settings-backup-details">
-        <summary>Sinkron manual / pilih sumber data</summary>
-        <p>Gunakan untuk sinkron pertama atau saat ada perubahan di kedua perangkat. Push mengganti data cloud; Tarik mengganti data perangkat ini.</p>
+        <summary>Sinkronisasi lanjutan</summary>
+        <p class="settings-advanced-sync-help">Gunakan hanya jika perlu menentukan sumber data secara manual: <b>Push</b> menjadikan data perangkat ini sebagai data Google Drive, sedangkan <b>Tarik</b> mengganti data perangkat ini dengan data dari Google Drive.</p>
         <div class="settings-sync-actions">
-        <button class="settings-sync-button btn secondary" id="btnPush">⬆ Push ke Cloud</button>
-        <button class="settings-sync-button btn secondary" id="btnPull">⬇ Tarik dari Cloud</button>
+        <button class="settings-sync-button btn secondary" id="btnPush">⬆ Push ke Google Drive</button>
+        <button class="settings-sync-button btn secondary" id="btnPull">⬇ Tarik dari Google Drive</button>
         </div>
       </details>
-      <details class="settings-backup-details">
-        <summary>Panduan backup & sinkronisasi</summary>
-        <p>Gunakan akun Google yang sama di semua perangkat. Sinkron otomatis mengikuti interval selama aplikasi terbuka dan izin akses Google aktif.</p>
-        <p>Backup dibuat hanya jika data berubah. Backup pertama menunggu sekitar 15 menit setelah perubahan terdeteksi. Jika dipilih 2 kali sehari, backup kedua dilakukan pada 30 menit terakhir jam aktif, hanya jika ada perubahan lagi. Perubahan yang terdeteksi menjelang penutupan langsung dicadangkan selama kuota masih tersedia.</p>
-        <p>Aplikasi perlu terbuka dan akses Google aktif. Perubahan yang belum dicadangkan menunggu jam aktif berikutnya. Backup Sekarang dapat digunakan kapan saja di luar batas otomatis.</p>
-        <p id="backupRetentionHelp">Jumlah file menentukan berapa backup terbaru yang disimpan. Default 15 file terbaru; sisanya dihapus setelah backup baru berhasil.</p>
-        <p>Jika perubahan ada di kedua perangkat, sinkron ditahan. Buka Sinkron manual untuk memilih sumber data. Jika izin Google berakhir, tekan Aktifkan akses Google tanpa memutuskan akun.</p>
-      </details>
+      <span id="backupRetentionHelp" class="visually-hidden">Jumlah file menentukan berapa backup terbaru yang disimpan.</span>
     </div>
   `;
+
+  root.querySelectorAll('[data-autobackup-info]').forEach((button) => {
+    button.onclick = () => {
+      const panel = root.querySelector(`[data-autobackup-info-panel="${button.dataset.autobackupInfo}"]`);
+      const visible = panel.hasAttribute('hidden');
+      panel.toggleAttribute('hidden', !visible);
+      button.setAttribute('aria-expanded', String(visible));
+    };
+  });
 
   root.querySelectorAll('[data-time-toggle]').forEach((trigger) => {
     trigger.onclick = () => {
