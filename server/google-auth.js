@@ -15,8 +15,8 @@ function config(env = process.env) {
   const kv = env.SESSIONS || null;
   if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || key.length !== 32 || (!kv && (!redisUrl || !redisToken)) || !origins.length) return null;
   if (origins.some((origin) => !origin.startsWith('https://') || new URL(origin).origin !== origin)) return null;
-  if (!redisUrl.startsWith('https://')) return null;
-  const sessionDays = Number.parseInt(process.env.SESSION_DAYS || String(DEFAULT_SESSION_DAYS), 10);
+  if (!kv && (!redisUrl || !redisUrl.startsWith('https://'))) return null;
+  const sessionDays = Number.parseInt(env.SESSION_DAYS || String(DEFAULT_SESSION_DAYS), 10);
   const safeSessionDays = Number.isFinite(sessionDays) ? Math.min(Math.max(sessionDays, 1), 365) : DEFAULT_SESSION_DAYS;
   return { origins, key, redisUrl, redisToken, clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET,
     sessionSeconds: safeSessionDays * 86400, kv };
