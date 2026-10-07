@@ -12,13 +12,14 @@ function config(env = process.env) {
   const key = Buffer.from(env.SESSION_ENCRYPTION_KEY || '', 'base64');
   const redisUrl = env.UPSTASH_REDIS_REST_URL || env.KV_REST_API_URL;
   const redisToken = env.UPSTASH_REDIS_REST_TOKEN || env.KV_REST_API_TOKEN;
-  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || key.length !== 32 || !redisUrl || !redisToken || !origins.length) return null;
+  const kv = env.SESSIONS || null;
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || key.length !== 32 || (!kv && (!redisUrl || !redisToken)) || !origins.length) return null;
   if (origins.some((origin) => !origin.startsWith('https://') || new URL(origin).origin !== origin)) return null;
   if (!redisUrl.startsWith('https://')) return null;
   const sessionDays = Number.parseInt(process.env.SESSION_DAYS || String(DEFAULT_SESSION_DAYS), 10);
   const safeSessionDays = Number.isFinite(sessionDays) ? Math.min(Math.max(sessionDays, 1), 365) : DEFAULT_SESSION_DAYS;
   return { origins, key, redisUrl, redisToken, clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET,
-    sessionSeconds: safeSessionDays * 86400 };
+    sessionSeconds: safeSessionDays * 86400, kv };
 }
 
 function seal(value, key, purpose) {
@@ -59,6 +60,28 @@ function redirect(res, location) {
 }
 
 async function redis(cfg, command) {
+  if (cfg.kv) {
+    const [operation, key, value, expiryMode, expirySeconds, condition] = command;
+    if (operation === 'GET') return await cfg.kv.get(key);
+    if (operation === 'GETDEL') {
+      const current = await cfg.kv.get(key);
+      if (current !== null) await cfg.kv.delete(key);
+      return current;
+    }
+    if (operation === 'DEL') {
+      await cfg.kv.delete(key);
+      return 1;
+    }
+    if (operation === 'SET') {
+      const exists = await cfg.kv.get(key);
+      if (condition === 'NX' && exists !== null) return null;
+      if (condition === 'XX' && exists === null) return null;
+      const options = expiryMode === 'EX' ? { expirationTtl: Number(expirySeconds) } : undefined;
+      await cfg.kv.put(key, value, options);
+      return 'OK';
+    }
+    throw new Error('unsupported_storage_command');
+  }
   const response = await fetch(cfg.redisUrl, {
     method: 'POST', headers: { Authorization: `Bearer ${cfg.redisToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(command), signal: AbortSignal.timeout(10000),

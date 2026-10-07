@@ -10,8 +10,8 @@ migrasi/deployment, pahami konteks berikut:
 - Endpoint login Google berada di `/api/google` dan dijalankan sebagai Pages
   Function melalui `functions/api/google.js`.
 - Google Drive dipakai langsung dari browser untuk backup dan sinkronisasi.
-- Upstash Redis saat ini hanya menyimpan session Google persisten dan token
-  yang disegel; Upstash tidak menyimpan data transaksi NotaKu.
+- Penyimpanan session Google dapat memakai Cloudflare KV Binding `SESSIONS`;
+  Upstash hanya menjadi fallback untuk deployment Vercel lama.
 - `APP_ORIGINS` harus memuat origin HTTPS secara persis tanpa slash akhir.
 - Jangan memakai `npx wrangler deploy` pada project Pages. Deploy dilakukan
   oleh Cloudflare Pages dari branch GitHub `main`.
@@ -22,15 +22,15 @@ Konfigurasi saat ini sengaja mempertahankan Upstash agar migrasi session dari
 backend Vercel mudah dan aman. Namun target jangka panjang adalah Cloudflare
 only agar pengelolaan cukup melalui Google Cloud Console dan Cloudflare.
 
-Rencana migrasi tahap berikutnya:
+Migrasi penyederhanaan:
 
-1. Ganti Upstash Redis dengan Cloudflare KV atau Durable Object sebagai
-   penyimpanan session.
+1. Buat namespace Cloudflare KV untuk session dan bind dengan nama `SESSIONS`.
 2. Pertahankan cookie HttpOnly, Secure, SameSite=Lax dan enkripsi token.
 3. Pastikan logout, refresh token, expiry session, dan isolasi antar-domain
    tetap berjalan sebelum menghapus Redis.
-4. Setelah seluruh sesi lama tidak diperlukan, hapus variable Upstash dari
-   Cloudflare dan perbarui dokumentasi environment variable.
+4. Setelah KV teruji, hapus variable Upstash dari Cloudflare. Jangan hapus
+   database Upstash sebelum deployment baru terbukti dapat login, refresh,
+   dan logout.
 
 Jangan menghapus Upstash hanya dengan menghapus environment variable. Backend
 harus diubah lebih dulu agar session tidak gagal dan pengguna tidak kehilangan
@@ -52,7 +52,7 @@ Pages Functions memakai `functions/api/google.js` untuk endpoint `/api/google`.
 Tambahkan di Cloudflare Pages → Settings → Variables and Secrets, untuk
 Production dan Preview bila diperlukan:
 
-- `APP_ORIGINS`: origin HTTPS yang dipakai, misalnya `https://rekening.example`;
+- `APP_ORIGINS`: origin HTTPS yang dipakai, misalnya `https://nota.jajan.my.id`;
   jangan menambahkan slash di akhir.
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET` sebagai secret
@@ -60,6 +60,15 @@ Production dan Preview bila diperlukan:
 - `SESSION_DAYS`: opsional, default `180`
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN` sebagai secret
+
+Untuk Cloudflare-only, dua variable Upstash tidak diperlukan. Tambahkan KV
+namespace pada bagian **Bindings** dengan variable name:
+
+```text
+SESSIONS
+```
+
+Namespace tersebut dipakai untuk session OAuth, bukan untuk data transaksi.
 
 Di Google Cloud Console, tambahkan callback:
 
