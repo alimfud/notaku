@@ -1,6 +1,6 @@
 // pages/saleDetail.js
 
-import { getSaleSummary, addPayment, updatePayment, deletePayment, deleteSale, setCompleted, revertAutoLunas, AppError } from '../services/saleService.js';
+import { getSaleSummary, addPayment, updatePayment, deletePayment, deleteSale, duplicateSale, setCompleted, revertAutoLunas, AppError } from '../services/saleService.js';
 import * as db from '../db.js';
 import { getSettings } from '../services/settingsService.js';
 import { rupiah, dateShort, escapeHtml, qtyLabel, resolveFooterNote, maskPhone, toWhatsAppNumber } from '../format.js';
@@ -69,6 +69,7 @@ async function draw(root, saleId) {
     { icon: 'edit', label: 'Edit', title: 'Ubah Nota', onClick: () => navigate(`sale/${saleId}/edit`) },
     { icon: 'bluetoothPrint', label: 'Print', title: 'Cetak Bluetooth', onClick: () => handleBluetoothPrint(sale, items, settings, paidAmount, remaining) },
     { icon: 'payment', label: 'Bayar', title: 'Tambah Pembayaran', onClick: () => handleAddPayment(root, saleId, remaining) },
+    { icon: 'edit', label: 'Salin', title: 'Duplikasi Nota', onClick: () => handleDuplicate(saleId) },
     { icon: 'delete', label: 'Hapus', title: 'Hapus', onClick: () => handleDelete(root, saleId) },
   ]);
 
@@ -166,6 +167,16 @@ async function draw(root, saleId) {
   root.querySelectorAll('[data-pid]').forEach((btn) => {
     btn.onclick = () => handleEditPayment(root, saleId, payments.find((p) => p.id === btn.dataset.pid));
   });
+}
+
+async function handleDuplicate(saleId) {
+  try {
+    const id = await duplicateSale(saleId);
+    toast('Nota berhasil diduplikasi');
+    navigate(`sale/${id}/edit`);
+  } catch (error) {
+    toast(error.userMessage || error.message || 'Gagal menduplikasi nota.');
+  }
 }
 
 async function handleAddPayment(root, saleId, remaining) {

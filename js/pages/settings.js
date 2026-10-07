@@ -10,6 +10,8 @@ import { navigate, setPageTitle, setTopbarActions, checkForUpdate } from '../app
 import { APP_VERSION } from '../version.js';
 import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
 import { bindThemeSwitch } from '../theme.js';
+import * as db from '../db.js';
+import { getAuditLogs, recordAudit } from '../services/auditLogService.js';
 
 export async function render(root, params) {
   const sub = params[0];
@@ -19,6 +21,8 @@ export async function render(root, params) {
   if (sub === 'qris') return renderQris(root);
   if (sub === 'backup') return renderBackup(root);
   if (sub === 'autobackup') return renderAutoBackup(root);
+  if (sub === 'trash') return renderTrash(root);
+  if (sub === 'audit') return renderAudit(root);
   return renderHub(root);
 }
 
@@ -45,6 +49,8 @@ function renderHub(root) {
       ${tile('🔳', 'QRIS', 'Tampilkan kode QRIS di struk belum lunas', 'settings/qris')}
       <div class="settings-spacer"></div>
       ${tile('☁️', 'Backup / Restore', 'Cadangkan data & impor database lama', 'settings/backup')}
+      ${tile('🗑️', 'Tempat Sampah', 'Pulihkan nota yang terhapus', 'settings/trash')}
+      ${tile('🧾', 'Riwayat Aktivitas', 'Lihat perubahan penting pada data', 'settings/audit')}
     </div>
     <div class="settings-theme">
       <div class="settings-theme-title">Tampilan</div>
@@ -66,6 +72,24 @@ function renderHub(root) {
   root.querySelectorAll('[data-route]').forEach((el) => {
     el.onclick = () => navigate(el.dataset.route);
   });
+}
+
+async function renderTrash(root) {
+  setPageTitle('Tempat Sampah'); setTopbarActions([]);
+  const deleted = (await db.getAll('sales')).filter((sale) => sale.isDeleted);
+  root.innerHTML = `<div class="settings-simple-page"><p class="row-meta">Nota yang dihapus masih dapat dipulihkan.</p>
+    <div class="list">${deleted.length ? deleted.map((sale) => `<div class="row" data-trash-id="${sale.id}"><div><b>${escapeHtml(sale.invoiceNumber)}</b><small>${escapeHtml(sale.customerName)} · ${escapeHtml(sale.saleDate)}</small></div><button class="btn small secondary" data-restore="${sale.id}">Pulihkan</button></div>`).join('') : '<div class="empty-state"><p>Tempat sampah kosong.</p></div>'}</div></div>`;
+  root.querySelectorAll('[data-restore]').forEach((button) => button.onclick = async () => {
+    const sale = await db.get('sales', button.dataset.restore); if (!sale) return;
+    sale.isDeleted = 0; sale.updatedAt = new Date().toISOString(); await db.put('sales', sale);
+    await recordAudit('restore', 'sale', sale.id, `Nota ${sale.invoiceNumber} dipulihkan`); toast('Nota dipulihkan'); await renderTrash(root);
+  });
+}
+
+async function renderAudit(root) {
+  setPageTitle('Riwayat Aktivitas'); setTopbarActions([]);
+  const logs = await getAuditLogs();
+  root.innerHTML = `<div class="settings-simple-page"><p class="row-meta">Riwayat disimpan di perangkat dan ikut tercadangkan.</p><div class="list">${logs.length ? logs.map((log) => `<div class="row"><div><b>${escapeHtml(log.details || log.action)}</b><small>${escapeHtml(log.entityType)} · ${new Date(log.createdAt).toLocaleString('id-ID')}</small></div></div>`).join('') : '<div class="empty-state"><p>Belum ada aktivitas tercatat.</p></div>'}</div></div>`;
 }
 
 async function renderStore(root) {

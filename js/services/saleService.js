@@ -7,6 +7,7 @@ import { generateAndAdvance } from './invoiceNumber.js';
 import { saveCustomer } from './customerService.js';
 import { getSaleProductPriceUpdates } from './productService.js';
 import { isSettlementDue, settlementChanges } from './automaticSettlement.js';
+import { recordAudit } from './auditLogService.js';
 
 export class AppError extends Error {
   constructor(message) {
@@ -111,6 +112,7 @@ export async function createSale({ customer, lines, adjustments = null, discount
       }];
     }
     await db.bulkPutMulti(writes);
+    await recordAudit('create', 'sale', saleId, `Nota ${invoiceNumber} dibuat`);
     return saleId;
   } catch (e) {
     if (e instanceof AppError) throw e;
@@ -282,10 +284,24 @@ export async function deleteSale(saleId) {
     sale.isDeleted = 1;
     sale.updatedAt = new Date().toISOString();
     await db.put('sales', sale);
+    await recordAudit('trash', 'sale', saleId, `Nota ${sale.invoiceNumber} dipindahkan ke tempat sampah`);
   } catch (e) {
     console.error('[SaleService.deleteSale]', e);
     throw new AppError('Gagal menghapus data. Silakan coba lagi.');
   }
+}
+
+export async function duplicateSale(saleId) {
+  const source = await getSaleSummary(saleId);
+  if (!source) throw new AppError('Nota tidak ditemukan.');
+  const items = await db.getByIndex('saleItems', 'saleId', saleId);
+  const lines = items.map((item) => ({ productId: item.productId, name: item.productName, unit: item.unit, qty: item.qty, price: item.price, note: item.note }));
+  const id = await createSale({
+    customer: { id: source.sale.customerId, name: source.sale.customerName, phone: source.sale.customerPhone, address: source.sale.customerAddress },
+    lines, adjustments: source.sale.adjustments, saleDate: todayDbDate(), saleTime: timeLabel(new Date()), note: source.sale.note || '',
+  });
+  await recordAudit('duplicate', 'sale', id, `Salinan dari nota ${source.sale.invoiceNumber}`);
+  return id;
 }
 
 /**

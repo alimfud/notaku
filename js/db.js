@@ -4,7 +4,7 @@
 // terpusat di sini — modul lain tidak boleh buka koneksi sendiri.
 
 const DB_NAME = 'notaku-db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let _dbPromise = null;
 
@@ -124,6 +124,12 @@ function openDb() {
         const s = db.createObjectStore('expenses', { keyPath: 'id' });
         s.createIndex('expenseDate', 'expenseDate');
         s.createIndex('category', 'category');
+      }
+      // auditLogs — riwayat tindakan penting untuk pelacakan perubahan data.
+      if (!db.objectStoreNames.contains('auditLogs')) {
+        const s = db.createObjectStore('auditLogs', { keyPath: 'id' });
+        s.createIndex('createdAt', 'createdAt');
+        s.createIndex('entityType', 'entityType');
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -288,7 +294,7 @@ export async function clearStore(store) {
 }
 
 export async function clearAll() {
-  const stores = ['products', 'customers', 'sales', 'saleItems', 'payments', 'expenses', 'settings'];
+  const stores = ['products', 'customers', 'sales', 'saleItems', 'payments', 'expenses', 'settings', 'auditLogs'];
   invalidateStores(stores);
   const t = await tx(stores, 'readwrite');
   return new Promise((resolve, reject) => {
@@ -300,7 +306,7 @@ export async function clearAll() {
 
 /** Dump seluruh database jadi objek biasa (dipakai BackupService). */
 export async function dumpAll() {
-  const stores = ['products', 'customers', 'sales', 'saleItems', 'payments', 'expenses', 'settings'];
+  const stores = ['products', 'customers', 'sales', 'saleItems', 'payments', 'expenses', 'settings', 'auditLogs'];
   const out = {};
   for (const s of stores) out[s] = await getAll(s);
   return out;
@@ -312,7 +318,7 @@ export async function restoreAll(dump) {
   const storeToValues = {};
   // Backup versi lama belum punya expenses; jangan mengirim store asing ke
   // transaction dan jangan gagal saat restore backup lama.
-  for (const key of ['products', 'customers', 'sales', 'saleItems', 'payments', 'expenses', 'settings']) {
+  for (const key of ['products', 'customers', 'sales', 'saleItems', 'payments', 'expenses', 'settings', 'auditLogs']) {
     storeToValues[key] = Array.isArray(dump[key]) ? dump[key] : [];
   }
   await bulkPutMulti(storeToValues);

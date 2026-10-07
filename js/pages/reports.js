@@ -45,6 +45,10 @@ export async function render(root) {
       <button type="button" role="tab" data-report-view="period">Periode</button>
       <button type="button" role="tab" data-report-view="overall">Keseluruhan</button>
     </div>
+    <div class="reports-export-actions">
+      <button type="button" class="btn small secondary" id="exportReportCsv">Export Excel (CSV)</button>
+      <button type="button" class="btn small secondary" id="exportReportPdf">Export PDF</button>
+    </div>
     <section class="reports-view-panel" data-report-panel="period" role="tabpanel">
       <div class="reports-layout-1 chip-scroll">
         <button class="chip" data-p="today">Hari Ini</button>
@@ -81,6 +85,34 @@ export async function render(root) {
   availableYears = Array.from({ length: selectedYear - earliestDataYear + 1 }, (_, index) => selectedYear - index);
   await drawAllTime(root, allTimeData);
   updateReportView(root);
+  root.querySelector('#exportReportCsv').onclick = () => exportReport(root, 'csv');
+  root.querySelector('#exportReportPdf').onclick = () => exportReport(root, 'pdf');
+}
+
+async function exportReport(root, format) {
+  const referenceDate = _period === 'month' ? selectedMonth : new Date(selectedYear, 0, 1);
+  const data = await generateReport(_period, referenceDate);
+  const rows = [
+    ['Laporan NotaKu', data.periodLabel],
+    ['Omzet', data.revenue], ['Transaksi', data.transactionCount],
+    ['Pengeluaran', data.expenseTotal], ['Sisa omzet', data.netIncome],
+    ['Piutang', data.totalReceivables],
+  ];
+  if (format === 'csv') {
+    const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(';')).join('\n');
+    const blob = new Blob(['\\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href = url; a.download = `notaku-laporan-${data.periodLabel.replaceAll(' ', '-')}.csv`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return;
+  }
+  const script = document.createElement('script');
+  script.src = '../vendor/jspdf.umd.min.js';
+  await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = reject; document.head.appendChild(script); });
+  const pdf = new window.jspdf.jsPDF();
+  pdf.setFontSize(16); pdf.text('Laporan NotaKu', 15, 18); pdf.setFontSize(11); pdf.text(data.periodLabel, 15, 27);
+  rows.slice(2).forEach((row, index) => pdf.text(`${row[0]}: ${row[1]}`, 15, 42 + index * 8));
+  pdf.save(`notaku-laporan-${data.periodLabel.replaceAll(' ', '-')}.pdf`);
 }
 
 function updateReportView(root) {
