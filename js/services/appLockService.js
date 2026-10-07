@@ -1,6 +1,6 @@
-// appLockService.js — kunci lokal untuk melindungi aplikasi saat dibuka kembali.
-// PIN tidak disimpan dalam bentuk asli. Biometrik memakai WebAuthn sehingga
-// sidik jari tetap diproses oleh sistem operasi/browser, bukan oleh NotaKu.
+// appLockService.js — kunci biometrik lokal saat aplikasi dibuka kembali.
+// WebAuthn membuat sidik jari/Face Unlock tetap diproses oleh perangkat,
+// bukan dibaca atau disimpan oleh NotaKu.
 
 import { getSettings } from './settingsService.js';
 
@@ -27,17 +27,6 @@ export function biometricSupported() {
       && navigator.credentials?.create
       && navigator.credentials?.get,
   );
-}
-
-export async function hashPin(pin) {
-  const value = new TextEncoder().encode(String(pin));
-  const digest = await crypto.subtle.digest('SHA-256', value);
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
-}
-
-export async function verifyPin(pin, expectedHash) {
-  if (!expectedHash) return false;
-  return (await hashPin(pin)) === expectedHash;
 }
 
 export async function registerBiometric() {
@@ -101,41 +90,14 @@ function showLockScreen(settings) {
     <section class="app-lock-card">
       <div class="app-lock-mark" aria-hidden="true">🔒</div>
       <h1 id="appLockTitle">NotaKu terkunci</h1>
-      <p>Masukkan PIN untuk melanjutkan aktivitas di aplikasi.</p>
-      <form class="app-lock-pin-form" novalidate>
-        <label for="appLockPin">PIN aplikasi</label>
-        <input id="appLockPin" type="password" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="12" autocomplete="off" placeholder="Minimal 4 digit">
-        <button class="btn app-lock-submit" type="submit">Buka dengan PIN</button>
-      </form>
-      ${security.biometricEnabled ? '<button type="button" class="btn secondary app-lock-biometric">Gunakan sidik jari</button>' : ''}
+      <p>Verifikasi sidik jari atau Face Unlock untuk melanjutkan aktivitas di aplikasi.</p>
+      <button type="button" class="btn app-lock-biometric">Buka dengan sidik jari</button>
       <div class="app-lock-error" role="alert" aria-live="polite"></div>
-      <button type="button" class="app-lock-forgot">Lupa PIN?</button>
     </section>`;
   document.body.appendChild(lockBackdrop);
   document.body.classList.add('app-is-locked');
-  const pinInput = lockBackdrop.querySelector('#appLockPin');
   const error = lockBackdrop.querySelector('.app-lock-error');
-  const fail = (message) => {
-    error.textContent = message;
-    pinInput.value = '';
-    pinInput.focus();
-  };
-  lockBackdrop.querySelector('.app-lock-pin-form').onsubmit = async (event) => {
-    event.preventDefault();
-    const pin = pinInput.value.trim();
-    if (!/^\d{4,12}$/.test(pin)) {
-      fail('PIN harus berisi 4–12 digit angka.');
-      return;
-    }
-    const valid = await verifyPin(pin, security.pinHash);
-    if (!valid) {
-      fail('PIN salah. Coba lagi.');
-      return;
-    }
-    unlocked = true;
-    removeLockScreen();
-  };
-  lockBackdrop.querySelector('.app-lock-biometric')?.addEventListener('click', async (event) => {
+  lockBackdrop.querySelector('.app-lock-biometric').addEventListener('click', async (event) => {
     const button = event.currentTarget;
     button.disabled = true;
     error.textContent = 'Menunggu verifikasi perangkat…';
@@ -148,40 +110,12 @@ function showLockScreen(settings) {
       button.disabled = false;
     }
   });
-  lockBackdrop.querySelector('.app-lock-forgot').addEventListener('click', async (event) => {
-    const button = event.currentTarget;
-    button.disabled = true;
-    error.textContent = security.biometricEnabled
-      ? 'Verifikasi sidik jari untuk memulihkan akses…'
-      : 'Memeriksa akun Google yang terhubung…';
-    try {
-      if (security.biometricEnabled) {
-        await authenticateBiometric(security.biometricCredentialId);
-      } else {
-        const drive = await import('./driveBackupService.js');
-        const current = await getSettings();
-        if (!current.autoBackup?.driveConnected || !current.autoBackup?.driveAccountEmail) {
-          throw new Error('Pemulihan PIN membutuhkan sidik jari atau akun Google Drive yang sebelumnya sudah terhubung.');
-        }
-        await drive.connectAccount({ renew: true });
-      }
-      unlocked = true;
-      removeLockScreen();
-      window.location.hash = '#/settings/security';
-    } catch (reason) {
-      error.textContent = reason?.name === 'NotAllowedError'
-        ? 'Verifikasi dibatalkan atau tidak berhasil.'
-        : (reason?.message || 'PIN belum dapat dipulihkan.');
-      button.disabled = false;
-    }
-  });
-  pinInput.focus();
 }
 
 export async function lockApplication({ force = false, background = false } = {}) {
   const settings = await getSettings();
   const security = settings.security || {};
-  if (!security.pinEnabled && !security.biometricEnabled) return false;
+  if (!security.biometricEnabled) return false;
   if (background && security.lockOnBackground === false) return false;
   if (force) unlocked = false;
   if (unlocked) return false;

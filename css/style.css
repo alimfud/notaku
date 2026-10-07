@@ -294,13 +294,5 @@ body{
 .app-lock-mark{width:58px;height:58px;margin:0 auto 12px;display:grid;place-items:center;border-radius:18px;background:var(--primary-container);font-size:27px;}
 .app-lock-card h1{margin:0;font-size:22px;}
 .app-lock-card p{margin:7px auto 20px;max-width:290px;color:var(--muted);font-size:13px;line-height:1.5;}
-.app-lock-pin-form{display:grid;gap:8px;text-align:left;}
-.app-lock-pin-form label{font-size:12px;font-weight:700;color:var(--ink-soft);}
-.app-lock-pin-form input{width:100%;box-sizing:border-box;padding:13px 14px;border:1px solid var(--outline);border-radius:11px;background:var(--surface-dim);color:var(--ink);font:inherit;font-size:20px;letter-spacing:5px;text-align:center;}
-.app-lock-pin-form input:focus{outline:2px solid var(--primary);outline-offset:1px;}
-.app-lock-submit{width:100%;margin:4px 0 0;}
 .app-lock-biometric{width:100%;margin:10px 0 0;}
 .app-lock-error{min-height:18px;margin-top:12px;color:var(--danger,#b33b47);font-size:12px;line-height:1.4;}
-.app-lock-forgot{margin-top:4px;padding:5px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:11px;text-decoration:underline;text-underline-offset:2px;cursor:pointer;}
-.app-lock-forgot:hover,.app-lock-forgot:focus-visible{color:var(--ink);}
-.app-lock-forgot:disabled{cursor:wait;opacity:.55;}
