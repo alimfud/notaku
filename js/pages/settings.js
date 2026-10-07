@@ -1,7 +1,7 @@
 // pages/settings.js
 
 import { getSettings, saveSettings } from '../services/settingsService.js';
-import { createBackupBlob, downloadBackup, restoreFromFile, getBackupSummary } from '../services/backupService.js';
+import { createBackupBlob, downloadBackup, restoreFromFile, getBackupSummary, compareBackupFile } from '../services/backupService.js';
 import { importLegacyFile } from '../services/legacyImportService.js';
 import { escapeHtml } from '../format.js';
 import { confirmDialog, alertDialog } from '../ui/dialog.js';
@@ -419,14 +419,16 @@ async function renderBackup(root) {
   root.querySelector('#fileRestore').onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const confirmed = await confirmDialog({
-      title: 'Timpa Semua Data?',
-      message: `Seluruh nota, produk, dan pelanggan yang ada SAAT INI akan diganti dengan isi file "${file.name}". Tindakan ini tidak bisa dibatalkan. Lanjutkan?`,
-      confirmLabel: 'Ya, Timpa Data', dangerous: true,
-    });
-    e.target.value = '';
-    if (!confirmed) return;
     try {
+      const comparison = await compareBackupFile(file);
+      const c = comparison.counts;
+      const confirmed = await confirmDialog({
+        title: 'Periksa sebelum memulihkan',
+        message: `File "${file.name}" berisi ${comparison.backupTotal} data, sedangkan perangkat ini memiliki ${comparison.localTotal} data.\n\nNota: ${c.sales.local} → ${c.sales.backup}\nProduk: ${c.products.local} → ${c.products.backup}\nPelanggan: ${c.customers.local} → ${c.customers.backup}\nPengeluaran: ${c.expenses.local} → ${c.expenses.backup}\n\nData lokal akan DIGANTI dengan isi file backup.`,
+        confirmLabel: 'Ya, Pulihkan Data', dangerous: true,
+      });
+      e.target.value = '';
+      if (!confirmed) return;
       await restoreFromFile(file);
       await alertDialog({ title: 'Berhasil', message: 'Data berhasil dipulihkan dari cadangan.' });
       navigate('home');

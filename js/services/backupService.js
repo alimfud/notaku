@@ -28,6 +28,17 @@ export async function getBackupSummary() {
   return { counts, totalRecords: Object.values(counts).reduce((sum, count) => sum + count, 0) };
 }
 
+export async function compareBackupFile(file) {
+  const text = await file.text();
+  let payload;
+  try { payload = JSON.parse(text); } catch { throw new Error('File cadangan tidak valid (bukan format JSON NotaKu).'); }
+  if (payload.app !== 'notaku' || !payload.data) throw new Error('File ini bukan file cadangan NotaKu yang valid.');
+  const local = await db.dumpAll();
+  const keys = ['sales', 'saleItems', 'payments', 'products', 'customers', 'expenses', 'auditLogs'];
+  const counts = Object.fromEntries(keys.map((key) => [key, { local: local[key]?.length || 0, backup: Array.isArray(payload.data[key]) ? payload.data[key].length : 0 }]));
+  return { payload, counts, localTotal: keys.reduce((sum, key) => sum + counts[key].local, 0), backupTotal: keys.reduce((sum, key) => sum + counts[key].backup, 0) };
+}
+
 export function downloadBackup(blob) {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const filename = `notaku-backup-${stamp}.json`;
@@ -44,16 +55,7 @@ export function downloadBackup(blob) {
 
 /** Restore MENGGANTI seluruh data aktif. Panggilan ini harus sudah dikonfirmasi user. */
 export async function restoreFromFile(file) {
-  const text = await file.text();
-  let payload;
-  try {
-    payload = JSON.parse(text);
-  } catch (e) {
-    throw new Error('File cadangan tidak valid (bukan format JSON NotaKu).');
-  }
-  if (payload.app !== 'notaku' || !payload.data) {
-    throw new Error('File ini bukan file cadangan NotaKu yang valid.');
-  }
+  const { payload } = await compareBackupFile(file);
   await db.restoreAll(payload.data);
   // Settings dibaca dan di-cache oleh UI. Tanpa ini, Pull dari cloud dapat
   // memakai konfigurasi lama lalu menimpanya lagi ketika status sync disimpan.
