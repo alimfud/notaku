@@ -6,6 +6,7 @@ import { rupiah, qtyLabel, escapeHtml, dateShort } from '../format.js';
 import { dailyChart, statusChart, wireBusinessCharts } from '../ui/businessCharts.js';
 import { setPageTitle, setTopbarActions } from '../app.js';
 import { toast } from '../ui/toast.js';
+import * as db from '../db.js';
 
 let _period = 'year';
 let reportView = 'period';
@@ -94,14 +95,13 @@ async function exportReport(root, format) {
   try {
     const referenceDate = _period === 'month' ? selectedMonth : new Date(selectedYear, 0, 1);
     const data = await generateReport(_period, referenceDate);
-    const rows = [
-      ['Laporan NotaKu', data.periodLabel],
-      ['Omzet', data.revenue], ['Transaksi', data.transactionCount],
-      ['Pengeluaran', data.expenseTotal], ['Sisa omzet', data.netIncome],
-      ['Piutang', data.totalReceivables],
-    ];
-    const filename = `notaku-laporan-${String(data.periodLabel || 'periode').replaceAll(' ', '-')}`;
+    const exported = await buildExportDataset(data);
+    const filename = `notaku-data-${String(exported.label || 'keseluruhan').replaceAll(' ', '-')}`;
     if (format === 'csv') {
+      const rows = [['Bagian', 'Data']];
+      for (const [section, records] of Object.entries(exported.sections)) {
+        for (const record of records) rows.push([section, JSON.stringify(record)]);
+      }
       const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(';')).join('\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob); const a = document.createElement('a');
@@ -118,8 +118,22 @@ async function exportReport(root, format) {
     }
     if (!window.jspdf?.jsPDF) throw new Error('Komponen PDF belum berhasil dimuat. Coba lagi.');
     const pdf = new window.jspdf.jsPDF();
-    pdf.setFontSize(16); pdf.text('Laporan NotaKu', 15, 18); pdf.setFontSize(11); pdf.text(String(data.periodLabel || ''), 15, 27);
-    rows.slice(2).forEach((row, index) => pdf.text(`${row[0]}: ${row[1]}`, 15, 42 + index * 8));
+    pdf.setFontSize(16); pdf.text('Export Data NotaKu', 15, 18); pdf.setFontSize(10); pdf.text(String(exported.label || ''), 15, 26);
+    let y = 38;
+    for (const [section, records] of Object.entries(exported.sections)) {
+      if (!records.length) continue;
+      pdf.setFontSize(12); pdf.text(`${section} (${records.length})`, 15, y); y += 7;
+      pdf.setFontSize(8);
+      for (const record of records) {
+        const lines = pdf.splitTextToSize(JSON.stringify(record), 180);
+        for (const line of lines) {
+          if (y > 285) { pdf.addPage(); y = 18; }
+          pdf.text(line, 15, y); y += 4;
+        }
+        y += 2;
+      }
+      y += 4;
+    }
     // Gunakan Blob + anchor seperti export CSV agar kompatibel dengan browser
     // Android yang kadang menolak pdf.save() langsung dari library.
     const pdfBlob = pdf.output('blob');
@@ -133,6 +147,25 @@ async function exportReport(root, format) {
     console.error('[exportReport]', error);
     toast(error.message || 'Laporan belum dapat diekspor. Coba lagi.');
   }
+}
+
+async function buildExportDataset(report) {
+  const all = await db.dumpAll();
+  const allData = reportView === 'overall';
+  const inRange = (value) => allData || (!value ? false : value >= report.start && value <= report.end);
+  const sales = allData ? all.sales : all.sales.filter((row) => !row.isDeleted && inRange(row.saleDate));
+  const saleIds = new Set(sales.map((row) => row.id));
+  const sections = {
+    Nota: sales,
+    DetailNota: allData ? all.saleItems : all.saleItems.filter((row) => saleIds.has(row.saleId)),
+    Pembayaran: allData ? all.payments : all.payments.filter((row) => saleIds.has(row.saleId) || inRange(row.paymentDate)),
+    Pengeluaran: allData ? all.expenses : all.expenses.filter((row) => inRange(row.expenseDate)),
+    Produk: all.products,
+    Pelanggan: all.customers,
+    RiwayatAktivitas: allData ? (all.auditLogs || []) : (all.auditLogs || []).filter((row) => inRange(String(row.createdAt || '').slice(0, 10))),
+    Pengaturan: all.settings,
+  };
+  return { label: allData ? 'Keseluruhan data' : `${report.periodLabel} (${report.start} s/d ${report.end})`, sections };
 }
 
 function updateReportView(root) {
