@@ -153,6 +153,17 @@ export function replaceRoute(route) {
 }
 
 export function navigateBack() {
+  // Setelah OAuth Google selesai, halaman login tidak boleh muncul lagi saat
+  // pengguna menekan Back dari halaman Atur Backup Otomatis.
+  if (window.location.hash === '#/settings/autobackup') {
+    try {
+      if (sessionStorage.getItem('notaku-google-returned') === '1') {
+        sessionStorage.removeItem('notaku-google-returned');
+        navigate('home');
+        return;
+      }
+    } catch { /* private mode */ }
+  }
   if (window.history.length > 1) {
     history.back();
   } else {

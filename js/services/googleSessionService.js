@@ -48,7 +48,10 @@ export function beginPersistentLogin(email = '') {
   const target = new URL('/api/google', location.origin);
   target.searchParams.set('action', 'start');
   if (email) target.searchParams.set('email', email);
-  location.assign(target.href);
+  // Jangan menambahkan URL OAuth ke history browser. Jika memakai assign(),
+  // tombol Back dapat membuka ulang halaman persetujuan Google.
+  try { sessionStorage.setItem('notaku-google-login-active', '1'); } catch { /* private mode */ }
+  location.replace(target.href);
   return new Promise(() => {});
 }
 
@@ -66,6 +69,10 @@ export function consumeGoogleLoginMessage() {
   if (!result) return '';
   url.searchParams.delete('google');
   history.replaceState(null, '', url.href);
+  try {
+    sessionStorage.removeItem('notaku-google-login-active');
+    sessionStorage.setItem('notaku-google-returned', '1');
+  } catch { /* private mode */ }
   return ({ connected: 'Akun Google terhubung. Sesi dipulihkan otomatis saat aplikasi dibuka.',
     cancelled: 'Penyambungan Google dibatalkan.', wrong_account: 'Pilih akun Google yang sebelumnya terhubung.',
     consent_required: 'Google belum memberikan akses berkelanjutan. Hubungkan akun lagi dan setujui izin yang diminta.',
