@@ -6,10 +6,12 @@ import { rupiah, dateShort, escapeHtml, initials } from '../format.js';
 import { STATUS_LABEL } from '../services/saleCalculation.js';
 import { navigate, setPageTitle, setTopbarActions } from '../app.js';
 
+let dashboardPeriod = 'week';
+
 export async function render(root) {
   setPageTitle('NotaKu');
   setTopbarActions([]);
-  const [summaries, settings, report, orders, annual] = await Promise.all([getAllSaleSummaries(), getSettings(), generateReport('week'), generateReport('orders-last7'), generateAnnualTrend()]);
+  const [summaries, settings, report, orders, annual] = await Promise.all([getAllSaleSummaries(), getSettings(), generateReport(dashboardPeriod), generateReport(dashboardPeriod === 'week' ? 'orders-last7' : dashboardPeriod), generateAnnualTrend()]);
   if (root.dataset.pendingPage !== 'dashboard') return;
   const { start, end } = report;
   const periodLabel = `${dateShort(start)} – ${dateShort(end)}`;
@@ -27,6 +29,7 @@ export async function render(root) {
       <section class="dashboard-hero"><div class="dashboard-label">Nilai pesanan</div><small class="dashboard-period">7 hari terakhir · ${orderPeriodLabel}</small><div class="dashboard-revenue">${rupiah(orders.revenue)}</div>${annualMiniChart(annual)}<div class="dashboard-hero-bottom"><div><span>Nota dibuat</span><strong>${orders.transactionCount} nota</strong></div><div><span>Pembayaran masuk</span><strong>${rupiah(orders.received)}</strong></div></div></section>
       <section class="dashboard-attention"><div class="dashboard-card-heading"><div><span>PERLU PERHATIAN </span></div><small>${periodLabel}</small></div><div class="dashboard-attention-list"><div class="dashboard-attention-item dashboard-attention-item--pickup"><span class="dashboard-attention-icon" aria-hidden="true">${shortcutIcon('calendar')}</span><span class="dashboard-attention-copy"><b>Jadwal Pickup</b><small>Pesanan akan diambil</small></span><button class="dashboard-attention-action" data-go="home/pickup" aria-label="Buka Jadwal Pickup"><strong>${pickupCountText}<i aria-hidden="true">›</i></strong></button></div><div class="dashboard-attention-item dashboard-attention-item--unpaid"><span class="dashboard-attention-icon" aria-hidden="true">${shortcutIcon('wallet')}</span><span class="dashboard-attention-copy"><b>Belum Lunas</b><small>Piutang periode ini</small></span><button class="dashboard-attention-action" data-go="home/unpaid" aria-label="Buka daftar Belum Lunas"><strong>${unpaidValue}<i aria-hidden="true">›</i></strong></button></div></div></section>
     </div>
+    <div class="dashboard-period-filter" aria-label="Filter periode dashboard">${[['today','Hari ini'],['week','7 hari'],['month','Bulan ini'],['year','Tahun ini']].map(([value,label]) => `<button type="button" data-dashboard-period="${value}" class="${dashboardPeriod === value ? 'active' : ''}">${label}</button>`).join('')}</div>
     <div class="dashboard-section"><h3>Akses cepat</h3></div>
     <div class="dashboard-shortcuts">${[['customers','Pelanggan','users'],['expenses','Pengeluaran','wallet'],['reports','Laporan','chart'],['settings','Lainnya','settings']].map(([route, label, icon]) => `<button data-go="${route}"><span class="dashboard-shortcut-icon">${shortcutIcon(icon)}</span>${label}</button>`).join('')}</div>
     
@@ -38,6 +41,7 @@ export async function render(root) {
 	${dailyChart(orders.daily, { compact: true, dateBasis: 'created', periodLabel: orderPeriodLabel })}
   `;
   root.querySelectorAll('[data-go]').forEach(button => button.onclick = () => navigate(button.dataset.go));
+  root.querySelectorAll('[data-dashboard-period]').forEach((button) => { button.onclick = () => { dashboardPeriod = button.dataset.dashboardPeriod; void render(root); }; });
   wireBusinessCharts(root);
 }
 

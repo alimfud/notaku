@@ -270,6 +270,11 @@ export async function updateSale(saleId, { customer, lines, adjustments = null, 
     if (productUpdates.length) writes.products = productUpdates;
     await db.removeByIndex('saleItems', 'saleId', saleId);
     await db.bulkPutMulti(writes);
+    const changed = [];
+    for (const key of ['customerName', 'customerPhone', 'customerAddress', 'saleDate', 'saleTime', 'total', 'note', 'status']) {
+      if (String(existing[key] ?? '') !== String(updatedSale[key] ?? '')) changed.push(`${key}: "${existing[key] ?? ''}" → "${updatedSale[key] ?? ''}"`);
+    }
+    await recordAudit('update', 'sale', saleId, changed.length ? `Nota ${existing.invoiceNumber} diubah — ${changed.join('; ')}` : `Nota ${existing.invoiceNumber} dibuka tanpa perubahan nilai`);
   } catch (e) {
     if (e instanceof AppError) throw e;
     console.error('[SaleService.updateSale]', e);
