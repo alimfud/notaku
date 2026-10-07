@@ -234,6 +234,9 @@ function parseHash() {
 
 async function handleRouteChange() {
   const token = ++currentToken;
+  // Penanda perubahan hanya berlaku selama halaman form nota. Setelah route
+  // berganti ke detail atau halaman lain, jangan bawa peringatan form lama.
+  delete pageRoot.dataset.formDirty;
   const { route, params } = parseHash();
 
   const isTopLevel = TOP_LEVEL_ROUTES.includes(route) && params.length === 0;
