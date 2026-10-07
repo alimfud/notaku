@@ -338,6 +338,10 @@ function registerServiceWorker() {
 (async function boot() {
   if (!window.location.hash) window.location.hash = '#/dashboard';
   await handleRouteChange();
+  // Kunci awal hanya tampil jika pengguna memang sudah mengaktifkannya dari
+  // Pengaturan. PIN/biometrik tidak pernah dikirim ke server.
+  const appLock = await import('./services/appLockService.js');
+  await appLock.lockApplication({ force: true });
   // Pastikan pengingat sinkronisasi tampil sebelum aplikasi mulai memuat
   // navigasi tambahan atau menjalankan aktivitas latar belakang lain.
   await checkAutomaticSync({ promptIfNeeded: true });
@@ -355,8 +359,15 @@ function registerServiceWorker() {
   // setelah dikunci) — ini bagian dari pendekatan "catch-up" untuk aturan
   // auto-lunas & jadwal backup, lihat komentar di saleService.js dan
   // driveBackupService.js soal batasan "otomatis" pada web app statis.
-  document.addEventListener('visibilitychange', () => {
+  let appWasHidden = false;
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'hidden') {
+      appWasHidden = true;
+      return;
+    }
     if (document.visibilityState === 'visible') {
+      if (appWasHidden) await appLock.lockApplication({ force: true, background: true });
+      appWasHidden = false;
       runBackgroundChecks();
       checkAutomaticSync({ promptIfNeeded: true });
     }

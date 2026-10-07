@@ -12,6 +12,7 @@ import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
 import { bindThemeSwitch } from '../theme.js';
 import * as db from '../db.js';
 import { getAuditLogs, recordAudit } from '../services/auditLogService.js';
+import { hashPin, registerBiometric, biometricSupported } from '../services/appLockService.js';
 
 export async function render(root, params) {
   const sub = params[0];
@@ -19,6 +20,7 @@ export async function render(root, params) {
   if (sub === 'invoice') return renderInvoice(root);
   if (sub === 'printer') return renderPrinter(root);
   if (sub === 'qris') return renderQris(root);
+  if (sub === 'security') return renderSecurity(root);
   if (sub === 'backup') return renderBackup(root);
   if (sub === 'autobackup') return renderAutoBackup(root);
   if (sub === 'trash') return renderTrash(root);
@@ -47,6 +49,7 @@ function renderHub(root) {
       ${tile('🧾', 'Nomor Nota', 'Prefix, digit, mode reset nomor', 'settings/invoice')}
       ${tile('🖨️', 'Printer', 'Ukuran kertas & printer Bluetooth', 'settings/printer')}
       ${tile('🔳', 'QRIS', 'Tampilkan kode QRIS di struk belum lunas', 'settings/qris')}
+      ${tile('🔒', 'Kunci Aplikasi', 'PIN dan sidik jari saat membuka NotaKu', 'settings/security')}
       <div class="settings-spacer"></div>
       ${tile('☁️', 'Backup / Restore', 'Cadangkan data & impor database lama', 'settings/backup')}
       ${tile('🗑️', 'Tempat Sampah', 'Pulihkan nota yang terhapus', 'settings/trash')}
@@ -72,6 +75,88 @@ function renderHub(root) {
   root.querySelectorAll('[data-route]').forEach((el) => {
     el.onclick = () => navigate(el.dataset.route);
   });
+}
+
+async function renderSecurity(root) {
+  setPageTitle('Kunci Aplikasi');
+  setTopbarActions([]);
+  const settings = await getSettings();
+  const security = settings.security || {};
+  const biometricReady = biometricSupported();
+  root.innerHTML = `
+    <div class="settings-simple-page settings-security-page">
+      <div class="settings-page-intro">
+        <h2>Kunci Aplikasi</h2>
+        <p>Lindungi data NotaKu ketika aplikasi dibuka kembali. PIN disimpan sebagai hash, sedangkan sidik jari diproses oleh perangkat.</p>
+      </div>
+      <section class="settings-security-card">
+        <div class="settings-security-heading"><span class="settings-security-icon">🔢</span><div><b>Kunci dengan PIN</b><small>Minimal 4 digit angka</small></div><span class="settings-security-status" data-pin-status>${security.pinEnabled ? 'Aktif' : 'Belum aktif'}</span></div>
+        <div class="settings-security-actions">
+          <button type="button" class="btn small" id="btnSetupPin">${security.pinEnabled ? 'Ubah PIN' : 'Buat PIN'}</button>
+          ${security.pinEnabled ? '<button type="button" class="btn small ghost" id="btnDisablePin">Matikan</button>' : ''}
+        </div>
+        <form class="settings-pin-form" id="settingsPinForm" hidden>
+          <label>PIN baru<input id="newPin" type="password" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="12" autocomplete="new-password" placeholder="Minimal 4 digit" required></label>
+          <label>Ulangi PIN<input id="confirmPin" type="password" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="12" autocomplete="new-password" placeholder="Ulangi PIN" required></label>
+          <div class="settings-security-form-actions"><button type="submit" class="btn small">Simpan PIN</button><button type="button" class="btn small ghost" id="btnCancelPin">Batal</button></div>
+        </form>
+      </section>
+      <section class="settings-security-card">
+        <div class="settings-security-heading"><span class="settings-security-icon">👆</span><div><b>Sidik jari perangkat</b><small>${biometricReady ? 'Gunakan sidik jari atau Face Unlock perangkat' : 'Browser/perangkat ini belum mendukung WebAuthn'}</small></div><span class="settings-security-status" data-biometric-status>${security.biometricEnabled ? 'Aktif' : 'Belum aktif'}</span></div>
+        <div class="settings-security-actions">
+          <button type="button" class="btn small secondary" id="btnSetupBiometric" ${biometricReady ? '' : 'disabled'}>${security.biometricEnabled ? 'Daftar ulang' : 'Aktifkan sidik jari'}</button>
+          ${security.biometricEnabled ? '<button type="button" class="btn small ghost" id="btnDisableBiometric">Matikan</button>' : ''}
+        </div>
+      </section>
+      <label class="settings-security-toggle"><span><b>Kunci saat kembali ke aplikasi</b><small>NotaKu akan meminta PIN/sidik jari setelah tab ditinggalkan.</small></span><input type="checkbox" id="lockOnBackground" ${security.lockOnBackground !== false ? 'checked' : ''}></label>
+      <div class="settings-security-note">Catatan: sidik jari tidak dibaca atau disimpan oleh NotaKu. Browser akan menampilkan verifikasi biometrik bawaan perangkat pada domain HTTPS.</div>
+    </div>`;
+
+  const pinForm = root.querySelector('#settingsPinForm');
+  root.querySelector('#btnSetupPin').onclick = () => {
+    pinForm.hidden = !pinForm.hidden;
+    if (!pinForm.hidden) root.querySelector('#newPin').focus();
+  };
+  root.querySelector('#btnCancelPin').onclick = () => { pinForm.hidden = true; pinForm.reset(); };
+  pinForm.onsubmit = async (event) => {
+    event.preventDefault();
+    const pin = root.querySelector('#newPin').value.trim();
+    const confirmation = root.querySelector('#confirmPin').value.trim();
+    if (!/^\d{4,12}$/.test(pin)) { toast('PIN harus berisi 4–12 digit angka.'); return; }
+    if (pin !== confirmation) { toast('Ulangan PIN belum sama.'); return; }
+    await saveSettings({ security: { ...security, pinEnabled: true, pinHash: await hashPin(pin) } });
+    toast('PIN aplikasi berhasil diaktifkan.');
+    await renderSecurity(root);
+  };
+  root.querySelector('#btnDisablePin')?.addEventListener('click', async () => {
+    const confirmed = await confirmDialog({ title: 'Matikan kunci PIN?', message: 'Aplikasi tidak akan meminta PIN lagi saat dibuka kembali.' });
+    if (!confirmed) return;
+    await saveSettings({ security: { ...security, pinEnabled: false, pinHash: '' } });
+    toast('Kunci PIN dimatikan.');
+    await renderSecurity(root);
+  });
+  root.querySelector('#btnSetupBiometric').onclick = async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      const credentialId = await registerBiometric();
+      await saveSettings({ security: { ...security, biometricEnabled: true, biometricCredentialId: credentialId } });
+      toast('Kunci sidik jari berhasil diaktifkan.');
+      await renderSecurity(root);
+    } catch (error) {
+      toast(error?.name === 'NotAllowedError' ? 'Pendaftaran sidik jari dibatalkan.' : (error.message || 'Sidik jari belum dapat diaktifkan.'));
+      button.disabled = false;
+    }
+  };
+  root.querySelector('#btnDisableBiometric')?.addEventListener('click', async () => {
+    await saveSettings({ security: { ...security, biometricEnabled: false, biometricCredentialId: '' } });
+    toast('Kunci sidik jari dimatikan.');
+    await renderSecurity(root);
+  });
+  root.querySelector('#lockOnBackground').onchange = async (event) => {
+    await saveSettings({ security: { ...security, lockOnBackground: event.target.checked } });
+    toast(event.target.checked ? 'Kunci otomatis diaktifkan.' : 'Kunci otomatis dimatikan.');
+  };
 }
 
 async function renderTrash(root) {

@@ -32,6 +32,15 @@ const DEFAULTS = {
   maskCustomerPhone: true,  // kalau true, nomor HP pelanggan di struk cuma tampil 3 digit terakhir
   customerPhoneDisplay: 'LAST3', // FULL | LAST3 | HIDDEN
 
+  // Kunci aplikasi (PIN lokal dan biometrik perangkat melalui WebAuthn).
+  security: {
+    pinEnabled: false,
+    pinHash: '',
+    biometricEnabled: false,
+    biometricCredentialId: '',
+    lockOnBackground: true,
+  },
+
   // Auto backup ke Google Drive
   autoBackup: {
     enabled: false,
@@ -64,7 +73,12 @@ export async function getSettings() {
   if (_cache) return _cache;
   const existing = await db.get('settings', 1);
   if (existing) {
-    _cache = { ...DEFAULTS, ...existing, autoBackup: { ...DEFAULTS.autoBackup, ...existing.autoBackup } };
+    _cache = {
+      ...DEFAULTS,
+      ...existing,
+      autoBackup: { ...DEFAULTS.autoBackup, ...existing.autoBackup },
+      security: { ...DEFAULTS.security, ...existing.security },
+    };
     return _cache;
   }
   await db.put('settings', DEFAULTS);
