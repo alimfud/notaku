@@ -114,22 +114,38 @@ async function exportReport(root, format) {
       await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = reject; document.head.appendChild(script); });
     }
     if (!window.jspdf?.jsPDF) throw new Error('Komponen PDF belum berhasil dimuat. Coba lagi.');
-    const pdf = new window.jspdf.jsPDF();
-    pdf.setFontSize(16); pdf.text('Export Data NotaKu', 15, 18); pdf.setFontSize(10); pdf.text(String(exported.label || ''), 15, 26);
-    let y = 38;
-    for (const [section, records] of Object.entries(exported.sections)) {
-      if (!records.length) continue;
-      pdf.setFontSize(12); pdf.text(`${section} (${records.length})`, 15, y); y += 7;
-      pdf.setFontSize(8);
-      for (const record of records) {
-        const lines = pdf.splitTextToSize(formatExportRecord(section, record), 180);
-        for (const line of lines) {
-          if (y > 285) { pdf.addPage(); y = 18; }
-          pdf.text(line, 15, y); y += 4;
-        }
-        y += 2;
-      }
-      y += 4;
+    const pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    pdf.setFontSize(16); pdf.text('LAPORAN PENJUALAN', 14, 16);
+    pdf.setFontSize(9); pdf.text(`NotaKu · ${exported.label || ''}`, 14, 23);
+    const saleRows = exported.rows.filter((row) => row[0] === 'Nota');
+    const expenseRows = exported.rows.filter((row) => row[0] === 'Pengeluaran');
+    const columns = [
+      ['NO. NOTA', 14, 32], ['TANGGAL', 45, 24], ['PELANGGAN', 70, 35],
+      ['PRODUK / DESKRIPSI', 106, 48], ['QTY', 155, 15], ['HARGA', 171, 25],
+      ['SUBTOTAL', 197, 28], ['TOTAL NOTA', 226, 28], ['STATUS', 255, 28],
+    ];
+    let y = 32;
+    const drawHeader = () => {
+      pdf.setFillColor(238, 226, 207); pdf.rect(10, y - 5, 277, 8, 'F');
+      pdf.setFontSize(7); pdf.setTextColor(70, 55, 42);
+      columns.forEach(([label, x]) => pdf.text(label, x, y));
+      pdf.setTextColor(0, 0, 0); y += 8;
+    };
+    drawHeader();
+    pdf.setFontSize(7);
+    for (const row of saleRows) {
+      if (y > 190) { pdf.addPage(); y = 16; pdf.setFontSize(12); pdf.text('LAPORAN PENJUALAN (LANJUTAN)', 14, y); y += 12; drawHeader(); }
+      const values = [row[1], row[2], row[4], row[7], row[8], row[9], row[10], row[11], row[12]];
+      columns.forEach(([, x, width], index) => {
+        const text = String(values[index] ?? '-');
+        pdf.text(pdf.splitTextToSize(text, width - 2)[0], x, y);
+      });
+      pdf.setDrawColor(225, 225, 225); pdf.line(10, y + 2, 287, y + 2); y += 7;
+    }
+    y += 6; pdf.setFontSize(11); pdf.text(`RINGKASAN PENGELUARAN (${expenseRows.length} catatan)`, 14, y); y += 8; pdf.setFontSize(8);
+    for (const row of expenseRows) {
+      if (y > 195) { pdf.addPage(); y = 18; }
+      pdf.text(`${row[2] || '-'} · ${row[7] || '-'} · Nominal: ${row[10] || 0} · ${row[13] || ''}`, 14, y); y += 6;
     }
     // Gunakan Blob + anchor seperti export CSV agar kompatibel dengan browser
     // Android yang kadang menolak pdf.save() langsung dari library.
