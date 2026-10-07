@@ -18,7 +18,7 @@
 // disimpan lokal dan di-precache, termasuk logo bawaan. Fitur inti (lihat/buat/ubah nota, produk,
 // pelanggan, laporan, cetak, backup lokal) semuanya tetap jalan offline.
 
-const CACHE_VERSION = 'notaku-web-v1.13.2'; // dibuat otomatis dari version.json
+const CACHE_VERSION = 'notaku-web-v1.13.3'; // dibuat otomatis dari version.json
 
 const CORE_ASSETS = [
   './',
@@ -54,6 +54,11 @@ const CORE_ASSETS = [
   './version.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/printer.svg?v=printer-1',
+  './icons/icon-180.png?v=printer-1',
+  './icons/icon-192.png?v=printer-1',
+  './icons/icon-512.png?v=printer-1',
+  './icons/icon-maskable-512.png?v=printer-1',
   './js/app.js',
   './js/theme.js',
   './js/navIndicator.js',
@@ -158,7 +163,8 @@ self.addEventListener('fetch', (event) => {
   // Halaman, JS, dan CSS selalu diambil dari jaringan dahulu. Ini membuat
   // perubahan yang sudah di-push langsung terlihat tanpa membersihkan cache;
   // cache tetap menjadi fallback ketika offline.
-  const liveAsset = event.request.mode === 'navigate' || event.request.destination === 'script' || event.request.destination === 'style';
+  const brandingAsset = url.pathname.endsWith('/manifest.json') || /\/icons\//.test(url.pathname);
+  const liveAsset = event.request.mode === 'navigate' || event.request.destination === 'script' || event.request.destination === 'style' || brandingAsset;
   if (liveAsset) {
     event.respondWith(
       fetch(event.request, { cache: 'no-store' }).then((res) => {

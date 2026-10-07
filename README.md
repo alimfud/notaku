@@ -2,7 +2,7 @@
 
 NotaKu adalah aplikasi kasir dan nota penjualan berbasis web/PWA. Data toko disimpan lokal melalui IndexedDB, sehingga aplikasi tetap dapat dipakai setelah dibuka sekali saat online.
 
-- **Versi saat ini:** v1.13.2
+- **Versi saat ini:** v1.13.3
 - **Versi aplikasi:** buka dari browser atau instal sebagai PWA melalui Chrome/Edge.
 
 ## Cara pakai di HP
@@ -37,6 +37,12 @@ Edit hanya berkas berikut sesuai kebutuhan:
 - `version.json` untuk nomor versi.
 - `sw.js` untuk daftar aset offline dan perilaku cache.
 - `manifest.json` dan `icons/` untuk instalasi PWA.
+
+### Identitas dan layar pembuka
+
+Ikon NotaKu mengikuti printer thermal pada animasi pembuka, dengan latar krem Clay. Sumber vektornya `icons/printer.svg`; seluruh PNG ikon serta logo horizontal/vertikal dibuat dengan `node scripts/build-icons.cjs` (memerlukan Playwright dan Edge). Ikon maskable memiliki ruang aman tersendiri untuk pemotongan ikon Android. Logo toko pada nota di `docs/logo.webp` bukan ikon aplikasi dan tidak diubah.
+
+Layar pembuka pertama pada PWA terpasang dibuat oleh Android/browser, bukan HTML; layar tersebut tidak dapat menjalankan animasi CSS. Warna dan ikonnya mengikuti `manifest.json`. Setelah halaman siap, animasi printer langsung tampil tanpa layar logo statis tambahan. Pembaruan manifest/ikon pada PWA yang sudah terpasang dapat memerlukan waktu karena cache sistem; buka aplikasi saat online, tutup, lalu buka kembali setelah browser memperbaruinya. Jangan hapus data situs untuk memperbarui ikon karena transaksi tersimpan lokal.
 
 ## Pengujian
 

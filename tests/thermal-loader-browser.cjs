@@ -4,7 +4,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root = path.resolve(__dirname, '..');
-const mime = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.webp': 'image/webp' };
+const mime = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
 
 (async () => {
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
@@ -23,11 +23,15 @@ const mime = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript
       page.on('pageerror', error => errors.push(error.message));
       await page.goto('http://localhost/notaku/', { waitUntil: 'domcontentloaded' });
       await page.waitForFunction(() => document.querySelector('.thermal-paper').getAnimations().length > 0);
+      assert.equal(await page.locator('#loadingOverlay').evaluate(el => el.classList.contains('is-startup')), true);
+      assert.equal(await page.locator('#loadingOverlay').evaluate(el => getComputedStyle(el).backgroundColor), theme === 'clay' ? 'rgb(251, 240, 224)' : 'rgb(14, 19, 50)');
+      assert.equal(await page.locator('#loadingOverlay img').count(), 0, 'no static logo before animation');
       const before = await page.locator('.thermal-paper').first().evaluate(el => getComputedStyle(el).transform);
       await page.waitForTimeout(450);
       const after = await page.locator('.thermal-paper').first().evaluate(el => getComputedStyle(el).transform);
       assert.notEqual(before, after, `${theme}: receipt must move`);
       await page.waitForFunction(() => document.getElementById('loadingOverlay').classList.contains('hidden'));
+      assert.equal(await page.locator('#loadingOverlay').evaluate(el => el.classList.contains('is-startup')), false);
       assert.equal(await page.locator('#pageRoot').innerText().then(text => text.length > 0), true);
       // Preview the full receipt using the same loader used for long operations.
       await page.evaluate(() => {

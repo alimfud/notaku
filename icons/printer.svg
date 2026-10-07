@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">NotaKu — printer thermal dan struk</title>
+  <defs>
+    <linearGradient id="lid" x1="0" y1="0" x2=".8" y2="1">
+      <stop stop-color="#fffaf2"/><stop offset="1" stop-color="#dfd5c6"/>
+    </linearGradient>
+    <linearGradient id="front" x1="0" y1="0" x2="1" y2=".6">
+      <stop stop-color="#f5eee4"/><stop offset=".65" stop-color="#dfd5c6"/><stop offset="1" stop-color="#c4b7a5"/>
+    </linearGradient>
+    <linearGradient id="paper">
+      <stop stop-color="#e8e1d4"/><stop offset=".08" stop-color="#fffef9"/><stop offset=".9" stop-color="#fffdf6"/><stop offset="1" stop-color="#e6dfd1"/>
+    </linearGradient>
+    <radialGradient id="shadow"><stop stop-color="#574636" stop-opacity=".22"/><stop offset="1" stop-color="#574636" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="#fbf0e0"/>
+  <g id="printer-mark">
+    <ellipse cx="256" cy="436" rx="171" ry="25" fill="url(#shadow)"/>
+    <rect x="133" y="407" width="37" height="22" rx="6" fill="#49433c"/>
+    <rect x="342" y="407" width="37" height="22" rx="6" fill="#49433c"/>
+    <path d="M108 326v-15q0-40 36-40h224q36 0 36 40v15Z" fill="url(#lid)" stroke="#b6ab9b" stroke-width="3"/>
+    <path d="M144 275h224q30 0 32 29" fill="none" stroke="#fffdf7" stroke-width="3" opacity=".8"/>
+    <rect x="150" y="284" width="212" height="16" rx="8" fill="#35332f" stroke="#b6ab9b" stroke-width="4"/>
+    <path d="M171 297V111l7-6 7 6 7-6 7 6 7-6 7 6 7-6 7 6 7-6 7 6 7-6 7 6 7-6 7 6 7-6 7 6 7-6 7 6 7-6 7 6 7-6 7 6 7-6 7 6 7-6 9 6v186Z" fill="url(#paper)"/>
+    <text x="256" y="154" text-anchor="middle" font-family="Arial,sans-serif" font-size="31" font-weight="800" fill="#40372e">NotaKu</text>
+    <path d="M194 171h124" stroke="#baaea0" stroke-width="2" stroke-dasharray="4 4"/>
+    <g stroke="#a79b8b" stroke-width="4" stroke-linecap="round">
+      <path d="M194 188h64m36 0h24M194 202h49m51 0h24M194 216h58m42 0h24"/>
+    </g>
+    <path d="M194 232h124" stroke="#baaea0" stroke-width="2" stroke-dasharray="4 4"/>
+    <text x="194" y="252" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#51463b">TOTAL</text>
+    <path d="M277 247h40" stroke="#51463b" stroke-width="5"/>
+    <path d="M214 268v16m5-16v16m7-16v16m5-16v16m3-16v16m7-16v16m5-16v16m8-16v16m4-16v16m7-16v16m5-16v16m3-16v16m7-16v16m6-16v16m4-16v16" stroke="#51463b" stroke-width="2"/>
+    <path d="M106 320q0-9 9-9h282q9 0 9 9v66q0 31-31 31H137q-31 0-31-31Z" fill="url(#front)" stroke="#b6ab9b" stroke-width="3"/>
+    <path d="M117 315h278" stroke="#fffdf7" stroke-width="3" opacity=".75" stroke-linecap="round"/>
+    <text x="135" y="354" font-family="Arial,sans-serif" font-size="22" font-weight="800" fill="#776552">NotaKu</text>
+    <circle cx="329" cy="344" r="5" fill="#48b786"/>
+    <circle cx="365" cy="345" r="10" fill="#f9f2e8" stroke="#aa9d8b" stroke-width="2"/>
+    <circle cx="365" cy="345" r="3" fill="#c4b7a5"/>
+    <g stroke="#b3a591" stroke-width="3" stroke-linecap="round">
+      <path d="M137 387h16m7 0h16m7 0h16m7 0h16m7 0h16"/>
+    </g>
+    <path d="M120 397q6 15 22 15h228q20 0 25-15" fill="none" stroke="#b6ab9b" stroke-width="3" opacity=".45"/>
+  </g>
+</svg>

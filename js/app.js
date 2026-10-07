@@ -350,7 +350,9 @@ function registerServiceWorker() {
       if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining));
     }
   } finally {
-    document.getElementById('loadingOverlay')?.classList.add('hidden');
+    const splash = document.getElementById('loadingOverlay');
+    splash?.classList.add('hidden');
+    splash?.classList.remove('is-startup');
     const label = document.getElementById('loadingMessage');
     if (label) label.textContent = 'Sedang memproses…';
   }

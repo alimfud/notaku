@@ -1,5 +1,9 @@
 /* Printer thermal digambar dengan CSS; animasi berjalan tanpa aset jaringan. */
 #loadingOverlay .loading-mark { gap:5px; }
+/* Full startup canvas; operation loaders can still blur the page underneath. */
+#loadingOverlay.is-startup { background:#fbf0e0; backdrop-filter:none; }
+html[data-theme="dark"] #loadingOverlay.is-startup { background:#0e1332; }
+#loadingOverlay.is-startup .loading-mark { animation:none; }
 .thermal-printer {
   --printer-top:#f4eee6;
   --printer-front:#dfd5c6;
