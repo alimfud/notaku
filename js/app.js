@@ -51,8 +51,8 @@ async function openGlobalSearch() {
     products.filter((row) => row.isActive !== 0 && [row.name, row.category, row.barcode].some((value) => String(value || '').toLowerCase().includes(query))).slice(0, 6).forEach((row) => found.push({ type: 'Produk', title: row.name, sub: row.category || 'Produk', route: 'products' }));
     customers.filter((row) => row.isActive !== 0 && [row.name, row.phone, row.address].some((value) => String(value || '').toLowerCase().includes(query))).slice(0, 6).forEach((row) => found.push({ type: 'Pelanggan', title: row.name, sub: row.phone || 'Pelanggan', route: 'customers' }));
     expenses.filter((row) => [row.title, row.category, row.note, row.expenseDate].some((value) => String(value || '').toLowerCase().includes(query))).slice(0, 6).forEach((row) => found.push({ type: 'Pengeluaran', title: row.title, sub: `${row.category} · ${row.expenseDate}`, route: 'expenses' }));
-    results.innerHTML = found.length ? found.map((item) => `<button class="global-search-result" data-route="${escapeHtml(item.route)}"><span class="global-search-result-type">${item.type}</span><span><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.sub)}</small></span><i>›</i></button>`).join('') : '<small>Tidak ada data yang cocok.</small>';
-    results.querySelectorAll('[data-route]').forEach((button) => button.onclick = () => { close(); navigate(button.dataset.route); });
+    results.innerHTML = found.length ? found.map((item) => `<button class="global-search-result" data-route="${escapeHtml(item.route)}" data-query="${escapeHtml(item.title)}"><span class="global-search-result-type">${item.type}</span><span><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.sub)}</small></span><i>›</i></button>`).join('') : '<small>Tidak ada data yang cocok.</small>';
+    results.querySelectorAll('[data-route]').forEach((button) => button.onclick = () => { try { sessionStorage.setItem('notaku-global-query', button.dataset.query || ''); } catch {} close(); navigate(button.dataset.route); });
   };
   input.focus();
 }

@@ -23,13 +23,16 @@ export async function render(root) {
     </div>
     <button class="fab" id="fabAdd" aria-label="Tambah pelanggan">+</button>
   `;
+  let initialSearch = '';
+  try { initialSearch = sessionStorage.getItem('notaku-global-query') || ''; sessionStorage.removeItem('notaku-global-query'); } catch {}
+  root.querySelector('#cSearch').value = initialSearch;
   let debounce;
   root.querySelector('#cSearch').oninput = (e) => {
     clearTimeout(debounce);
     debounce = setTimeout(() => drawList(root, e.target.value), 150);
   };
   root.querySelector('#fabAdd').onclick = () => openForm(root, null);
-  await drawList(root, '');
+  await drawList(root, initialSearch);
 }
 
 async function drawList(root, search) {
