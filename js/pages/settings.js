@@ -92,10 +92,9 @@ async function renderSecurity(root) {
       <section class="settings-security-card">
         <div class="settings-security-heading"><span class="settings-security-icon">🔢</span><div><b>Kunci dengan PIN</b><small>Minimal 4 digit angka</small></div><span class="settings-security-status" data-pin-status>${security.pinEnabled ? 'Aktif' : 'Belum aktif'}</span></div>
         <div class="settings-security-actions">
-          <button type="button" class="btn small" id="btnSetupPin">${security.pinEnabled ? 'Ubah PIN' : 'Buat PIN'}</button>
-          ${security.pinEnabled ? '<button type="button" class="btn small ghost" id="btnDisablePin">Matikan</button>' : ''}
+          ${security.pinEnabled ? '<button type="button" class="btn small" id="btnSetupPin">Ubah PIN</button><button type="button" class="btn small ghost" id="btnDisablePin">Matikan</button>' : ''}
         </div>
-        <form class="settings-pin-form" id="settingsPinForm" hidden>
+        <form class="settings-pin-form" id="settingsPinForm" ${security.pinEnabled ? 'hidden' : ''}>
           <label>PIN baru<input id="newPin" type="password" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="12" autocomplete="new-password" placeholder="Minimal 4 digit" required></label>
           <label>Ulangi PIN<input id="confirmPin" type="password" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="12" autocomplete="new-password" placeholder="Ulangi PIN" required></label>
           <div class="settings-security-form-actions"><button type="submit" class="btn small">Simpan PIN</button><button type="button" class="btn small ghost" id="btnCancelPin">Batal</button></div>
@@ -113,7 +112,8 @@ async function renderSecurity(root) {
     </div>`;
 
   const pinForm = root.querySelector('#settingsPinForm');
-  root.querySelector('#btnSetupPin').onclick = () => {
+  const setupPinButton = root.querySelector('#btnSetupPin');
+  if (setupPinButton) setupPinButton.onclick = () => {
     pinForm.hidden = !pinForm.hidden;
     if (!pinForm.hidden) root.querySelector('#newPin').focus();
   };
