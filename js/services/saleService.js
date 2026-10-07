@@ -22,14 +22,51 @@ export class AppError extends Error {
  * Pelanggan — supaya perbaikan data (mis. salah ketik nomor HP) ikut
  * terbawa untuk transaksi berikutnya, bukan cuma nota yang sedang dibuat/diubah.
  */
-async function syncCustomerMasterRecord(customer) {
-  if (!customer || !customer.id) return;
+function normalizeCustomerName(value) {
+  return String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID');
+}
+
+function isCashCustomer(value) {
+  return normalizeCustomerName(value) === 'cash';
+}
+
+/**
+ * Nota hasil impor lama belum memiliki customerId, walaupun master pelanggan
+ * sudah ada. Saat nota itu diedit, cari kembali master berdasarkan snapshot
+ * nama lama supaya perubahan nama/telepon/alamat ikut masuk ke daftar
+ * Pelanggan. Kalau memang belum ada master-nya, buat satu untuk nota non-CASH.
+ */
+async function syncCustomerMasterRecord(customer, previousSale = null) {
+  if (!customer) return customer;
+  // Pada nota baru, nama yang diketik manual tetap hanya menjadi snapshot
+  // nota. Master pelanggan dibuat saat pengguna memilih/menyimpan pelanggan
+  // dari daftar, bukan diam-diam setiap kali membuat nota.
+  if (!customer.id && !previousSale) return customer;
+  // Mengubah nota menjadi CASH tidak boleh mengganti nama master pelanggan
+  // lama menjadi "CASH".
+  if (previousSale && isCashCustomer(customer.name)) return customer;
+  let customerId = customer.id || '';
+  if (!customerId && previousSale && !isCashCustomer(previousSale.customerName)) {
+    const customers = await db.getAll('customers');
+    const oldName = normalizeCustomerName(previousSale.customerName);
+    const oldPhone = String(previousSale.customerPhone || '').trim();
+    const match = customers
+      .filter((row) => row.isActive !== 0 && normalizeCustomerName(row.name) === oldName)
+      .sort((a, b) => {
+        const aPhone = oldPhone && String(a.phone || '').trim() === oldPhone ? 1 : 0;
+        const bPhone = oldPhone && String(b.phone || '').trim() === oldPhone ? 1 : 0;
+        return bPhone - aPhone || String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
+      })[0];
+    customerId = match?.id || '';
+  }
   try {
-    await saveCustomer({ id: customer.id, name: customer.name, phone: customer.phone, address: customer.address });
+    const saved = await saveCustomer({ id: customerId || undefined, name: customer.name, phone: customer.phone, address: customer.address });
+    return { ...customer, id: saved.id };
   } catch (e) {
     console.error('[syncCustomerMasterRecord]', e);
     // Gagal sinkron ke master data BUKAN alasan untuk membatalkan simpan nota
     // (data di nota tetap tersimpan sebagai snapshot apa adanya).
+    return customer;
   }
 }
 
@@ -226,11 +263,11 @@ export async function updateSale(saleId, { customer, lines, adjustments = null, 
     const allPayments = await db.getByIndex('payments', 'saleId', saleId);
     const paidAmount = allPayments.reduce((s, p) => s + p.amount, 0);
 
-    await syncCustomerMasterRecord(customer);
+    const syncedCustomer = await syncCustomerMasterRecord(customer, existing);
 
     const updatedSale = {
       ...existing,
-      customerId: customer.id || null,
+      customerId: syncedCustomer.id || null,
       customerName: customer.name,
       customerPhone: customer.phone || '',
       customerAddress: customer.address || '',
@@ -271,7 +308,7 @@ export async function updateSale(saleId, { customer, lines, adjustments = null, 
     await db.removeByIndex('saleItems', 'saleId', saleId);
     await db.bulkPutMulti(writes);
     const changed = [];
-    for (const key of ['customerName', 'customerPhone', 'customerAddress', 'saleDate', 'saleTime', 'total', 'note', 'status']) {
+    for (const key of ['customerId', 'customerName', 'customerPhone', 'customerAddress', 'saleDate', 'saleTime', 'total', 'note', 'status']) {
       if (String(existing[key] ?? '') !== String(updatedSale[key] ?? '')) changed.push(`${key}: "${existing[key] ?? ''}" → "${updatedSale[key] ?? ''}"`);
     }
     await recordAudit('update', 'sale', saleId, changed.length ? `Nota ${existing.invoiceNumber} diubah — ${changed.join('; ')}` : `Nota ${existing.invoiceNumber} dibuka tanpa perubahan nilai`);
