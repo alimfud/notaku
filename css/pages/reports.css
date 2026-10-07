@@ -10,6 +10,35 @@
   background:var(--surface-dim);
 }
 
+/* Export adalah aksi sekunder; letakkan tenang setelah status pembayaran. */
+[data-page="reports"] .reports-export-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 14px 0 4px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border-color, #d8cbbb) 55%, transparent);
+  color: var(--text-muted, #8b7766);
+  font-size: 11px;
+}
+
+[data-page="reports"] .reports-export-button {
+  border: 1px solid color-mix(in srgb, var(--border-color, #d8cbbb) 70%, transparent);
+  border-radius: 999px;
+  padding: 5px 11px;
+  background: transparent;
+  color: var(--text-muted, #8b7766);
+  font: inherit;
+  cursor: pointer;
+}
+
+[data-page="reports"] .reports-export-button:hover,
+[data-page="reports"] .reports-export-button:focus-visible {
+  color: var(--text, #4d3b2e);
+  background: color-mix(in srgb, var(--surface, #fff8ed) 70%, transparent);
+}
+
 [data-page="reports"] .reports-view-tabs button {
   min-height:36px;
   padding:7px 12px;

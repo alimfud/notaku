@@ -47,10 +47,6 @@ export async function render(root) {
       <button type="button" role="tab" data-report-view="period">Periode</button>
       <button type="button" role="tab" data-report-view="overall">Keseluruhan</button>
     </div>
-    <div class="reports-export-actions">
-      <button type="button" class="btn small secondary" id="exportReportCsv">Export Excel (CSV)</button>
-      <button type="button" class="btn small secondary" id="exportReportPdf">Export PDF</button>
-    </div>
     <section class="reports-view-panel" data-report-panel="period" role="tabpanel">
       <div class="reports-layout-1 chip-scroll">
         <button class="chip" data-p="today">Hari Ini</button>
@@ -299,6 +295,11 @@ async function drawReport(root) {
     </div>
     ${dailyChart(data.daily, { granularity: data.chartGranularity })}
     ${statusChart(data.statusBreakdown)}
+    <div class="reports-export-actions" aria-label="Export laporan">
+      <span>Export laporan</span>
+      <button type="button" class="reports-export-button" id="exportReportCsv">Excel</button>
+      <button type="button" class="reports-export-button" id="exportReportPdf">PDF</button>
+    </div>
     <div class="reports-product-sections">
       <details class="reports-product-card">
         <summary>
