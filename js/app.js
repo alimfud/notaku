@@ -402,6 +402,8 @@ async function refreshAutomaticStatuses() {
 }
 
 async function runBackgroundChecks() {
+  const { cleanupExpiredData } = await import('./services/dataRetentionService.js');
+  void cleanupExpiredData();
   await refreshAutomaticStatuses();
 
   await checkAutomaticBackup();

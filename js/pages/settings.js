@@ -81,7 +81,7 @@ async function renderTrash(root) {
     <div class="settings-trash-list">${deleted.length ? deleted.map((sale) => `<article class="settings-trash-card" data-trash-id="${sale.id}"><div class="settings-trash-card-main"><span class="settings-trash-icon">🗑️</span><div><b>${escapeHtml(sale.invoiceNumber)}</b><span>${escapeHtml(sale.customerName)}</span><small>${escapeHtml(sale.saleDate)}${sale.saleTime ? ` · ${escapeHtml(sale.saleTime)}` : ''}</small></div></div><button class="settings-restore-button" data-restore="${sale.id}">Pulihkan</button></article>`).join('') : '<div class="settings-empty-card"><span>🗑️</span><b>Tempat sampah kosong</b><small>Nota yang dihapus akan muncul di sini.</small></div>'}</div></div>`;
   root.querySelectorAll('[data-restore]').forEach((button) => button.onclick = async () => {
     const sale = await db.get('sales', button.dataset.restore); if (!sale) return;
-    sale.isDeleted = 0; sale.updatedAt = new Date().toISOString(); await db.put('sales', sale);
+    sale.isDeleted = 0; delete sale.deletedAt; sale.updatedAt = new Date().toISOString(); await db.put('sales', sale);
     await recordAudit('restore', 'sale', sale.id, `Nota ${sale.invoiceNumber} dipulihkan`); toast('Nota dipulihkan'); await renderTrash(root);
   });
 }

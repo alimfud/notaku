@@ -282,6 +282,7 @@ export async function deleteSale(saleId) {
     const sale = await db.get('sales', saleId);
     if (!sale) return;
     sale.isDeleted = 1;
+    sale.deletedAt = new Date().toISOString();
     sale.updatedAt = new Date().toISOString();
     await db.put('sales', sale);
     await recordAudit('trash', 'sale', saleId, `Nota ${sale.invoiceNumber} dipindahkan ke tempat sampah`);
