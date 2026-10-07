@@ -4,7 +4,16 @@
 [data-page="customers"] .customers-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:10px; }
 [data-page="customers"] .customers-heading span { color:var(--primary); font-size:10.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
 [data-page="customers"] .customers-heading h2 { margin:2px 0 0; color:var(--ink); font-size:18px; }
+[data-page="customers"] .customer-list-tools { display:flex; align-items:center; gap:5px; }
 [data-page="customers"] .customers-heading small { color:var(--muted); font-size:11px; }
+[data-page="customers"] .customer-filter-wrap { position:relative; }
+[data-page="customers"] .customer-filter-btn { display:grid; width:25px; height:25px; padding:4px; place-items:center; border:0; border-radius:50%; background:transparent; color:color-mix(in srgb,var(--muted) 72%,transparent); cursor:pointer; }
+[data-page="customers"] .customer-filter-btn:hover, [data-page="customers"] .customer-filter-btn[aria-expanded="true"] { background:color-mix(in srgb,var(--surface-dim) 75%,transparent); color:var(--ink-soft); }
+[data-page="customers"] .customer-filter-btn svg { width:16px; height:16px; }
+[data-page="customers"] .customer-sort-menu { position:absolute; top:calc(100% + 5px); right:0; z-index:5; display:grid; min-width:150px; padding:5px; border:1px solid var(--outline); border-radius:10px; background:var(--surface); box-shadow:0 8px 22px rgba(50,28,36,.14); }
+[data-page="customers"] .customer-sort-menu[hidden] { display:none; }
+[data-page="customers"] .customer-sort-menu button { padding:8px 10px; border:0; border-radius:7px; background:transparent; color:var(--ink-soft); font:12px var(--font); text-align:left; cursor:pointer; }
+[data-page="customers"] .customer-sort-menu button:hover, [data-page="customers"] .customer-sort-menu button.active { background:var(--surface-dim); color:var(--primary); font-weight:700; }
 [data-page="customers"] .customers-search { display:flex; min-height:42px; align-items:center; margin-bottom:12px; border:1px solid var(--outline); border-radius:10px; background:var(--surface); box-shadow:0 4px 14px rgba(73,29,48,.04); }
 [data-page="customers"] .customers-search:focus-within { border-color:color-mix(in srgb,var(--primary) 55%,var(--outline)); box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 10%,transparent); }
 [data-page="customers"] .customers-search > span { padding-left:11px; color:var(--primary); font-size:20px; }
@@ -19,6 +28,9 @@
 [data-page="customers"] .customer-name { overflow:hidden; font-size:14px; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
 [data-page="customers"] .customer-contact { margin-top:2px; color:var(--ink-soft); font-size:11.5px; }
 [data-page="customers"] .customer-address { overflow:hidden; margin-top:2px; color:var(--muted); font-size:10.5px; text-overflow:ellipsis; white-space:nowrap; }
+[data-page="customers"] .customer-card-transactions { display:flex; min-width:72px; flex:0 0 auto; align-items:flex-end; flex-direction:column; gap:2px; color:color-mix(in srgb,var(--muted) 78%,transparent); text-align:right; }
+[data-page="customers"] .customer-card-transactions strong { font-size:10px; font-weight:600; white-space:nowrap; }
+[data-page="customers"] .customer-card-transactions small { font-size:9px; white-space:nowrap; }
 [data-page="customers"] .customer-chevron { color:var(--muted); font-size:24px; font-weight:300; }
 
 /* Customer detail: a compact profile, financial summary, and readable
@@ -80,6 +92,9 @@
 [data-page="customers"].customer-form-sheet .customer-sheet-actions.has-delete .danger { width:auto; flex:0 0 72px; }
 @media(max-width:390px) { [data-page="customers"] .customers-page { padding:12px 10px; } }
 @media(max-width:430px) {
+  [data-page="customers"] .customer-card-transactions { min-width:62px; }
+  [data-page="customers"] .customer-card-transactions strong { font-size:9px; }
+  [data-page="customers"] .customer-card-transactions small { font-size:8px; }
   [data-page="customers"] .customer-detail-page { padding:12px 10px; }
   [data-page="customers"] .customer-detail-stats { gap:5px; }
   [data-page="customers"] .customer-stat { padding:10px 7px; }

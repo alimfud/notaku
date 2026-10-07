@@ -17,11 +17,23 @@ export async function render(root, params = []) {
   if (params[0]) return renderDetail(root, decodeURIComponent(params[0]));
   setPageTitle('Pelanggan');
   setTopbarActions([]);
+  let sortMode = 'name';
   root.innerHTML = `
     <div class="customers-page">
       <div class="customers-heading">
         <div><span>Kontak</span><h2>Daftar pelanggan</h2></div>
-        <small id="customerCount">0 pelanggan</small>
+        <div class="customer-list-tools">
+          <small id="customerCount">0 pelanggan</small>
+          <div class="customer-filter-wrap">
+            <button class="customer-filter-btn" id="customerFilter" type="button" aria-label="Urutkan pelanggan" aria-haspopup="menu" aria-expanded="false" title="Urutkan pelanggan">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10m-7 6h4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            </button>
+            <div class="customer-sort-menu" id="customerSortMenu" role="menu" hidden>
+              <button type="button" data-sort="name" role="menuitem">Abjad A–Z</button>
+              <button type="button" data-sort="transactions" role="menuitem">Total transaksi</button>
+            </div>
+          </div>
+        </div>
       </div>
       <label class="customers-search">
         <span aria-hidden="true">⌕</span>
@@ -34,13 +46,29 @@ export async function render(root, params = []) {
   let initialSearch = '';
   try { initialSearch = sessionStorage.getItem('notaku-global-query') || ''; sessionStorage.removeItem('notaku-global-query'); } catch {}
   root.querySelector('#cSearch').value = initialSearch;
+  const filterButton = root.querySelector('#customerFilter');
+  const sortMenu = root.querySelector('#customerSortMenu');
+  filterButton.onclick = () => {
+    sortMenu.hidden = !sortMenu.hidden;
+    filterButton.setAttribute('aria-expanded', String(!sortMenu.hidden));
+  };
+  sortMenu.querySelectorAll('[data-sort]').forEach((option) => {
+    option.onclick = async () => {
+      sortMode = option.dataset.sort || 'name';
+      sortMenu.hidden = true;
+      filterButton.setAttribute('aria-expanded', 'false');
+      sortMenu.querySelectorAll('[data-sort]').forEach((item) => item.classList.toggle('active', item.dataset.sort === sortMode));
+      await drawList(root, root.querySelector('#cSearch').value, sortMode);
+    };
+  });
+  sortMenu.querySelector('[data-sort="name"]').classList.add('active');
   let debounce;
   root.querySelector('#cSearch').oninput = (e) => {
     clearTimeout(debounce);
-    debounce = setTimeout(() => drawList(root, e.target.value), 150);
+    debounce = setTimeout(() => drawList(root, e.target.value, sortMode), 150);
   };
   root.querySelector('#fabAdd').onclick = () => openForm(root, null);
-  await drawList(root, initialSearch);
+  await drawList(root, initialSearch, sortMode);
 }
 
 async function renderDetail(root, customerId) {
@@ -110,8 +138,30 @@ async function renderDetail(root, customerId) {
   root.querySelector('#newCustomerSale')?.addEventListener('click', () => navigate('sale/new'));
 }
 
-async function drawList(root, search) {
-  const customers = await getAllCustomers({ search });
+async function drawList(root, search, sortMode = 'name') {
+  const [customers, allSales] = await Promise.all([getAllCustomers({ search }), db.getAll('sales')]);
+  const statsById = new Map();
+  const statsByName = new Map();
+  for (const sale of allSales.filter((row) => !row.isDeleted)) {
+    const stat = { count: 1, total: Number(sale.total || 0) };
+    if (sale.customerId) {
+      const current = statsById.get(sale.customerId) || { count: 0, total: 0 };
+      statsById.set(sale.customerId, { count: current.count + 1, total: current.total + stat.total });
+    } else if (sale.customerName) {
+      const key = normalizeName(sale.customerName);
+      const current = statsByName.get(key) || { count: 0, total: 0 };
+      statsByName.set(key, { count: current.count + stat.count, total: current.total + stat.total });
+    }
+  }
+  const statsFor = (customer) => statsById.get(customer.id) || statsByName.get(normalizeName(customer.name)) || { count: 0, total: 0 };
+  customers.sort((a, b) => {
+    const aStat = statsFor(a);
+    const bStat = statsFor(b);
+    if (sortMode === 'transactions') {
+      return bStat.total - aStat.total || bStat.count - aStat.count || a.name.localeCompare(b.name, 'id');
+    }
+    return a.name.localeCompare(b.name, 'id');
+  });
   const el = root.querySelector('#cList');
   const count = root.querySelector('#customerCount');
   if (count) count.textContent = `${customers.length} pelanggan`;
@@ -120,12 +170,15 @@ async function drawList(root, search) {
     return;
   }
   el.innerHTML = customers.map((c) => `
-    <button class="customer-card" data-id="${c.id}" type="button">
-      <div class="avatar">${c.name[0]?.toUpperCase() || '?'}</div>
+    <button class="customer-card" data-id="${escapeHtml(c.id)}" type="button">
+      <div class="avatar">${escapeHtml(c.name[0]?.toUpperCase() || '?')}</div>
       <div class="customer-card-body">
         <div class="customer-name">${escapeHtml(c.name)}</div>
         <div class="customer-contact">${escapeHtml(c.phone || 'Nomor telepon belum diisi')}</div>
         ${c.address ? `<div class="customer-address">${escapeHtml(c.address)}</div>` : ''}
+      </div>
+      <div class="customer-card-transactions">
+        ${statsFor(c).count ? `<strong>${statsFor(c).count} transaksi</strong><small>${rupiah(statsFor(c).total)}</small>` : '<small>Belum ada transaksi</small>'}
       </div>
       <span class="customer-chevron" aria-hidden="true">›</span>
     </button>`).join('');
