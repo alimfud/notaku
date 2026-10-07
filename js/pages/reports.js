@@ -5,6 +5,7 @@ import { STATUS_LABEL } from '../services/saleCalculation.js';
 import { rupiah, qtyLabel, escapeHtml, dateShort } from '../format.js';
 import { dailyChart, statusChart, wireBusinessCharts } from '../ui/businessCharts.js';
 import { setPageTitle, setTopbarActions } from '../app.js';
+import { toast } from '../ui/toast.js';
 
 let _period = 'year';
 let reportView = 'period';
@@ -78,6 +79,8 @@ export async function render(root) {
     c.onclick = () => { _period = c.dataset.p; drawReport(root); };
   });
   updateReportView(root);
+  root.querySelector('#exportReportCsv').onclick = () => exportReport(root, 'csv');
+  root.querySelector('#exportReportPdf').onclick = () => exportReport(root, 'pdf');
   await drawReport(root);
   const allTimeData = await generateAllTimeSummary();
   availableMonths = allTimeData.monthlyBreakdown.map((month) => month.monthKey);
@@ -85,34 +88,44 @@ export async function render(root) {
   availableYears = Array.from({ length: selectedYear - earliestDataYear + 1 }, (_, index) => selectedYear - index);
   await drawAllTime(root, allTimeData);
   updateReportView(root);
-  root.querySelector('#exportReportCsv').onclick = () => exportReport(root, 'csv');
-  root.querySelector('#exportReportPdf').onclick = () => exportReport(root, 'pdf');
 }
 
 async function exportReport(root, format) {
-  const referenceDate = _period === 'month' ? selectedMonth : new Date(selectedYear, 0, 1);
-  const data = await generateReport(_period, referenceDate);
-  const rows = [
-    ['Laporan NotaKu', data.periodLabel],
-    ['Omzet', data.revenue], ['Transaksi', data.transactionCount],
-    ['Pengeluaran', data.expenseTotal], ['Sisa omzet', data.netIncome],
-    ['Piutang', data.totalReceivables],
-  ];
-  if (format === 'csv') {
-    const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(';')).join('\n');
-    const blob = new Blob(['\\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob); const a = document.createElement('a');
-    a.href = url; a.download = `notaku-laporan-${data.periodLabel.replaceAll(' ', '-')}.csv`; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    return;
+  try {
+    const referenceDate = _period === 'month' ? selectedMonth : new Date(selectedYear, 0, 1);
+    const data = await generateReport(_period, referenceDate);
+    const rows = [
+      ['Laporan NotaKu', data.periodLabel],
+      ['Omzet', data.revenue], ['Transaksi', data.transactionCount],
+      ['Pengeluaran', data.expenseTotal], ['Sisa omzet', data.netIncome],
+      ['Piutang', data.totalReceivables],
+    ];
+    const filename = `notaku-laporan-${String(data.periodLabel || 'periode').replaceAll(' ', '-')}`;
+    if (format === 'csv') {
+      const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(';')).join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob); const a = document.createElement('a');
+      a.href = url; a.download = `${filename}.csv`; a.style.display = 'none';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast('Laporan Excel berhasil dibuat');
+      return;
+    }
+    if (!window.jspdf) {
+      const script = document.createElement('script');
+      script.src = '/vendor/jspdf.umd.min.js';
+      await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = reject; document.head.appendChild(script); });
+    }
+    if (!window.jspdf?.jsPDF) throw new Error('Komponen PDF belum berhasil dimuat. Coba lagi.');
+    const pdf = new window.jspdf.jsPDF();
+    pdf.setFontSize(16); pdf.text('Laporan NotaKu', 15, 18); pdf.setFontSize(11); pdf.text(String(data.periodLabel || ''), 15, 27);
+    rows.slice(2).forEach((row, index) => pdf.text(`${row[0]}: ${row[1]}`, 15, 42 + index * 8));
+    pdf.save(`${filename}.pdf`);
+    toast('Laporan PDF berhasil dibuat');
+  } catch (error) {
+    console.error('[exportReport]', error);
+    toast(error.message || 'Laporan belum dapat diekspor. Coba lagi.');
   }
-  const script = document.createElement('script');
-  script.src = '../vendor/jspdf.umd.min.js';
-  await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = reject; document.head.appendChild(script); });
-  const pdf = new window.jspdf.jsPDF();
-  pdf.setFontSize(16); pdf.text('Laporan NotaKu', 15, 18); pdf.setFontSize(11); pdf.text(data.periodLabel, 15, 27);
-  rows.slice(2).forEach((row, index) => pdf.text(`${row[0]}: ${row[1]}`, 15, 42 + index * 8));
-  pdf.save(`notaku-laporan-${data.periodLabel.replaceAll(' ', '-')}.pdf`);
 }
 
 function updateReportView(root) {
