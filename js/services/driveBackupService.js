@@ -203,6 +203,23 @@ async function saveSyncState({ fingerprint: value, status = '' }) {
 let _autoSyncInFlight = null;
 let _lastAutoSyncCheckAt = 0;
 let _syncRunning = false;
+const SYNC_PROMPT_MARKER = 'notaku-sync-prompt-marker';
+
+function syncPromptKey(prompt) {
+  return [prompt?.reason || '', prompt?.localHash || '', prompt?.cloudHash || ''].join('|');
+}
+
+function wasSyncPromptShown(prompt) {
+  try { return sessionStorage.getItem(SYNC_PROMPT_MARKER) === syncPromptKey(prompt); } catch { return false; }
+}
+
+function rememberSyncPrompt(prompt) {
+  try { sessionStorage.setItem(SYNC_PROMPT_MARKER, syncPromptKey(prompt)); } catch { /* private mode */ }
+}
+
+function clearSyncPromptMarker() {
+  try { sessionStorage.removeItem(SYNC_PROMPT_MARKER); } catch { /* private mode */ }
+}
 
 export async function getSyncDisplayState() {
   let sessionError = '';
@@ -235,9 +252,16 @@ export function checkAutomaticSync({ force = false, promptIfNeeded = false } = {
         ? { pendingCheck: true, reason: restoreError.message || 'Akses Google Drive perlu diperiksa kembali.' }
         : await checkSyncNeeded();
       if (prompt.needsSync || prompt.pendingCheck) {
-        window.dispatchEvent(new CustomEvent('notaku-sync-required', { detail: prompt }));
+        // Menutup popup berarti pengguna memilih melanjutkan sementara.
+        // Jangan tampilkan popup yang sama pada setiap refresh/visibilitychange;
+        // marker berubah otomatis ketika data lokal/cloud benar-benar berubah.
+        if (!wasSyncPromptShown(prompt)) {
+          rememberSyncPrompt(prompt);
+          window.dispatchEvent(new CustomEvent('notaku-sync-required', { detail: prompt }));
+        }
         return;
       }
+      clearSyncPromptMarker();
     }
     if (restoreError) throw restoreError;
     if (navigator.onLine === false) return;
@@ -280,6 +304,8 @@ export async function checkSyncNeeded() {
     const cloudHash = fingerprint(payload.data);
     return {
       needsSync: localHash !== cloudHash,
+      localHash,
+      cloudHash,
       reason: localHash !== cloudHash ? 'Ada perubahan data yang belum tersinkron.' : '',
     };
   } catch (error) {
