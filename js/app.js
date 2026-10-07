@@ -3,6 +3,8 @@ import { APP_VERSION } from './version.js';
 import { initTheme } from './theme.js';
 import { initBottomNavIndicator } from './navIndicator.js';
 import { initMotion } from './motion.js';
+import * as db from './db.js';
+import { escapeHtml } from './format.js';
 //
 // Kenapa hash router + dynamic import per halaman?
 // - Hash router (#/rute) tidak perlu konfigurasi server apa pun — cocok untuk
@@ -17,6 +19,7 @@ import { initMotion } from './motion.js';
 
 const pageRoot = document.getElementById('pageRoot');
 const topbarActionsEl = document.getElementById('topbarActions');
+const globalSearchButton = document.getElementById('btnGlobalSearch');
 const pageTitleEl = document.getElementById('pageTitle');
 const btnBack = document.getElementById('btnBack');
 const btnMenu = document.getElementById('btnMenu');
@@ -26,6 +29,33 @@ const drawerOverlay = document.getElementById('drawerOverlay');
 initTheme();
 initBottomNavIndicator(bottomnav); // lekukan + bubble menu bawah (mobile)
 initMotion(); // animasi angka: ringkasan menghitung naik
+globalSearchButton?.addEventListener('click', openGlobalSearch);
+
+async function openGlobalSearch() {
+  if (document.querySelector('.global-search-backdrop')) return;
+  const backdrop = document.createElement('div');
+  backdrop.className = 'global-search-backdrop';
+  backdrop.innerHTML = `<section class="global-search-dialog" role="dialog" aria-modal="true" aria-label="Pencarian global"><div class="global-search-head"><strong>Cari di NotaKu</strong><button type="button" class="global-search-close" aria-label="Tutup">×</button></div><label class="global-search-input"><span aria-hidden="true">⌕</span><input type="search" id="globalSearchInput" placeholder="Nota, pelanggan, produk, pengeluaran…" autocomplete="off"></label><div class="global-search-results" id="globalSearchResults"><small>Ketik untuk mencari di seluruh data.</small></div></section>`;
+  document.body.appendChild(backdrop);
+  const input = backdrop.querySelector('#globalSearchInput');
+  const results = backdrop.querySelector('#globalSearchResults');
+  const close = () => backdrop.remove();
+  backdrop.querySelector('.global-search-close').onclick = close;
+  backdrop.onclick = (event) => { if (event.target === backdrop) close(); };
+  input.oninput = async () => {
+    const query = input.value.trim().toLowerCase();
+    if (!query) { results.innerHTML = '<small>Ketik untuk mencari di seluruh data.</small>'; return; }
+    const [sales, products, customers, expenses] = await Promise.all([db.getAll('sales'), db.getAll('products'), db.getAll('customers'), db.getAll('expenses')]);
+    const found = [];
+    sales.filter((row) => !row.isDeleted && [row.invoiceNumber, row.customerName, row.customerPhone, row.saleDate].some((value) => String(value || '').toLowerCase().includes(query))).slice(0, 8).forEach((row) => found.push({ type: 'Nota', title: row.invoiceNumber, sub: `${row.customerName} · ${row.saleDate}`, route: `sale/${row.id}` }));
+    products.filter((row) => row.isActive !== 0 && [row.name, row.category, row.barcode].some((value) => String(value || '').toLowerCase().includes(query))).slice(0, 6).forEach((row) => found.push({ type: 'Produk', title: row.name, sub: row.category || 'Produk', route: 'products' }));
+    customers.filter((row) => row.isActive !== 0 && [row.name, row.phone, row.address].some((value) => String(value || '').toLowerCase().includes(query))).slice(0, 6).forEach((row) => found.push({ type: 'Pelanggan', title: row.name, sub: row.phone || 'Pelanggan', route: 'customers' }));
+    expenses.filter((row) => [row.title, row.category, row.note, row.expenseDate].some((value) => String(value || '').toLowerCase().includes(query))).slice(0, 6).forEach((row) => found.push({ type: 'Pengeluaran', title: row.title, sub: `${row.category} · ${row.expenseDate}`, route: 'expenses' }));
+    results.innerHTML = found.length ? found.map((item) => `<button class="global-search-result" data-route="${escapeHtml(item.route)}"><span class="global-search-result-type">${item.type}</span><span><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.sub)}</small></span><i>›</i></button>`).join('') : '<small>Tidak ada data yang cocok.</small>';
+    results.querySelectorAll('[data-route]').forEach((button) => button.onclick = () => { close(); navigate(button.dataset.route); });
+  };
+  input.focus();
+}
 
 const TOP_LEVEL_ROUTES = ['dashboard', 'home', 'products', 'customers', 'expenses', 'reports', 'settings'];
 
