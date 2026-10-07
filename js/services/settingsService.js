@@ -62,6 +62,7 @@ const DEFAULTS = {
     lastSyncFingerprint: '',// sidik data terakhir yang sama di lokal dan Drive
     lastSyncStatus: '',     // status terakhir sinkron otomatis
     lastSyncProblem: false,
+    lastSyncPromptKey: '',  // penanda popup mismatch terakhir agar tidak berulang
     autoSyncEnabled: true,
     autoSyncIntervalMinutes: 5,
   },

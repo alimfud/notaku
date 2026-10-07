@@ -158,7 +158,12 @@ function stableData(data) {
   const copy = JSON.parse(JSON.stringify(data));
   // Konfigurasi backup dan status akun bersifat lokal perangkat, bukan data usaha.
   for (const row of copy.settings || []) {
-    if (row.id === 1) delete row.autoBackup;
+    if (row.id === 1) {
+      delete row.autoBackup;
+      // Kunci FingerPin/biometrik terikat pada perangkat/browser ini dan
+      // tidak boleh membuat perangkat lain dianggap punya data berbeda.
+      delete row.security;
+    }
   }
   return JSON.stringify(copy);
 }
@@ -197,6 +202,7 @@ async function saveSyncState({ fingerprint: value, status = '' }) {
     lastSyncStatus: status,
     lastSyncProblem: !value,
   } });
+  if (value) await clearSyncPromptMarker();
 }
 
 /** Periksa dan sinkronkan perubahan satu arah; perubahan bersamaan ditahan agar tidak tertimpa. */
@@ -209,16 +215,26 @@ function syncPromptKey(prompt) {
   return [prompt?.reason || '', prompt?.localHash || '', prompt?.cloudHash || ''].join('|');
 }
 
-function wasSyncPromptShown(prompt) {
-  try { return sessionStorage.getItem(SYNC_PROMPT_MARKER) === syncPromptKey(prompt); } catch { return false; }
+function wasSyncPromptShown(prompt, cfg) {
+  const key = syncPromptKey(prompt);
+  if (cfg?.lastSyncPromptKey === key) return true;
+  try { return sessionStorage.getItem(SYNC_PROMPT_MARKER) === key; } catch { return false; }
 }
 
-function rememberSyncPrompt(prompt) {
-  try { sessionStorage.setItem(SYNC_PROMPT_MARKER, syncPromptKey(prompt)); } catch { /* private mode */ }
+async function rememberSyncPrompt(prompt, cfg) {
+  const key = syncPromptKey(prompt);
+  try { sessionStorage.setItem(SYNC_PROMPT_MARKER, key); } catch { /* private mode */ }
+  if (cfg?.lastSyncPromptKey !== key) {
+    await saveSettings({ autoBackup: { ...cfg, lastSyncPromptKey: key } });
+  }
 }
 
-function clearSyncPromptMarker() {
+async function clearSyncPromptMarker() {
   try { sessionStorage.removeItem(SYNC_PROMPT_MARKER); } catch { /* private mode */ }
+  const settings = await getSettings();
+  if (settings.autoBackup?.lastSyncPromptKey) {
+    await saveSettings({ autoBackup: { ...settings.autoBackup, lastSyncPromptKey: '' } });
+  }
 }
 
 export async function getSyncDisplayState() {
@@ -255,13 +271,13 @@ export function checkAutomaticSync({ force = false, promptIfNeeded = false } = {
         // Menutup popup berarti pengguna memilih melanjutkan sementara.
         // Jangan tampilkan popup yang sama pada setiap refresh/visibilitychange;
         // marker berubah otomatis ketika data lokal/cloud benar-benar berubah.
-        if (!wasSyncPromptShown(prompt)) {
-          rememberSyncPrompt(prompt);
+        if (!wasSyncPromptShown(prompt, cfg)) {
+          await rememberSyncPrompt(prompt, cfg);
           window.dispatchEvent(new CustomEvent('notaku-sync-required', { detail: prompt }));
         }
         return;
       }
-      clearSyncPromptMarker();
+      await clearSyncPromptMarker();
     }
     if (restoreError) throw restoreError;
     if (navigator.onLine === false) return;
