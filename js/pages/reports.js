@@ -113,14 +113,21 @@ async function exportReport(root, format) {
     }
     if (!window.jspdf) {
       const script = document.createElement('script');
-      script.src = '/vendor/jspdf.umd.min.js';
+      script.src = new URL('../vendor/jspdf.umd.min.js', import.meta.url).href;
       await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = reject; document.head.appendChild(script); });
     }
     if (!window.jspdf?.jsPDF) throw new Error('Komponen PDF belum berhasil dimuat. Coba lagi.');
     const pdf = new window.jspdf.jsPDF();
     pdf.setFontSize(16); pdf.text('Laporan NotaKu', 15, 18); pdf.setFontSize(11); pdf.text(String(data.periodLabel || ''), 15, 27);
     rows.slice(2).forEach((row, index) => pdf.text(`${row[0]}: ${row[1]}`, 15, 42 + index * 8));
-    pdf.save(`${filename}.pdf`);
+    // Gunakan Blob + anchor seperti export CSV agar kompatibel dengan browser
+    // Android yang kadang menolak pdf.save() langsung dari library.
+    const pdfBlob = pdf.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    const pdfLink = document.createElement('a');
+    pdfLink.href = pdfUrl; pdfLink.download = `${filename}.pdf`; pdfLink.style.display = 'none';
+    document.body.appendChild(pdfLink); pdfLink.click(); pdfLink.remove();
+    setTimeout(() => URL.revokeObjectURL(pdfUrl), 60000);
     toast('Laporan PDF berhasil dibuat');
   } catch (error) {
     console.error('[exportReport]', error);
