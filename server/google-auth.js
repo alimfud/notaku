@@ -3,6 +3,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
 const SESSION_COOKIE = '__Host-notaku-session';
 const FLOW_COOKIE = '__Host-notaku-google-flow';
 const DEFAULT_SESSION_DAYS = 180;
+const MAX_SESSION_DAYS = 500;
 const FLOW_SECONDS = 600;
 const SCOPE = 'openid email profile https://www.googleapis.com/auth/drive.file';
 const digest = (value) => createHash('sha256').update(value).digest('base64url');
@@ -17,7 +18,7 @@ function config(env = process.env) {
   if (origins.some((origin) => !origin.startsWith('https://') || new URL(origin).origin !== origin)) return null;
   if (!kv && (!redisUrl || !redisUrl.startsWith('https://'))) return null;
   const sessionDays = Number.parseInt(env.SESSION_DAYS || String(DEFAULT_SESSION_DAYS), 10);
-  const safeSessionDays = Number.isFinite(sessionDays) ? Math.min(Math.max(sessionDays, 1), 365) : DEFAULT_SESSION_DAYS;
+  const safeSessionDays = Number.isFinite(sessionDays) ? Math.min(Math.max(sessionDays, 1), MAX_SESSION_DAYS) : DEFAULT_SESSION_DAYS;
   return { origins, key, redisUrl, redisToken, clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET,
     sessionSeconds: safeSessionDays * 86400, kv };
 }
