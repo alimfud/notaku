@@ -109,6 +109,7 @@ function showLockScreen(settings) {
       </form>
       ${security.biometricEnabled ? '<button type="button" class="btn secondary app-lock-biometric">Gunakan sidik jari</button>' : ''}
       <div class="app-lock-error" role="alert" aria-live="polite"></div>
+      <button type="button" class="app-lock-forgot">Lupa PIN?</button>
     </section>`;
   document.body.appendChild(lockBackdrop);
   document.body.classList.add('app-is-locked');
@@ -144,6 +145,33 @@ function showLockScreen(settings) {
       removeLockScreen();
     } catch (reason) {
       error.textContent = reason?.name === 'NotAllowedError' ? 'Verifikasi dibatalkan atau tidak berhasil.' : (reason?.message || 'Sidik jari belum berhasil diverifikasi.');
+      button.disabled = false;
+    }
+  });
+  lockBackdrop.querySelector('.app-lock-forgot').addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    error.textContent = security.biometricEnabled
+      ? 'Verifikasi sidik jari untuk memulihkan akses…'
+      : 'Memeriksa akun Google yang terhubung…';
+    try {
+      if (security.biometricEnabled) {
+        await authenticateBiometric(security.biometricCredentialId);
+      } else {
+        const drive = await import('./driveBackupService.js');
+        const current = await getSettings();
+        if (!current.autoBackup?.driveConnected || !current.autoBackup?.driveAccountEmail) {
+          throw new Error('Pemulihan PIN membutuhkan sidik jari atau akun Google Drive yang sebelumnya sudah terhubung.');
+        }
+        await drive.connectAccount({ renew: true });
+      }
+      unlocked = true;
+      removeLockScreen();
+      window.location.hash = '#/settings/security';
+    } catch (reason) {
+      error.textContent = reason?.name === 'NotAllowedError'
+        ? 'Verifikasi dibatalkan atau tidak berhasil.'
+        : (reason?.message || 'PIN belum dapat dipulihkan.');
       button.disabled = false;
     }
   });
