@@ -87,13 +87,22 @@ function showSyncPrompt(event = {}) {
       <div class="sync-required-icon" aria-hidden="true">↻</div>
       <h2 id="syncRequiredTitle">${pendingCheck ? 'Pemeriksaan sinkronisasi tertunda' : 'Sinkronisasi diperlukan'}</h2>
       <p>${pendingCheck ? 'Aplikasi belum dapat memeriksa data terbaru di Google Drive. Pemeriksaan akan dilanjutkan saat koneksi dan akses Google tersedia.' : 'Ada perubahan data yang perlu diselaraskan dengan Google Drive sebelum kamu melanjutkan.'}</p>
-      <button class="sync-required-action btn" type="button">${pendingCheck ? 'Periksa lagi' : 'Sinkron sekarang'}</button>
+      <button class="sync-required-action btn" type="button">${pendingCheck ? 'Aktifkan akses Google' : 'Sinkron sekarang'}</button>
     </section>`;
   document.body.appendChild(backdrop);
   const close = () => closeSyncPrompt(backdrop);
   backdrop.querySelector('.sync-required-close').onclick = close;
   backdrop.querySelector('.sync-required-action').onclick = async () => {
     const action = backdrop.querySelector('.sync-required-action');
+    // Saat token Google sudah tidak tersedia, pemeriksaan ulang tidak dapat
+    // membuka login secara otomatis karena pemeriksaan latar belakang memang
+    // harus non-interaktif. Arahkan pengguna ke halaman backup agar tombol
+    // "Aktifkan akses Google" menjalankan alur OAuth secara langsung.
+    if (pendingCheck) {
+      close();
+      window.location.hash = '#/settings/autobackup';
+      return;
+    }
     action.disabled = true;
       action.textContent = pendingCheck ? 'Memeriksa…' : 'Menyinkronkan…';
     try {
@@ -106,7 +115,7 @@ function showSyncPrompt(event = {}) {
       close();
     } catch (error) {
       action.disabled = false;
-      action.textContent = pendingCheck ? 'Coba periksa lagi' : 'Coba sinkron lagi';
+      action.textContent = pendingCheck ? 'Aktifkan akses Google' : 'Coba sinkron lagi';
       console.error('[sync-prompt] manual sync failed', error);
     }
   };
