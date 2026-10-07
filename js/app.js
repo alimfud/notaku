@@ -340,8 +340,20 @@ function registerServiceWorker() {
 
 // ---------------- Boot ----------------
 (async function boot() {
+  const splashStarted = performance.now();
   if (!window.location.hash) window.location.hash = '#/dashboard';
-  await handleRouteChange();
+  try {
+    await handleRouteChange();
+    // Waktu singkat untuk melihat struk keluar, hanya saat aplikasi dibuka.
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const remaining = 1500 - (performance.now() - splashStarted);
+      if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining));
+    }
+  } finally {
+    document.getElementById('loadingOverlay')?.classList.add('hidden');
+    const label = document.getElementById('loadingMessage');
+    if (label) label.textContent = 'Sedang memproses…';
+  }
   // Kunci awal hanya tampil jika pengguna memang sudah mengaktifkannya dari
   // Pengaturan. PIN/biometrik tidak pernah dikirim ke server.
   const appLock = await import('./services/appLockService.js');

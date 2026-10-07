@@ -32,6 +32,7 @@
 <link id="themeClay" rel="stylesheet" href="css/clay.css" media="not all">
 <link rel="stylesheet" href="css/bottomnav.css">
 <link rel="stylesheet" href="css/motion.css">
+<link rel="stylesheet" href="css/thermal-loader.css">
 <script>
 /* Tema tersimpan dan stylesheet-nya harus siap sebelum UI terlihat. */
 (function(){
@@ -163,11 +164,37 @@
 
 <div id="sheetRoot"></div>
 <div id="toast"></div>
-<div id="loadingOverlay" class="hidden" role="status" aria-live="polite" aria-label="Sedang memproses">
-  <div class="loading-mark" aria-hidden="true">
-    <img src="icons/icon-192.png" alt="">
-    <span>NotaKu</span>
-    <small id="loadingMessage">Sedang memproses…</small>
+<div id="loadingOverlay" role="status" aria-live="polite" aria-label="Sedang memproses">
+  <div class="loading-mark">
+    <div class="thermal-printer" aria-hidden="true">
+      <div class="thermal-halo"></div>
+      <div class="thermal-paper-window">
+        <div class="thermal-paper">
+          <svg class="thermal-receipt-brand" viewBox="0 0 96 22"><text x="48" y="17" text-anchor="middle" fill="#342f29" font-family="Arial, sans-serif" font-size="18" font-weight="800">NotaKu</text></svg>
+          <span class="thermal-receipt-caption">NOTA PENJUALAN</span>
+          <div class="thermal-receipt-divider"></div>
+          <div class="thermal-receipt-row"><i></i><i></i></div>
+          <div class="thermal-receipt-row"><i></i><i></i></div>
+          <div class="thermal-receipt-row"><i></i><i></i></div>
+          <div class="thermal-receipt-divider"></div>
+          <div class="thermal-receipt-total"><b>TOTAL</b><i></i></div>
+          <div class="thermal-barcode"></div>
+          <span class="thermal-receipt-thanks">Terima kasih</span>
+        </div>
+      </div>
+      <div class="thermal-machine">
+        <div class="thermal-lid"><div class="thermal-output-slot"></div></div>
+        <div class="thermal-machine-front">
+          <span class="thermal-machine-brand">NotaKu</span>
+          <div class="thermal-controls"><i class="thermal-led"></i><span>READY</span><i class="thermal-feed-button"></i></div>
+          <div class="thermal-vents"><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="thermal-foot thermal-foot-left"></div><div class="thermal-foot thermal-foot-right"></div>
+      </div>
+      <div class="thermal-floor-shadow"></div>
+    </div>
+    <strong class="loading-brand">NotaKu</strong>
+    <small id="loadingMessage">Menyiapkan aplikasi…</small>
   </div>
 </div>
 

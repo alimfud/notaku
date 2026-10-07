@@ -30,7 +30,7 @@ export async function render(root, params) {
   // Identitas aplikasi tampil tenang tanpa spinner bundar berulang.
   root.innerHTML = `
     <div class="sale-detail-loading" role="status" aria-label="Menyiapkan nota">
-      <img src="icons/icon-192.png" alt="">
+      ${document.querySelector('#loadingOverlay .thermal-printer')?.outerHTML || ''}
       <span>Menyiapkan nota</span>
     </div>
   `;

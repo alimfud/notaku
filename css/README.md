@@ -7,6 +7,7 @@
 - `clay.css`: tema default "Clay" (pastel 3D ala tanah liat: krem, mint, peach, tombol koral); aktif lewat tombol tema di topbar. Struk tidak diubah.
 - `bottomnav.css`: menu bawah mobile bergaya notch + bubble yang meluncur (geometri digambar `js/navIndicator.js`); warna per tema lewat variabel `--nav-*`. Dimuat paling akhir; sidebar desktop tidak berubah.
 - `motion.css`: animasi angka ringkasan saja; dipicu `js/motion.js`, otomatis mati pada "reduce motion". Dimuat paling akhir.
+- `thermal-loader.css`: animasi printer thermal dan struk pada pembuka aplikasi dan proses pemuatan; menyesuaikan Clay/Neo dan preferensi gerakan terbatas.
 - `charts.css`: grafik harian dan diagram status pembayaran pada Beranda/Laporan, tanpa dependensi jaringan.
 - `pages/home.css`: daftar nota, tanggal, dan nomor invoice.
 - `pages/products.css`: daftar produk dan popup tambah/ubah produk.

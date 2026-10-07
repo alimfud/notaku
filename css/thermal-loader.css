@@ -1,0 +1,74 @@
+/* Printer thermal digambar dengan CSS; animasi berjalan tanpa aset jaringan. */
+#loadingOverlay .loading-mark { gap:5px; }
+.thermal-printer {
+  --printer-top:#f4eee6;
+  --printer-front:#dfd5c6;
+  --printer-edge:#b6ab9b;
+  position:relative;
+  width:244px;
+  height:246px;
+  flex-shrink:0;
+  isolation:isolate;
+}
+html[data-theme="dark"] .thermal-printer {
+  --printer-top:#46527f;
+  --printer-front:#293559;
+  --printer-edge:#18223f;
+}
+.thermal-halo { position:absolute; inset:18px -12px 6px; border-radius:50%; background:radial-gradient(ellipse,color-mix(in srgb,var(--primary) 13%,transparent),transparent 68%); }
+.thermal-paper-window { position:absolute; z-index:3; top:0; left:60px; width:124px; height:145px; overflow:hidden; }
+.thermal-paper {
+  position:absolute;
+  top:8px;
+  left:2px;
+  width:120px;
+  height:143px;
+  padding:14px 12px 9px;
+  background:linear-gradient(90deg,#ede9df 0%,#fffef9 10%,#fffdf6 85%,#e6e1d6 100%);
+  color:#342f29;
+  color-scheme:light;
+  clip-path:polygon(0 4px,4% 0,8% 4px,12% 0,16% 4px,20% 0,24% 4px,28% 0,32% 4px,36% 0,40% 4px,44% 0,48% 4px,52% 0,56% 4px,60% 0,64% 4px,68% 0,72% 4px,76% 0,80% 4px,84% 0,88% 4px,92% 0,96% 4px,100% 0,100% 100%,0 100%);
+  box-shadow:inset 0 -10px 10px -10px #827768;
+  font-family:ui-monospace,Consolas,monospace;
+  transform:translateY(133px);
+  animation:thermalPaperFeed 3.8s ease-in-out infinite;
+}
+.thermal-printer .thermal-receipt-brand { display:block; width:96px; height:22px; }
+.thermal-printer .thermal-receipt-caption { display:block; margin:3px 0 6px; color:#625a4e; font-size:5px; letter-spacing:1px; text-align:center; }
+.thermal-receipt-divider { border-top:1px dashed #aaa293; margin:5px 0; }
+.thermal-receipt-row { display:flex; justify-content:space-between; align-items:center; height:8px; }
+.thermal-receipt-row i { display:block; width:45px; height:2px; background:#9d968a; border-radius:1px; }
+.thermal-receipt-row i:last-child { width:18px; }
+.thermal-receipt-row:nth-of-type(3) i:first-child { width:33px; }
+.thermal-receipt-total { display:flex; justify-content:space-between; align-items:center; margin:6px 0; }
+.thermal-receipt-total b { font-size:7px; }
+.thermal-receipt-total i { width:25px; height:3px; background:#4c463f; }
+.thermal-barcode { width:68px; height:13px; margin:7px auto 4px; background:repeating-linear-gradient(90deg,#423c35 0 1px,transparent 1px 3px,#423c35 3px 5px,transparent 5px 6px,#423c35 6px 7px,transparent 7px 10px); }
+.thermal-printer .thermal-receipt-thanks { display:block; color:#625a4e; font-size:6px; text-align:center; }
+.thermal-machine { position:absolute; top:132px; left:23px; z-index:2; width:198px; height:99px; filter:drop-shadow(0 9px 8px rgba(25,20,15,.14)); }
+.thermal-lid { position:absolute; top:0; left:5px; width:188px; height:42px; border-radius:18px 18px 6px 6px; border:1px solid var(--printer-edge); background:linear-gradient(170deg,var(--printer-top) 10%,var(--printer-front) 90%); box-shadow:inset 0 2px 2px rgba(255,255,255,.6); }
+.thermal-output-slot { position:absolute; top:8px; left:25px; width:136px; height:9px; border:2px solid var(--printer-edge); border-radius:5px; background:#28292b; box-shadow:0 2px 1px rgba(255,255,255,.45),inset 0 3px 3px #111; }
+.thermal-output-slot::after { content:""; position:absolute; top:5px; left:4px; right:4px; height:1px; background:repeating-linear-gradient(90deg,#a1a09c 0 2px,transparent 2px 4px); }
+.thermal-machine-front { position:absolute; top:29px; width:198px; height:62px; border:1px solid var(--printer-edge); border-radius:8px 8px 17px 17px; background:linear-gradient(110deg,var(--printer-top),var(--printer-front) 60%,var(--printer-edge)); box-shadow:inset 0 1px 1px rgba(255,255,255,.5),inset 0 -5px 7px rgba(30,25,20,.08); }
+.thermal-printer .thermal-machine-brand { position:absolute; top:11px; left:16px; color:color-mix(in srgb,var(--ink) 70%,var(--muted)); font-size:11px; font-weight:800; letter-spacing:-.3px; }
+.thermal-controls { position:absolute; top:14px; right:14px; display:flex; align-items:center; gap:5px; }
+.thermal-led { width:5px; height:5px; border-radius:50%; background:#4ec48f; box-shadow:0 0 6px rgba(53,187,121,.65); animation:thermalLedPulse .7s ease-in-out infinite alternate; }
+.thermal-printer .thermal-controls span { color:var(--ink-soft); font:5px ui-monospace,monospace; letter-spacing:.5px; }
+.thermal-feed-button { width:10px; height:10px; margin-left:3px; border:1px solid var(--printer-edge); border-radius:50%; background:var(--printer-top); box-shadow:0 1px 2px rgba(0,0,0,.16); }
+.thermal-vents { position:absolute; bottom:12px; left:17px; display:flex; gap:3px; }
+.thermal-vents i { width:10px; height:2px; border-radius:1px; background:var(--printer-edge); box-shadow:0 1px 0 rgba(255,255,255,.3); }
+.thermal-foot { position:absolute; bottom:2px; z-index:-1; width:25px; height:9px; border-radius:0 0 4px 4px; background:#383a3d; }
+.thermal-foot-left { left:20px; }
+.thermal-foot-right { right:20px; }
+.thermal-floor-shadow { position:absolute; bottom:7px; left:20px; width:204px; height:13px; border-radius:50%; background:radial-gradient(ellipse,rgba(25,20,15,.2),transparent 70%); z-index:-1; }
+.loading-mark .loading-brand { margin-top:2px; font-size:19px; font-weight:800; letter-spacing:-.5px; }
+@keyframes thermalPaperFeed {
+  0%,5% { transform:translateY(133px); opacity:1; }
+  36%,83% { transform:translateY(0); opacity:1; }
+  94%,100% { transform:translateY(-6px); opacity:0; }
+}
+@keyframes thermalLedPulse { from { opacity:.5; } to { opacity:1; } }
+@media(prefers-reduced-motion:reduce) {
+  .thermal-paper { animation:none; transform:translateY(0); }
+  .thermal-led { animation:none; }
+}
