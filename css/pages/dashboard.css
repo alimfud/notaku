@@ -9,6 +9,7 @@
 [data-page="dashboard"] .dashboard-hero { position:relative; min-width:0; overflow:hidden; padding:19px; border-radius:16px; background:linear-gradient(310deg, #a53b5a 0%, #491d30 55%, #3f1a2a 100%); box-shadow:0px 0px 6px 3px rgb(73 29 48 / 50%); color:#fff; }
 [data-page="dashboard"] .dashboard-period-control{display:flex;justify-content:flex-end;align-items:center;min-height:18px;margin:0 0 2px;}
 [data-page="dashboard"] .dashboard-filter-toggle{display:grid;width:22px;height:20px;place-items:center;border:0;background:transparent;color:var(--muted);font-size:19px;line-height:1;cursor:pointer;}
+[data-page="dashboard"] .dashboard-filter-toggle svg{width:15px;height:15px;}
 [data-page="dashboard"] .dashboard-period-filter{display:flex;gap:6px;overflow:auto;margin:0 5px 0 0;padding:1px;}
 [data-page="dashboard"] .dashboard-period-filter[hidden]{display:none;}
 [data-page="dashboard"] .dashboard-period-filter button{border:1px solid var(--outline);border-radius:999px;padding:7px 11px;background:var(--surface);color:var(--muted);font:inherit;font-size:11px;white-space:nowrap;cursor:pointer;}
