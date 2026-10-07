@@ -245,6 +245,7 @@ body{
 .loading-mark{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--primary);animation:loadingMarkIn .32s cubic-bezier(.22,1,.36,1) both;}
 .loading-mark img{display:block;width:68px;height:68px;object-fit:contain;filter:drop-shadow(0 8px 14px rgba(73,29,48,.16));}
 .loading-mark span{font-size:17px;font-weight:800;letter-spacing:-.25px;}
+.loading-mark small{max-width:260px;color:var(--muted);font-size:12px;font-weight:600;text-align:center;}
 @keyframes loadingMarkIn{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
 @media(prefers-reduced-motion:reduce){.loading-mark{animation:none;}}
 

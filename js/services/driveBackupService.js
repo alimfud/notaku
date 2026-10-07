@@ -37,6 +37,7 @@ import { backendEnabled, persistentAccess, beginPersistentLogin, disconnectPersi
 export function consumeGoogleLoginMessage() { return readGoogleLoginMessage(); }
 
 const DRIVE_FOLDER_NAME = 'NotaKu Backups';
+const DRIVE_REQUEST_TIMEOUT_MS = 30000;
 // drive.file memberi akses terbatas ke file aplikasi; scope identitas dipakai
 // hanya untuk menampilkan akun Google yang sedang tersambung di pengaturan.
 const SCOPES = 'openid email profile https://www.googleapis.com/auth/drive.file';
@@ -45,6 +46,17 @@ let _tokenClient = null;
 let _accessToken = null;
 let _tokenExpiryMs = 0;
 let _gisLoadPromise = null;
+
+function driveFetch(input, options = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), DRIVE_REQUEST_TIMEOUT_MS);
+  return fetch(input, { ...options, signal: controller.signal })
+    .catch((error) => {
+      if (error?.name === 'AbortError') throw new Error('Google Drive tidak merespons dalam 30 detik. Periksa koneksi internet lalu coba lagi.');
+      throw error;
+    })
+    .finally(() => clearTimeout(timer));
+}
 
 export function isConfigured() {
   return !!GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== 'ISI_DENGAN_CLIENT_ID_GOOGLE_CLOUD_MU';
@@ -135,7 +147,7 @@ export async function restoreGoogleAccess() {
 }
 
 async function fetchAccountEmail() {
-  const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+  const res = await driveFetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: { Authorization: `Bearer ${_accessToken}` },
   });
   if (!res.ok) throw new Error('Gagal memastikan akun Google. Silakan coba lagi.');
@@ -183,7 +195,7 @@ async function localFingerprint() {
 }
 
 async function readSyncFile(token, file) {
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error('Gagal membaca data sinkron: ' + await readGoogleError(res));
@@ -407,14 +419,14 @@ async function readGoogleError(res) {
 
 async function findOrCreateFolder(token) {
   const q = encodeURIComponent(`name='${DRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
-  const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
+  const searchRes = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!searchRes.ok) throw new Error('Gagal mengakses Google Drive: ' + await readGoogleError(searchRes));
   const searchData = await searchRes.json();
   if (searchData.files?.length) return searchData.files[0].id;
 
-  const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+  const createRes = await driveFetch('https://www.googleapis.com/drive/v3/files', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: DRIVE_FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' }),
@@ -430,7 +442,7 @@ async function uploadBackupFile(token, folderId, blob, filename) {
   form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
   form.append('file', blob);
 
-  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,createdTime', {
+  const res = await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,createdTime', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: form,
@@ -447,7 +459,7 @@ async function deleteOldBackups(token, folderId, keepCount = 15) {
   let pageToken = '';
   // Baca seluruh halaman sebelum menghapus, agar pagination tidak bergeser.
   do {
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=createdTime desc&pageSize=100&fields=nextPageToken,files(id,name,createdTime)${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`, { headers });
+    const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=createdTime desc&pageSize=100&fields=nextPageToken,files(id,name,createdTime)${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`, { headers });
     if (!res.ok) throw new Error('Gagal membaca daftar backup: ' + await readGoogleError(res));
     const page = await res.json();
     files.push(...(page.files || []).filter((file) => file.name?.startsWith('notaku-backup-')));
@@ -455,7 +467,7 @@ async function deleteOldBackups(token, folderId, keepCount = 15) {
   } while (pageToken);
   files.sort((a, b) => Date.parse(b.createdTime) - Date.parse(a.createdTime) || a.id.localeCompare(b.id));
   for (const file of files.slice(keepCount)) {
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}`, { method: 'DELETE', headers });
+    const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}`, { method: 'DELETE', headers });
     if (!res.ok && res.status !== 404) throw new Error('Gagal menghapus backup lama: ' + await readGoogleError(res));
   }
 }
@@ -464,7 +476,7 @@ export async function listBackupHistory() {
   const token = await ensureToken();
   const folderId = await findOrCreateFolder(token);
   const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and name contains 'notaku-backup-'`);
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=createdTime desc&pageSize=10&fields=files(id,name,createdTime,size)`, { headers: { Authorization: `Bearer ${token}` } });
+  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=createdTime desc&pageSize=10&fields=files(id,name,createdTime,size)`, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) throw new Error('Gagal membaca histori backup: ' + await readGoogleError(res));
   return (await res.json()).files || [];
 }
@@ -627,7 +639,7 @@ const SYNC_FILE_NAME = 'notaku-sync.json';
 
 async function findSyncFile(token) {
   const q = encodeURIComponent(`name='${SYNC_FILE_NAME}' and trashed=false`);
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)`, {
+  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error('Gagal memeriksa file sinkron di Drive: ' + await readGoogleError(res));
@@ -677,7 +689,7 @@ export async function pushToCloud() {
   }
   form.append('file', blob);
 
-  const res = await fetch(url, { method, headers: { Authorization: `Bearer ${token}` }, body: form });
+  const res = await driveFetch(url, { method, headers: { Authorization: `Bearer ${token}` }, body: form });
   if (!res.ok) throw new Error('Gagal mengirim data ke Drive: ' + await readGoogleError(res));
 
   const settings = await getSettings();
@@ -695,7 +707,7 @@ export async function pullFromCloud() {
   const file = await findSyncFile(token);
   if (!file) throw new Error('Belum ada data sinkron di Drive. Push dari salah satu perangkat dulu.');
 
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error('Gagal mengambil data dari Drive: ' + await readGoogleError(res));

@@ -14,6 +14,14 @@ import * as db from '../db.js';
 import { getAuditLogs, recordAudit } from '../services/auditLogService.js';
 import { registerBiometric, biometricAvailable } from '../services/appLockService.js';
 
+function setBackupLoading(visible, message = 'Sedang memproses…') {
+  const overlay = document.getElementById('loadingOverlay');
+  if (!overlay) return;
+  const label = overlay.querySelector('#loadingMessage');
+  if (label) label.textContent = message;
+  overlay.classList.toggle('hidden', !visible);
+}
+
 export async function render(root, params) {
   const sub = params[0];
   if (sub === 'store') return renderStore(root);
@@ -699,15 +707,24 @@ async function renderAutoBackup(root) {
       confirmLabel: 'Ya, Push',
     });
     if (!confirmed) return;
-    document.getElementById('loadingOverlay').classList.remove('hidden');
+    const pushButton = root.querySelector('#btnPush');
+    const pullButton = root.querySelector('#btnPull');
+    pushButton.disabled = true;
+    pullButton.disabled = true;
+    pushButton.textContent = 'Mengirim…';
+    setBackupLoading(true, 'Mengirim data ke Google Drive…');
     try {
       await drive.pushToCloud();
       toast('Berhasil push ke Drive');
       await refreshSyncStatus(root, drive);
     } catch (e) {
+      setBackupLoading(false);
       await alertDialog({ title: 'Push Gagal', message: e.message || 'Terjadi kesalahan.' });
     } finally {
-      document.getElementById('loadingOverlay').classList.add('hidden');
+      setBackupLoading(false);
+      if (root.querySelector('#btnPush')) root.querySelector('#btnPush').disabled = false;
+      if (root.querySelector('#btnPull')) root.querySelector('#btnPull').disabled = false;
+      if (root.querySelector('#btnPush')) root.querySelector('#btnPush').textContent = '⬆ Push ke Google Drive';
     }
   };
 
@@ -720,15 +737,24 @@ async function renderAutoBackup(root) {
       dangerous: true,
     });
     if (!confirmed) return;
-    document.getElementById('loadingOverlay').classList.remove('hidden');
+    const pushButton = root.querySelector('#btnPush');
+    const pullButton = root.querySelector('#btnPull');
+    pushButton.disabled = true;
+    pullButton.disabled = true;
+    pullButton.textContent = 'Menarik…';
+    setBackupLoading(true, 'Mengambil data dari Google Drive…');
     try {
       await drive.pullFromCloud();
       await alertDialog({ title: 'Berhasil', message: 'Data berhasil ditarik dari Drive.' });
       navigate('home');
     } catch (e) {
+      setBackupLoading(false);
       await alertDialog({ title: 'Pull Gagal', message: e.message || 'Terjadi kesalahan.' });
     } finally {
-      document.getElementById('loadingOverlay').classList.add('hidden');
+      setBackupLoading(false);
+      if (root.querySelector('#btnPush')) root.querySelector('#btnPush').disabled = false;
+      if (root.querySelector('#btnPull')) root.querySelector('#btnPull').disabled = false;
+      if (root.querySelector('#btnPull')) root.querySelector('#btnPull').textContent = '⬇ Tarik dari Google Drive';
     }
   };
 
@@ -756,15 +782,16 @@ async function renderAutoBackup(root) {
 
   root.querySelector('#btnBackupNow').onclick = async () => {
     if (!cfg.driveConnected) { toast('Hubungkan akun Google Drive dulu'); return; }
-    document.getElementById('loadingOverlay').classList.remove('hidden');
+    setBackupLoading(true, 'Membuat dan mengunggah backup ke Google Drive…');
     try {
       await drive.runBackupNow();
       toast('Backup berhasil diunggah ke Drive');
       await renderAutoBackup(root);
     } catch (e) {
+      setBackupLoading(false);
       await alertDialog({ title: 'Backup Gagal', message: (e.message || 'Terjadi kesalahan.') + '\n\nLihat docs/DRIVE_SETUP.md bagian Troubleshooting untuk arti pesan ini.' });
     } finally {
-      document.getElementById('loadingOverlay').classList.add('hidden');
+      setBackupLoading(false);
     }
   };
 }
