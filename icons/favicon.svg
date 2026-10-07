@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <title>NotaKu</title>
+  <!-- Transparent, simplified mark: no tile, tiny wordmark, or fine details. -->
+  <path d="M6 26h5v4H6zm15 0h5v4h-5z" fill="#285449"/>
+  <rect x="2" y="12" width="28" height="16" rx="5" fill="#478b74"/>
+  <path d="M7 12h18a5 5 0 0 1 5 5H2a5 5 0 0 1 5-5Z" fill="#70ac93"/>
+  <rect x="6" y="13" width="20" height="4" rx="2" fill="#254d41"/>
+  <path d="M9 16V3l2-1 2 1 2-1 2 1 2-1 2 1 2-1v14Z" fill="#fff8ed" stroke="#285449" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M12 6h8m-8 3h8m-8 3h5" stroke="#478b74" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M7 22h7" stroke="#cce8d5" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="24" cy="22" r="2" fill="#ffd08a"/>
+</svg>

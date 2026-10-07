@@ -1,4 +1,4 @@
 {
-  "version": "1.13.3",
-  "notes": "Warna pembuka PWA Clay dan ikon baru printer thermal, menggantikan identitas maroon lama."
+  "version": "1.13.4",
+  "notes": "Favicon printer tanpa latar yang jelas pada tab browser, serta pembersihan ikon tidak terpakai."
 }
