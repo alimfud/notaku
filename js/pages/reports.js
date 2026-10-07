@@ -76,8 +76,6 @@ export async function render(root) {
     c.onclick = () => { _period = c.dataset.p; drawReport(root); };
   });
   updateReportView(root);
-  root.querySelector('#exportReportCsv').onclick = () => exportReport(root, 'csv');
-  root.querySelector('#exportReportPdf').onclick = () => exportReport(root, 'pdf');
   await drawReport(root);
   const allTimeData = await generateAllTimeSummary();
   availableMonths = allTimeData.monthlyBreakdown.map((month) => month.monthKey);
@@ -338,6 +336,12 @@ async function drawReport(root) {
   `;
   wirePeriodNavigator(root);
   wireBusinessCharts(el);
+  wireExportButtons(root);
+}
+
+function wireExportButtons(root) {
+  root.querySelector('#exportReportCsv')?.addEventListener('click', () => exportReport(root, 'csv'));
+  root.querySelector('#exportReportPdf')?.addEventListener('click', () => exportReport(root, 'pdf'));
 }
 
 async function drawAllTime(root, data) {
