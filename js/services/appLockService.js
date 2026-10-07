@@ -29,8 +29,14 @@ export function biometricSupported() {
   );
 }
 
+export async function biometricAvailable() {
+  if (!biometricSupported()) return false;
+  if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== 'function') return true;
+  try { return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } catch { return false; }
+}
+
 export async function registerBiometric() {
-  if (!biometricSupported()) throw new Error('Sidik jari tidak tersedia di browser atau perangkat ini.');
+  if (!(await biometricAvailable())) throw new Error('Sidik jari tidak tersedia di browser atau perangkat ini.');
   const credential = await navigator.credentials.create({
     publicKey: {
       challenge: crypto.getRandomValues(new Uint8Array(32)),
@@ -58,7 +64,7 @@ export async function registerBiometric() {
 }
 
 export async function authenticateBiometric(credentialId) {
-  if (!biometricSupported()) throw new Error('Sidik jari tidak tersedia di browser atau perangkat ini.');
+  if (!(await biometricAvailable())) throw new Error('Sidik jari tidak tersedia di browser atau perangkat ini.');
   if (!credentialId) throw new Error('Sidik jari belum diaktifkan.');
   await navigator.credentials.get({
     publicKey: {
@@ -116,11 +122,27 @@ export async function lockApplication({ force = false, background = false } = {}
   const settings = await getSettings();
   const security = settings.security || {};
   if (!security.biometricEnabled) return false;
+  if (!(await biometricAvailable())) {
+    // Membersihkan status lama yang mungkin pernah ikut tersalin dari
+    // perangkat lain sebelum pengaturan keamanan dibuat lokal per perangkat.
+    await saveLocalBiometricState(false);
+    return false;
+  }
   if (background && security.lockOnBackground === false) return false;
   if (force) unlocked = false;
   if (unlocked) return false;
   showLockScreen(settings);
   return true;
+}
+
+async function saveLocalBiometricState(enabled) {
+  const settings = await getSettings();
+  if (!settings.security?.biometricEnabled) return;
+  const security = enabled
+    ? settings.security
+    : { ...settings.security, biometricEnabled: false, biometricCredentialId: '' };
+  const { saveSettings } = await import('./settingsService.js');
+  await saveSettings({ security });
 }
 
 export function isApplicationLocked() {

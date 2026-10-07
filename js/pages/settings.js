@@ -12,7 +12,7 @@ import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
 import { bindThemeSwitch } from '../theme.js';
 import * as db from '../db.js';
 import { getAuditLogs, recordAudit } from '../services/auditLogService.js';
-import { registerBiometric, biometricSupported } from '../services/appLockService.js';
+import { registerBiometric, biometricAvailable } from '../services/appLockService.js';
 
 export async function render(root, params) {
   const sub = params[0];
@@ -82,7 +82,7 @@ async function renderSecurity(root) {
   setTopbarActions([]);
   const settings = await getSettings();
   const security = settings.security || {};
-  const biometricReady = biometricSupported();
+  const biometricReady = await biometricAvailable();
   root.innerHTML = `
     <div class="settings-simple-page settings-security-page">
       <div class="settings-page-intro">
