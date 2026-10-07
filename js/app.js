@@ -20,6 +20,7 @@ import { escapeHtml } from './format.js';
 const pageRoot = document.getElementById('pageRoot');
 const topbarActionsEl = document.getElementById('topbarActions');
 const globalSearchButton = document.getElementById('btnGlobalSearch');
+const themeToggleButton = document.getElementById('btnThemeToggle');
 const pageTitleEl = document.getElementById('pageTitle');
 const btnBack = document.getElementById('btnBack');
 const btnMenu = document.getElementById('btnMenu');
@@ -262,6 +263,9 @@ async function handleRouteChange() {
   const page = route === 'sale'
     ? (params[0] === 'new' ? 'sale-new' : params[1] === 'edit' ? 'sale-edit' : 'sale-detail')
     : route;
+  const compactSaleDetailTopbar = page === 'sale-detail';
+  globalSearchButton?.classList.toggle('hidden', compactSaleDetailTopbar);
+  themeToggleButton?.classList.toggle('hidden', compactSaleDetailTopbar);
   const section = route === 'settings' ? (params[0] || 'hub') : '';
   const loader = PAGE_LOADERS[route];
   pageRoot.dataset.pendingPage = page;
