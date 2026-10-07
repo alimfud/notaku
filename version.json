@@ -1,4 +1,4 @@
 {
-  "version": "1.13.4",
-  "notes": "Favicon printer tanpa latar yang jelas pada tab browser, serta pembersihan ikon tidak terpakai."
+  "version": "1.13.5",
+  "notes": "Ikon HP lebih kontras: printer Clay di atas latar Neo; favicon transparan tetap dipertahankan."
 }

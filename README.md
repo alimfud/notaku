@@ -2,7 +2,7 @@
 
 NotaKu adalah aplikasi kasir dan nota penjualan berbasis web/PWA. Data toko disimpan lokal melalui IndexedDB, sehingga aplikasi tetap dapat dipakai setelah dibuka sekali saat online.
 
-- **Versi saat ini:** v1.13.4
+- **Versi saat ini:** v1.13.5
 - **Versi aplikasi:** buka dari browser atau instal sebagai PWA melalui Chrome/Edge.
 
 ## Cara pakai di HP
@@ -40,7 +40,7 @@ Edit hanya berkas berikut sesuai kebutuhan:
 
 ### Identitas dan layar pembuka
 
-Ikon instalasi NotaKu mengikuti printer thermal pada animasi pembuka, dengan latar krem Clay. Sumber vektornya `scripts/artwork/printer.svg`. Favicon tab browser menggunakan gambar sederhana tanpa latar di `icons/favicon.svg`, dengan fallback PNG 32×32. PNG dibuat dengan `node scripts/build-icons.cjs` (memerlukan Playwright dan Edge); skrip hanya menghasilkan ukuran yang benar-benar dipakai. Folder `icons/` berisi enam aset aktif: favicon SVG/PNG, ikon iPhone 180, ikon PWA 192/512, dan ikon maskable 512 yang memiliki ruang aman untuk pemotongan Android. Logo toko pada nota di `docs/logo.webp` bukan ikon aplikasi dan tidak diubah.
+Ikon instalasi NotaKu mengikuti printer thermal pada animasi pembuka: printer krem Clay di atas latar gelap Neo agar siluetnya jelas pada layar utama HP. Warna latar animasi/pembuka PWA tetap Clay; perubahan warna ini khusus gambar ikon. Sumber vektornya `scripts/artwork/printer.svg`. Favicon tab browser menggunakan gambar sederhana tanpa latar di `icons/favicon.svg`, dengan fallback PNG 32×32. PNG dibuat dengan `node scripts/build-icons.cjs` (memerlukan Playwright dan Edge); skrip hanya menghasilkan ukuran yang benar-benar dipakai. Folder `icons/` berisi enam aset aktif: favicon SVG/PNG, ikon iPhone 180, ikon PWA 192/512, dan ikon maskable 512 yang memiliki ruang aman untuk pemotongan Android. Logo toko pada nota di `docs/logo.webp` bukan ikon aplikasi dan tidak diubah.
 
 Layar pembuka pertama pada PWA terpasang dibuat oleh Android/browser, bukan HTML; layar tersebut tidak dapat menjalankan animasi CSS. Warna dan ikonnya mengikuti `manifest.json`. Setelah halaman siap, animasi printer langsung tampil tanpa layar logo statis tambahan. Pembaruan manifest/ikon pada PWA yang sudah terpasang dapat memerlukan waktu karena cache sistem; buka aplikasi saat online, tutup, lalu buka kembali setelah browser memperbaruinya. Jangan hapus data situs untuk memperbarui ikon karena transaksi tersimpan lokal.
 

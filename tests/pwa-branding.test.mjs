@@ -49,7 +49,7 @@ test('HTML opens with the animation, not an old bitmap logo', async () => {
   assert.match(html, /apple-touch-icon" sizes="180x180"/);
 });
 
-for (const pathname of ['/manifest.json', '/icons/icon-192.png?v=printer-1', '/icons/favicon.svg?v=2']) {
+for (const pathname of ['/manifest.json', '/icons/icon-192.png?v=printer-2', '/icons/favicon.svg?v=2']) {
   for (const online of [true, false]) {
     test(`${pathname}: branding refreshes online and keeps its offline fallback (${online ? 'online' : 'offline'})`, async () => {
       const handlers = {}, calls = [];

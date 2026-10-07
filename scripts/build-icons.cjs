@@ -13,7 +13,7 @@ const root = path.resolve(__dirname, '..');
   const wrap = (width, height, content) => `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${defs}${content}</svg>`;
   const assets = [180, 192, 512].map(size => ({ name: `icon-${size}.png`, width: size, height: size, svg: source }));
   assets.push(
-    { name: 'icon-maskable-512.png', width: 512, height: 512, svg: wrap(512, 512, `<rect width="512" height="512" fill="#fbf0e0"/><g transform="translate(256 256) scale(.84) translate(-256 -256)">${mark}</g>`) },
+    { name: 'icon-maskable-512.png', width: 512, height: 512, svg: wrap(512, 512, `<rect width="512" height="512" fill="url(#icon-background)"/><g transform="translate(256 256) scale(.92) translate(-256 -256)">${mark}</g>`) },
     { name: 'favicon-32.png', width: 32, height: 32, svg: favicon },
   );
   const browser = await chromium.launch({ channel: 'msedge', headless: true });

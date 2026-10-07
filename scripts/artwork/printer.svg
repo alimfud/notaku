@@ -1,6 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title">
   <title id="title">NotaKu — sumber ikon printer thermal</title>
   <defs>
+    <radialGradient id="icon-background" cx=".5" cy=".35" r=".8">
+      <stop stop-color="#344274"/><stop offset=".6" stop-color="#1b2354"/><stop offset="1" stop-color="#121840"/>
+    </radialGradient>
     <linearGradient id="lid" x1="0" y1="0" x2=".8" y2="1">
       <stop stop-color="#fffaf2"/><stop offset="1" stop-color="#dfd5c6"/>
     </linearGradient>
@@ -10,9 +13,9 @@
     <linearGradient id="paper">
       <stop stop-color="#e8e1d4"/><stop offset=".08" stop-color="#fffef9"/><stop offset=".9" stop-color="#fffdf6"/><stop offset="1" stop-color="#e6dfd1"/>
     </linearGradient>
-    <radialGradient id="shadow"><stop stop-color="#574636" stop-opacity=".22"/><stop offset="1" stop-color="#574636" stop-opacity="0"/></radialGradient>
+    <radialGradient id="shadow"><stop stop-color="#020715" stop-opacity=".4"/><stop offset="1" stop-color="#020715" stop-opacity="0"/></radialGradient>
   </defs>
-  <rect width="512" height="512" fill="#fbf0e0"/>
+  <rect width="512" height="512" fill="url(#icon-background)"/>
   <g id="printer-mark">
     <ellipse cx="256" cy="436" rx="171" ry="25" fill="url(#shadow)"/>
     <rect x="133" y="407" width="37" height="22" rx="6" fill="#49433c"/>
