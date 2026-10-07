@@ -57,7 +57,9 @@ export function initTheme() {
   applyTheme(getTheme());
   const toggle = document.getElementById('btnThemeToggle');
   if (toggle) {
-    toggle.addEventListener('click', cycleTheme);
+    // onclick menggantikan fallback inline pada index.html, sehingga tidak
+    // terjadi toggle dua kali ketika JavaScript versi baru sudah termuat.
+    toggle.onclick = cycleTheme;
   }
   // Sinkron antar tab/jendela.
   window.addEventListener('storage', (e) => { if (e.key === STORAGE_KEY) applyTheme(getTheme()); });

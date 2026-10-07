@@ -44,6 +44,26 @@
   var c={dark:'#1b2354',clay:'#fbf0e0'};
   var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c[t]);
 
+  // Fallback kecil di HTML: tetap bisa mengganti tema jika Service Worker
+  // masih menyajikan theme.js versi lama saat update pertama kali dibuka.
+  window.__notakuToggleTheme=function(){
+    var next=root.getAttribute('data-theme')==='dark'?'clay':'dark';
+    try{localStorage.setItem('notaku-theme',next);}catch(e){}
+    root.setAttribute('data-theme',next);
+    if(n)n.media=(next==='dark')?'all':'not all';
+    if(y)y.media=(next==='clay')?'all':'not all';
+    if(m)m.setAttribute('content',c[next]);
+    var b=document.getElementById('btnThemeToggle');
+    if(b){
+      var neo=next==='dark';
+      b.innerHTML=neo
+        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.2A8.5 8.5 0 0 1 8.8 3.5 8.5 8.5 0 1 0 20.5 15.2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>'
+        : '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+      b.setAttribute('aria-label',neo?'Gunakan tema Clay':'Gunakan tema Neo');
+      b.title=neo?'Ganti ke tema Clay':'Ganti ke tema Neo';
+    }
+  };
+
   var themeLink={dark:n,clay:y}[t];
   var reveal=function(){root.classList.add('theme-ready');};
   if(!themeLink){reveal();return;}
@@ -65,7 +85,7 @@
     </button>
     <h1 id="pageTitle">NotaKu</h1>
     <button id="btnGlobalSearch" class="icon-btn" aria-label="Pencarian global" title="Cari"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg></button>
-    <button id="btnThemeToggle" class="icon-btn theme-toggle" aria-label="Ganti ke tema Neo" title="Ganti ke tema Neo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+    <button id="btnThemeToggle" class="icon-btn theme-toggle" onclick="window.__notakuToggleTheme()" aria-label="Ganti ke tema Neo" title="Ganti ke tema Neo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
     <div id="topbarActions"></div>
   </header>
 
