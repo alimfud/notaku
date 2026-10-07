@@ -77,8 +77,8 @@ function renderHub(root) {
 async function renderTrash(root) {
   setPageTitle('Tempat Sampah'); setTopbarActions([]);
   const deleted = (await db.getAll('sales')).filter((sale) => sale.isDeleted);
-  root.innerHTML = `<div class="settings-simple-page"><p class="row-meta">Nota yang dihapus masih dapat dipulihkan.</p>
-    <div class="list">${deleted.length ? deleted.map((sale) => `<div class="row" data-trash-id="${sale.id}"><div><b>${escapeHtml(sale.invoiceNumber)}</b><small>${escapeHtml(sale.customerName)} · ${escapeHtml(sale.saleDate)}</small></div><button class="btn small secondary" data-restore="${sale.id}">Pulihkan</button></div>`).join('') : '<div class="empty-state"><p>Tempat sampah kosong.</p></div>'}</div></div>`;
+  root.innerHTML = `<div class="settings-simple-page settings-trash-page"><div class="settings-page-intro"><h2>Tempat Sampah</h2><p>Nota yang dihapus masih dapat dipulihkan.</p></div>
+    <div class="settings-trash-list">${deleted.length ? deleted.map((sale) => `<article class="settings-trash-card" data-trash-id="${sale.id}"><div class="settings-trash-card-main"><span class="settings-trash-icon">🗑️</span><div><b>${escapeHtml(sale.invoiceNumber)}</b><span>${escapeHtml(sale.customerName)}</span><small>${escapeHtml(sale.saleDate)}${sale.saleTime ? ` · ${escapeHtml(sale.saleTime)}` : ''}</small></div></div><button class="settings-restore-button" data-restore="${sale.id}">Pulihkan</button></article>`).join('') : '<div class="settings-empty-card"><span>🗑️</span><b>Tempat sampah kosong</b><small>Nota yang dihapus akan muncul di sini.</small></div>'}</div></div>`;
   root.querySelectorAll('[data-restore]').forEach((button) => button.onclick = async () => {
     const sale = await db.get('sales', button.dataset.restore); if (!sale) return;
     sale.isDeleted = 0; sale.updatedAt = new Date().toISOString(); await db.put('sales', sale);
@@ -89,7 +89,7 @@ async function renderTrash(root) {
 async function renderAudit(root) {
   setPageTitle('Riwayat Aktivitas'); setTopbarActions([]);
   const logs = await getAuditLogs();
-  root.innerHTML = `<div class="settings-simple-page"><p class="row-meta">Riwayat disimpan di perangkat dan ikut tercadangkan.</p><div class="list">${logs.length ? logs.map((log) => `<div class="row"><div><b>${escapeHtml(log.details || log.action)}</b><small>${escapeHtml(log.entityType)} · ${new Date(log.createdAt).toLocaleString('id-ID')}</small></div></div>`).join('') : '<div class="empty-state"><p>Belum ada aktivitas tercatat.</p></div>'}</div></div>`;
+  root.innerHTML = `<div class="settings-simple-page settings-audit-page"><div class="settings-page-intro"><h2>Riwayat Aktivitas</h2><p>Perubahan penting pada data NotaKu.</p></div><div class="settings-audit-list">${logs.length ? logs.map((log) => `<article class="settings-audit-item"><span class="settings-audit-dot" data-action="${escapeHtml(log.action)}"></span><div><b>${escapeHtml(log.details || log.action)}</b><small>${escapeHtml(log.entityType)} · ${new Date(log.createdAt).toLocaleString('id-ID')}</small></div></article>`).join('') : '<div class="settings-empty-card"><span>✓</span><b>Belum ada aktivitas</b><small>Perubahan data akan tercatat di sini.</small></div>'}</div></div>`;
 }
 
 async function renderStore(root) {
