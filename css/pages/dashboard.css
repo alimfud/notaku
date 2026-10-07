@@ -62,7 +62,7 @@
 [data-page="dashboard"] .dashboard-attention-item:is(.dashboard-attention-item--pickup,.dashboard-attention-item--unpaid) .dashboard-attention-action { max-width:100%; }
 [data-page="dashboard"] .dashboard-attention-item:is(.dashboard-attention-item--pickup,.dashboard-attention-item--unpaid) .dashboard-attention-action strong { flex-wrap:wrap; white-space:normal; overflow-wrap:anywhere; font-size:clamp(10px,3vw,13px); line-height:1.15; }
 [data-page="dashboard"] .dashboard-attention i { color:var(--muted); font-size:21px; font-style:normal; font-weight:300; }
-[data-page="dashboard"] .dashboard-section { margin:19px 0 8px; }
+[data-page="dashboard"] .dashboard-section { margin:0 0 8px; }
 [data-page="dashboard"] .dashboard-shortcuts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
 [data-page="dashboard"] .dashboard-shortcuts button { display:flex; min-width:0; flex-direction:column; align-items:center; gap:7px; padding:11px 3px 10px; border:1px solid var(--outline); border-radius:12px; color:var(--ink-soft); font:700 10.5px var(--font); box-shadow:0 5px 14px rgba(73,29,48,.07); cursor:pointer; }
 [data-page="dashboard"] .dashboard-shortcuts button:nth-child(1) { background:#f7e5ed; border-color:#ead0db; }
