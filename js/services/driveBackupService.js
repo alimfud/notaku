@@ -395,6 +395,50 @@ async function applyCloudPayload(payload) {
   await saveSettings({ autoBackup: localSettings.autoBackup, security: localSettings.security });
 }
 
+function hasSyncRecords(data) {
+  return Object.entries(data || {}).some(([store, rows]) => store !== 'settings' && Array.isArray(rows) && rows.length > 0);
+}
+
+/**
+ * Menyiapkan sinkronisasi pertama setelah akun Google berhasil dihubungkan.
+ * Jika hanya satu sisi berisi data, arah sinkronisasi dipilih otomatis.
+ * Jika kedua sisi berisi data berbeda, UI harus meminta pilihan pengguna.
+ */
+export async function initializeConnectedAccount() {
+  const token = await ensureToken({ interactive: false });
+  const file = await findSyncFile(token);
+  const localData = await db.dumpAll();
+  const localHash = fingerprint(localData);
+
+  if (!file) {
+    await pushToCloud();
+    return { action: 'push', message: 'Data perangkat dikirim ke Google Drive.' };
+  }
+
+  const payload = await readSyncFile(token, file);
+  const cloudHash = fingerprint(payload.data);
+  if (localHash === cloudHash) {
+    await saveSyncState({ fingerprint: localHash, status: 'Data perangkat dan Drive sudah sama.' });
+    return { action: 'same', message: 'Data perangkat dan Google Drive sudah sama.' };
+  }
+
+  const localHasData = hasSyncRecords(localData);
+  const cloudHasData = hasSyncRecords(payload.data);
+  if (!localHasData && cloudHasData) {
+    await applyCloudPayload(payload);
+    const latest = await getSettings();
+    await saveSettings({ autoBackup: { ...latest.autoBackup, lastSyncPullAt: new Date().toISOString() } });
+    await saveSyncState({ fingerprint: cloudHash, status: 'Data dari Google Drive ditarik ke perangkat.' });
+    return { action: 'pull', message: 'Data dari Google Drive ditarik ke perangkat.' };
+  }
+  if (localHasData && !cloudHasData) {
+    await pushToCloud();
+    return { action: 'push', message: 'Data perangkat dikirim ke Google Drive.' };
+  }
+
+  return { action: 'conflict', localHash, cloudHash, message: 'Data perangkat dan Google Drive sama-sama berisi data berbeda.' };
+}
+
 /**
  * Ambil pesan error SUNGGUHAN dari Google (bukan cuma nomor status), supaya
  * masalah seperti 401/403 bisa didiagnosis dari toast/dialog yang tampil ke
