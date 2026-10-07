@@ -69,7 +69,6 @@ async function draw(root, saleId) {
     { icon: 'edit', label: 'Edit', title: 'Ubah Nota', onClick: () => navigate(`sale/${saleId}/edit`) },
     { icon: 'bluetoothPrint', label: 'Print', title: 'Cetak Bluetooth', onClick: () => handleBluetoothPrint(sale, items, settings, paidAmount, remaining) },
     { icon: 'payment', label: 'Bayar', title: 'Tambah Pembayaran', onClick: () => handleAddPayment(root, saleId, remaining) },
-    { icon: 'edit', label: 'Salin', title: 'Duplikasi Nota', onClick: () => handleDuplicate(saleId) },
     { icon: 'delete', label: 'Hapus', title: 'Hapus', onClick: () => handleDelete(root, saleId) },
   ]);
 
@@ -138,11 +137,13 @@ async function draw(root, saleId) {
       </div>` : ''}
     <div class="sale-detail-actions">
       <button id="toggleCompletedBtn" class="sale-detail-complete-action btn ${sale.completed ? 'secondary' : ''}">${sale.completed ? '↺ Tandai Belum Selesai' : '✓ Tandai Selesai'}</button>
+      <button id="duplicateSaleBtn" class="sale-detail-secondary-action btn secondary">▣ Salin Nota</button>
       <button id="addPaymentBtn" class="sale-detail-secondary-action btn secondary">+ Tambah Pembayaran</button>
       <button id="printBtn" class="sale-detail-secondary-action btn secondary">Bagikan Nota</button>
     </div>
   `;
 
+  root.querySelector('#duplicateSaleBtn').onclick = () => handleDuplicate(saleId);
   root.querySelector('#addPaymentBtn').onclick = () => handleAddPayment(root, saleId, remaining);
   root.querySelector('#printBtn').onclick = () => showShareSheet(root, sale, items, settings, paidAmount, remaining);
   root.querySelector('#toggleCompletedBtn').onclick = async () => {
@@ -170,6 +171,12 @@ async function draw(root, saleId) {
 }
 
 async function handleDuplicate(saleId) {
+  const confirmed = await confirmDialog({
+    title: 'Salin nota ini?',
+    message: 'Nota baru akan dibuat dengan pelanggan, produk, dan nominal yang sama. Nomor nota serta pembayaran tidak disalin, dan data baru masih dapat kamu edit sebelum disimpan.',
+    confirmLabel: 'Lanjutkan Salin',
+  });
+  if (!confirmed) return;
   try {
     const id = await duplicateSale(saleId);
     toast('Nota berhasil diduplikasi');
