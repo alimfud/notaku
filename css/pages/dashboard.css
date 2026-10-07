@@ -12,8 +12,8 @@
 [data-page="dashboard"] .dashboard-filter-toggle svg{width:15px;height:15px;}
 [data-page="dashboard"] .dashboard-period-filter{display:flex;gap:6px;overflow:auto;margin:0 5px 0 0;padding:1px;}
 [data-page="dashboard"] .dashboard-period-filter[hidden]{display:none;}
-[data-page="dashboard"] .dashboard-period-filter button{border:1px solid var(--outline);border-radius:999px;padding:7px 11px;background:var(--surface);color:var(--muted);font:inherit;font-size:11px;white-space:nowrap;cursor:pointer;}
-[data-page="dashboard"] .dashboard-period-filter button.active{border-color:var(--primary);background:var(--primary);color:#fff;}
+[data-page="dashboard"] .dashboard-period-filter button{border:0;border-bottom:1px solid transparent;border-radius:3px;padding:4px 7px;background:transparent;color:color-mix(in srgb,var(--muted) 72%,transparent);font:inherit;font-size:10px;white-space:nowrap;cursor:pointer;}
+[data-page="dashboard"] .dashboard-period-filter button.active{border-bottom-color:color-mix(in srgb,var(--primary) 55%,transparent);background:color-mix(in srgb,var(--surface) 45%,transparent);color:color-mix(in srgb,var(--primary) 72%,var(--muted));}
 [data-page="dashboard"] .dashboard-label { color:#d8eee2; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
 [data-page="dashboard"] .dashboard-period { display:block; margin-top:4px; color:rgba(255,255,255,.7); font-size:10.5px; line-height:1.45; }
 [data-page="dashboard"] .dashboard-revenue { position:relative; z-index:2; margin:8px 0 17px; overflow-wrap:anywhere; font-size:clamp(25px,7vw,34px); font-weight:800; letter-spacing:-1px; font-variant-numeric:tabular-nums; }
