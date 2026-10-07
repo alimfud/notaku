@@ -29,7 +29,7 @@ npm run version:sync
 
 ## Sumber utama
 
-Backend opsional untuk sesi Google persisten di Vercel tersedia dalam `api/` dan `server/`. Ikuti [panduan konfigurasi backend](docs/VERCEL_GOOGLE_SESSION.md); kode saja belum mengaktifkan sesi persisten tanpa konfigurasi Google dan penyimpanan server.
+Backend sesi Google persisten untuk Cloudflare Pages tersedia melalui `functions/api/google.js` dan `server/`. Konfigurasinya memakai Google OAuth, `SESSION_ENCRYPTION_KEY`, dan Cloudflare KV binding `SESSIONS`.
 
 Edit hanya berkas berikut sesuai kebutuhan:
 
