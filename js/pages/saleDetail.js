@@ -137,15 +137,13 @@ async function draw(root, saleId) {
       </div>` : ''}
     <div class="sale-detail-actions">
       <button id="toggleCompletedBtn" class="sale-detail-complete-action btn ${sale.completed ? 'secondary' : ''}">${sale.completed ? '↺ Tandai Belum Selesai' : '✓ Tandai Selesai'}</button>
-      <button id="duplicateSaleBtn" class="sale-detail-secondary-action btn secondary">▣ Salin Nota</button>
       <button id="addPaymentBtn" class="sale-detail-secondary-action btn secondary">+ Tambah Pembayaran</button>
-      <button id="printBtn" class="sale-detail-secondary-action btn secondary">Bagikan Nota</button>
+      <button id="printBtn" class="sale-detail-secondary-action btn secondary">Bagikan / Salin Nota</button>
     </div>
   `;
 
-  root.querySelector('#duplicateSaleBtn').onclick = () => handleDuplicate(saleId);
   root.querySelector('#addPaymentBtn').onclick = () => handleAddPayment(root, saleId, remaining);
-  root.querySelector('#printBtn').onclick = () => showShareSheet(root, sale, items, settings, paidAmount, remaining);
+  root.querySelector('#printBtn').onclick = () => showShareSheet(root, saleId, sale, items, settings, paidAmount, remaining);
   root.querySelector('#toggleCompletedBtn').onclick = async () => {
     await setCompleted(saleId, !sale.completed);
     toast(sale.completed ? 'Ditandai belum selesai' : 'Ditandai selesai');
@@ -304,7 +302,7 @@ function receiptLogoMarkup(settings) {
   return `<div class="receipt-logo-wrap"><img src="${escapeHtml(receiptLogo(settings))}" alt="Logo toko" class="receipt-logo logo-width-${logoWidth(settings)}"></div>`;
 }
 
-async function showShareSheet(root, sale, items, settings, paidAmount, remaining) {
+async function showShareSheet(root, saleId, sale, items, settings, paidAmount, remaining) {
   const hasPhone = !!sale.customerPhone;
 
   const result = await openSheet((body, close) => {
@@ -316,6 +314,7 @@ async function showShareSheet(root, sale, items, settings, paidAmount, remaining
       <button class="settings-tile" id="shareImage"><div class="icon-box">🖼️</div><div class="settings-body"><div class="settings-title">Bagikan sebagai Gambar</div></div></button>
       <button class="settings-tile" id="shareText"><div class="icon-box">💬</div><div class="settings-body"><div class="settings-title">Bagikan sebagai Teks</div></div></button>
       <button class="settings-tile" id="doPrint"><div class="icon-box">🖨️</div><div class="settings-body"><div class="settings-title">Simpan PDF</div></div></button>
+      <button class="settings-tile" id="duplicateSale"><div class="icon-box">⧉</div><div class="settings-body"><div class="settings-title">Salin sebagai Nota Baru</div><div class="settings-sub">Buat nota baru dari data nota ini</div></div></button>
       </div>
     `;
     body.querySelector('#shareClose').onclick = () => close(undefined);
@@ -324,12 +323,18 @@ async function showShareSheet(root, sale, items, settings, paidAmount, remaining
     body.querySelector('#shareText').onclick = () => close('text');
     body.querySelector('#shareImage').onclick = () => close('image');
     body.querySelector('#doPrint').onclick = () => close('print');
+    body.querySelector('#duplicateSale').onclick = () => close('duplicate');
   });
 
   if (result === 'chatwa') {
     const waNumber = toWhatsAppNumber(sale.customerPhone);
     if (!waNumber) { toast('Nomor WA pelanggan tidak valid.'); return; }
     window.open(`https://wa.me/${waNumber}`, '_blank');
+    return;
+  }
+
+  if (result === 'duplicate') {
+    await handleDuplicate(saleId);
     return;
   }
 
