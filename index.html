@@ -29,7 +29,6 @@
 <link rel="stylesheet" href="css/pages/dashboard.css">
 <link rel="stylesheet" href="css/charts.css">
 <link id="themeNeo" rel="stylesheet" href="css/neo.css" media="not all">
-<link id="themeGlass" rel="stylesheet" href="css/glass.css" media="not all">
 <link id="themeClay" rel="stylesheet" href="css/clay.css" media="not all">
 <link rel="stylesheet" href="css/bottomnav.css">
 <link rel="stylesheet" href="css/motion.css">
@@ -37,16 +36,15 @@
 /* Tema tersimpan dan stylesheet-nya harus siap sebelum UI terlihat. */
 (function(){
   var t='clay';
-  try{var v=localStorage.getItem('notaku-theme');if(v==='light'||v==='dark'||v==='glass'||v==='clay')t=v;}catch(e){}
+  try{var v=localStorage.getItem('notaku-theme');if(v==='dark')t=v;}catch(e){}
   var root=document.documentElement;
   root.setAttribute('data-theme',t);
   var n=document.getElementById('themeNeo');if(n)n.media=(t==='dark')?'all':'not all';
-  var g=document.getElementById('themeGlass');if(g)g.media=(t==='glass')?'all':'not all';
   var y=document.getElementById('themeClay');if(y)y.media=(t==='clay')?'all':'not all';
-  var c={light:'#791e38',dark:'#1b2354',glass:'#bcd9f2',clay:'#fbf0e0'};
+  var c={dark:'#1b2354',clay:'#fbf0e0'};
   var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c[t]);
 
-  var themeLink={dark:n,glass:g,clay:y}[t];
+  var themeLink={dark:n,clay:y}[t];
   var reveal=function(){root.classList.add('theme-ready');};
   if(!themeLink){reveal();return;}
   themeLink.addEventListener('load',reveal,{once:true});
@@ -67,6 +65,7 @@
     </button>
     <h1 id="pageTitle">NotaKu</h1>
     <button id="btnGlobalSearch" class="icon-btn" aria-label="Pencarian global" title="Cari"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg></button>
+    <button id="btnThemeToggle" class="icon-btn theme-toggle" aria-label="Ganti ke tema Neo" title="Ganti ke tema Neo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
     <div id="topbarActions"></div>
   </header>
 
@@ -140,8 +139,6 @@
   <button class="drawer-item" data-route="reports">Laporan</button>
   <div class="drawer-sep"></div>
   <button class="drawer-item" data-route="settings">Setting</button>
-  <div class="drawer-sep"></div>
-  <button class="drawer-item" id="btnDrawerTheme" type="button">🎨 Tema</button>
 </aside>
 
 <div id="sheetRoot"></div>

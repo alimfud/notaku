@@ -1,11 +1,10 @@
 # Pengaturan CSS NotaKu
 
 - `style.css`: komponen dasar bersama (navigasi, tombol, popup, struktur field).
-- `theme.css`: tema marun berwarna dan navigasi responsif; palet layar tidak mengubah warna struk.
+- `theme.css`: palet dasar dan navigasi responsif; palet layar tidak mengubah warna struk.
 - `pages/dashboard.css`: beranda ringkasan usaha, akses cepat, dan jadwal pengambilan.
-- `neo.css`: tema "Neo Dark" 3D (navy, tombol pil gradasi amber/oranye/koral, kartu berbayangan lembut); hanya aktif saat pengguna memilih tema Gelap (Setting atau menu samping); tema Terang memakai maroon asli. Struk tidak diubah.
-- `glass.css`: tema "Glass" (kaca buram biru muda, tombol pil gradasi biru-cyan); hanya aktif saat dipilih di Setting atau menu samping. Struk tidak diubah.
-- `clay.css`: tema "Clay" (pastel 3D ala tanah liat: krem, mint, peach, tombol koral); hanya aktif saat dipilih di Setting atau menu samping. Struk tidak diubah.
+- `neo.css`: tema "Neo" 3D (navy, tombol pil gradasi amber/oranye/koral, kartu berbayangan lembut); aktif lewat tombol tema di topbar. Struk tidak diubah.
+- `clay.css`: tema default "Clay" (pastel 3D ala tanah liat: krem, mint, peach, tombol koral); aktif lewat tombol tema di topbar. Struk tidak diubah.
 - `bottomnav.css`: menu bawah mobile bergaya notch + bubble yang meluncur (geometri digambar `js/navIndicator.js`); warna per tema lewat variabel `--nav-*`. Dimuat paling akhir; sidebar desktop tidak berubah.
 - `motion.css`: animasi angka ringkasan saja; dipicu `js/motion.js`, otomatis mati pada "reduce motion". Dimuat paling akhir.
 - `charts.css`: grafik harian dan diagram status pembayaran pada Beranda/Laporan, tanpa dependensi jaringan.

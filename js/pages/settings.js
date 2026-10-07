@@ -9,7 +9,6 @@ import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, checkForUpdate } from '../app.js';
 import { APP_VERSION } from '../version.js';
 import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
-import { bindThemeSwitch } from '../theme.js';
 import * as db from '../db.js';
 import { getAuditLogs, recordAudit } from '../services/auditLogService.js';
 import { registerBiometric, biometricAvailable } from '../services/appLockService.js';
@@ -127,23 +126,12 @@ function renderHub(root) {
       ${tile('🗑️', 'Tempat Sampah', 'Pulihkan nota yang terhapus', 'settings/trash')}
       ${tile('🧾', 'Riwayat Aktivitas', 'Lihat perubahan penting pada data', 'settings/audit')}
     </div>
-    <div class="settings-theme">
-      <div class="settings-theme-title">Tampilan</div>
-      <div class="settings-theme-sub">Maroon (tema terang marun), Neo (tema gelap futuristik), Glass (kaca biru), atau Clay (pastel 3D).</div>
-      <div class="theme-switch" role="group" aria-label="Pilih tema tampilan">
-        <button type="button" data-theme-choice="light">🟥 Maroon</button>
-        <button type="button" data-theme-choice="dark">🌌 Neo</button>
-        <button type="button" data-theme-choice="glass">💎 Glass</button>
-        <button type="button" data-theme-choice="clay">🧸 Clay</button>
-      </div>
-    </div>
     <div class="settings-version">NotaKu Web v${APP_VERSION}</div>
     <div class="settings-update-action">
       <button class="btn small secondary" id="btnCheckUpdate">Cek Pembaruan</button>
     </div>
   `;
   root.querySelector('#btnCheckUpdate').onclick = () => checkForUpdate(false);
-  bindThemeSwitch(root);
   root.querySelectorAll('[data-route]').forEach((el) => {
     el.onclick = () => navigate(el.dataset.route);
   });

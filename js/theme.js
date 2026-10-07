@@ -1,19 +1,18 @@
-// theme.js — pilihan tema tampilan: "light" (maroon asli), "dark" (Neo), "glass" (kaca biru), "clay" (pastel 3D).
+// theme.js — dua pilihan tema tampilan: "clay" (default) dan "dark" (Neo).
 // Pilihan disimpan per perangkat di localStorage agar bisa diterapkan sebelum
 // halaman tampil (tanpa kedip). Tidak menyentuh data usaha / IndexedDB.
 const STORAGE_KEY = 'notaku-theme';
-const THEMES = ['light', 'dark', 'glass', 'clay'];
+const THEMES = ['clay', 'dark'];
 const DEFAULT_THEME = 'clay';
-const THEME_LABEL = { light: 'Maroon', dark: 'Neo', glass: 'Glass', clay: 'Clay' };
-const THEME_ICON = { light: '🟥', dark: '🌌', glass: '💎', clay: '🧸' };
-const THEME_COLOR = { light: '#791e38', dark: '#1b2354', glass: '#bcd9f2', clay: '#fbf0e0' };
-// Stylesheet tambahan per tema (tema "light" tidak butuh tambahan).
-const THEME_LINK = { dark: 'themeNeo', glass: 'themeGlass', clay: 'themeClay' };
+const THEME_COLOR = { dark: '#1b2354', clay: '#fbf0e0' };
+// Stylesheet tambahan per tema.
+const THEME_LINK = { dark: 'themeNeo', clay: 'themeClay' };
 
 export function getTheme() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return THEMES.includes(saved) ? saved : DEFAULT_THEME;
+    // Tema lama (Maroon/Glass) sudah tidak tersedia; kembali ke Clay.
+    return saved === 'dark' ? 'dark' : DEFAULT_THEME;
   } catch { return DEFAULT_THEME; }
 }
 
@@ -35,39 +34,30 @@ export function setTheme(theme) {
   applyTheme(t);
 }
 
-// Ganti ke tema berikutnya: Terang → Gelap → Glass → Clay → Terang.
+// Toggle satu tombol: Clay ↔ Neo.
 export function cycleTheme() {
-  setTheme(THEMES[(THEMES.indexOf(getTheme()) + 1) % THEMES.length]);
+  setTheme(getTheme() === 'dark' ? 'clay' : 'dark');
 }
 
 // Perbarui tampilan semua kontrol tema yang sedang ada di layar.
 function syncThemeControls() {
   const t = getTheme();
-  const drawerBtn = document.getElementById('btnDrawerTheme');
-  if (drawerBtn) drawerBtn.textContent = `${THEME_ICON[t]} Tema: ${THEME_LABEL[t]}`;
-  document.querySelectorAll('[data-theme-choice]').forEach((btn) => {
-    const active = btn.dataset.themeChoice === t;
-    btn.classList.toggle('active', active);
-    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-  });
-}
-
-// Dipakai halaman Setting: sambungkan tombol pilihan tema di dalam `root`.
-export function bindThemeSwitch(root) {
-  root.querySelectorAll('[data-theme-choice]').forEach((btn) => {
-    btn.onclick = () => setTheme(btn.dataset.themeChoice);
-  });
-  syncThemeControls();
+  const toggle = document.getElementById('btnThemeToggle');
+  if (toggle) {
+    const isNeo = t === 'dark';
+    toggle.innerHTML = isNeo
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.2A8.5 8.5 0 0 1 8.8 3.5 8.5 8.5 0 1 0 20.5 15.2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+    toggle.setAttribute('aria-label', isNeo ? 'Gunakan tema Clay' : 'Gunakan tema Neo');
+    toggle.title = isNeo ? 'Ganti ke tema Clay' : 'Ganti ke tema Neo';
+  }
 }
 
 export function initTheme() {
   applyTheme(getTheme());
-  const drawerBtn = document.getElementById('btnDrawerTheme');
-  if (drawerBtn) {
-    drawerBtn.addEventListener('click', () => {
-      cycleTheme();
-      document.getElementById('drawerOverlay')?.click(); // tutup drawer
-    });
+  const toggle = document.getElementById('btnThemeToggle');
+  if (toggle) {
+    toggle.addEventListener('click', cycleTheme);
   }
   // Sinkron antar tab/jendela.
   window.addEventListener('storage', (e) => { if (e.key === STORAGE_KEY) applyTheme(getTheme()); });
