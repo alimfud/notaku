@@ -98,10 +98,7 @@ async function exportReport(root, format) {
     const exported = await buildExportDataset(data);
     const filename = `notaku-data-${String(exported.label || 'keseluruhan').replaceAll(' ', '-')}`;
     if (format === 'csv') {
-      const rows = [['Bagian', 'Data']];
-      for (const [section, records] of Object.entries(exported.sections)) {
-        for (const record of records) rows.push([section, JSON.stringify(record)]);
-      }
+      const rows = [exported.headers, ...exported.rows];
       const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(';')).join('\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob); const a = document.createElement('a');
@@ -125,7 +122,7 @@ async function exportReport(root, format) {
       pdf.setFontSize(12); pdf.text(`${section} (${records.length})`, 15, y); y += 7;
       pdf.setFontSize(8);
       for (const record of records) {
-        const lines = pdf.splitTextToSize(JSON.stringify(record), 180);
+        const lines = pdf.splitTextToSize(formatExportRecord(section, record), 180);
         for (const line of lines) {
           if (y > 285) { pdf.addPage(); y = 18; }
           pdf.text(line, 15, y); y += 4;
@@ -165,7 +162,34 @@ async function buildExportDataset(report) {
     RiwayatAktivitas: allData ? (all.auditLogs || []) : (all.auditLogs || []).filter((row) => inRange(String(row.createdAt || '').slice(0, 10))),
     Pengaturan: all.settings,
   };
-  return { label: allData ? 'Keseluruhan data' : `${report.periodLabel} (${report.start} s/d ${report.end})`, sections };
+  const headers = ['Bagian', 'No. Nota', 'Tanggal', 'Jam', 'Pelanggan', 'Telepon', 'Alamat', 'Produk/Deskripsi', 'Jumlah', 'Harga', 'Subtotal/Nominal', 'Total Nota', 'Status', 'Catatan'];
+  const rows = [];
+  for (const sale of sections.Nota) {
+    const items = sections.DetailNota.filter((item) => item.saleId === sale.id);
+    const payments = sections.Pembayaran.filter((payment) => payment.saleId === sale.id);
+    const paid = payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    const status = sale.status || (paid >= sale.total ? 'LUNAS' : paid ? 'SEBAGIAN' : 'BELUM LUNAS');
+    for (const item of items.length ? items : [{}]) rows.push(['Nota', sale.invoiceNumber, sale.saleDate, sale.saleTime, sale.customerName, sale.customerPhone, sale.customerAddress, item.productName || '', item.qty || '', item.price || '', item.subtotal || '', sale.total, status, sale.note || '']);
+    for (const payment of payments) rows.push(['Pembayaran', sale.invoiceNumber, payment.paymentDate, payment.paymentTime, sale.customerName, sale.customerPhone, '', payment.note || 'Pembayaran', '', '', payment.amount, sale.total, status, '']);
+  }
+  for (const expense of sections.Pengeluaran) rows.push(['Pengeluaran', '', expense.expenseDate, '', '', '', '', `${expense.title || ''} (${expense.category || ''})`, '', '', expense.amount, '', '', expense.note || '']);
+  for (const product of sections.Produk) rows.push(['Produk', '', '', '', '', '', '', product.name || '', product.stock ?? '', product.price ?? '', '', '', product.isActive === false ? 'Nonaktif' : 'Aktif', product.note || '']);
+  for (const customer of sections.Pelanggan) rows.push(['Pelanggan', '', '', '', customer.name || '', customer.phone || '', customer.address || '', '', '', '', '', '', customer.isActive === false ? 'Nonaktif' : 'Aktif', '']);
+  for (const log of sections.RiwayatAktivitas) rows.push(['Aktivitas', '', String(log.createdAt || '').slice(0, 10), String(log.createdAt || '').slice(11, 16), '', '', '', log.details || log.action || '', '', '', '', '', log.entityType || '', '']);
+  for (const setting of sections.Pengaturan) rows.push(['Pengaturan', '', '', '', '', '', '', 'Konfigurasi aplikasi', '', '', '', '', '', JSON.stringify(setting)]);
+  return { label: allData ? 'Keseluruhan data' : `${report.periodLabel} (${report.start} s/d ${report.end})`, sections, headers, rows };
+}
+
+function formatExportRecord(section, record) {
+  if (section === 'Nota') return `No. Nota: ${record.invoiceNumber} | Tanggal: ${record.saleDate} ${record.saleTime} | Pelanggan: ${record.customerName} | Telepon: ${record.customerPhone || '-'} | Total: ${record.total} | Status: ${record.status || '-'} | Catatan: ${record.note || '-'}`;
+  if (section === 'DetailNota') return `Produk: ${record.productName} | Jumlah: ${record.qty} ${record.unit || ''} | Harga: ${record.price} | Subtotal: ${record.subtotal} | Catatan: ${record.note || '-'}`;
+  if (section === 'Pembayaran') return `Tanggal: ${record.paymentDate} ${record.paymentTime || ''} | Nominal: ${record.amount} | Catatan: ${record.note || '-'}`;
+  if (section === 'Pengeluaran') return `Tanggal: ${record.expenseDate} | ${record.title} | Kategori: ${record.category} | Metode: ${record.method} | Nominal: ${record.amount} | Catatan: ${record.note || '-'}`;
+  if (section === 'Produk') return `Nama: ${record.name} | Harga: ${record.price} | Stok: ${record.stock ?? '-'} | Status: ${record.isActive === false ? 'Nonaktif' : 'Aktif'}`;
+  if (section === 'Pelanggan') return `Nama: ${record.name} | Telepon: ${record.phone || '-'} | Alamat: ${record.address || '-'} | Status: ${record.isActive === false ? 'Nonaktif' : 'Aktif'}`;
+  if (section === 'RiwayatAktivitas') return `Waktu: ${record.createdAt} | ${record.details || record.action} | Data: ${record.entityType || '-'} ${record.entityId || ''}`;
+  if (section === 'Pengaturan') return `Konfigurasi aplikasi: ${JSON.stringify(record)}`;
+  return JSON.stringify(record);
 }
 
 function updateReportView(root) {
