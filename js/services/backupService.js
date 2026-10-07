@@ -7,7 +7,7 @@
 
 import * as db from '../db.js';
 import { APP_VERSION } from '../version.js';
-import { invalidateCache as invalidateSettingsCache } from './settingsService.js';
+import { getSettings, saveSettings, invalidateCache as invalidateSettingsCache } from './settingsService.js';
 
 export async function createBackupBlob() {
   const dump = await db.dumpAll();
@@ -56,9 +56,13 @@ export function downloadBackup(blob) {
 /** Restore MENGGANTI seluruh data aktif. Panggilan ini harus sudah dikonfirmasi user. */
 export async function restoreFromFile(file) {
   const { payload } = await compareBackupFile(file);
+  const localSettings = await getSettings();
   await db.restoreAll(payload.data);
   // Settings dibaca dan di-cache oleh UI. Tanpa ini, Pull dari cloud dapat
   // memakai konfigurasi lama lalu menimpanya lagi ketika status sync disimpan.
   invalidateSettingsCache();
+  // FingerPin adalah pengaturan khusus perangkat. Jangan pernah memindahkan
+  // credential biometrik dari backup/Drive ke perangkat lain.
+  await saveSettings({ security: localSettings.security });
   return payload;
 }

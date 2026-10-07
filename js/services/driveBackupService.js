@@ -380,7 +380,7 @@ async function applyCloudPayload(payload) {
   const localSettings = await getSettings();
   const { restoreFromFile } = await import('./backupService.js');
   await restoreFromFile(new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-  await saveSettings({ autoBackup: localSettings.autoBackup });
+  await saveSettings({ autoBackup: localSettings.autoBackup, security: localSettings.security });
 }
 
 /**
