@@ -154,6 +154,8 @@ export function replaceRoute(route) {
 }
 
 export function navigateBack() {
+  if (pageRoot.dataset.formDirty === '1' && !window.confirm('Data nota belum disimpan. Yakin ingin keluar tanpa menyimpan?')) return;
+  delete pageRoot.dataset.formDirty;
   // Setelah OAuth Google selesai, halaman login tidak boleh muncul lagi saat
   // pengguna menekan Back dari halaman Atur Backup Otomatis.
   if (window.location.hash === '#/settings/autobackup') {

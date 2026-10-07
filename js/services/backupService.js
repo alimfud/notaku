@@ -22,6 +22,12 @@ export async function createBackupBlob() {
   return new Blob([json], { type: 'application/json' });
 }
 
+export async function getBackupSummary() {
+  const data = await db.dumpAll();
+  const counts = Object.fromEntries(Object.entries(data).map(([key, rows]) => [key, Array.isArray(rows) ? rows.length : 0]));
+  return { counts, totalRecords: Object.values(counts).reduce((sum, count) => sum + count, 0) };
+}
+
 export function downloadBackup(blob) {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const filename = `notaku-backup-${stamp}.json`;

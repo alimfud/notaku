@@ -37,6 +37,7 @@ export async function renderSaleForm(root, mode, initial, onSave) {
 }
 
 function draw(root, mode, state, onSave) {
+  root.dataset.formDirty = '1';
   root._notakuEditDetailsCleanup?.();
   root._notakuEditDetailsCleanup = null;
   // Disimpan di elemen root supaya semua handler internal (tambah item,

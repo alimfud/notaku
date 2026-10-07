@@ -1,5 +1,6 @@
 import * as db from '../db.js';
 import { uid, todayDbDate } from '../format.js';
+import { recordAudit } from './auditLogService.js';
 
 export const EXPENSE_CATEGORIES = ['Transport', 'Gaji', 'Operasional', 'Lainnya'];
 export const EXPENSE_METHODS = ['Tunai', 'Transfer'];
@@ -30,7 +31,8 @@ export async function saveExpense(data) {
     createdAt: existing?.createdAt || now, updatedAt: now,
   };
   await db.put('expenses', row);
+  await recordAudit(data.id ? 'update' : 'create', 'expense', row.id, `${data.id ? 'Pengeluaran diperbarui' : 'Pengeluaran dibuat'}: ${row.title}`);
   return row;
 }
 
-export async function deleteExpense(id) { await db.remove('expenses', id); }
+export async function deleteExpense(id) { const expense = await db.get('expenses', id); await db.remove('expenses', id); await recordAudit('delete', 'expense', id, `Pengeluaran dihapus: ${expense?.title || id}`); }

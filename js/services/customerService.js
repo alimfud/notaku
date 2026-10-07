@@ -2,6 +2,7 @@
 
 import * as db from '../db.js';
 import { uid } from '../format.js';
+import { recordAudit } from './auditLogService.js';
 
 function normalizedName(name) {
   return (name || '').normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID');
@@ -97,6 +98,7 @@ export async function saveCustomer({ id, name, phone, address }) {
     if (updatedSales.length) writes.sales = updatedSales;
   }
   await db.bulkPutMulti(writes);
+  await recordAudit(id ? 'update' : 'create', 'customer', merged.id, `${id ? 'Pelanggan diperbarui' : 'Pelanggan dibuat'}: ${merged.name}`);
   return merged;
 }
 
@@ -106,6 +108,7 @@ export async function deleteCustomer(id) {
   existing.isActive = 0;
   existing.updatedAt = new Date().toISOString();
   await db.put('customers', existing);
+  await recordAudit('delete', 'customer', id, `Pelanggan dinonaktifkan: ${existing.name}`);
 }
 
 export function cashCustomer() {

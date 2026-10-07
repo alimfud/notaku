@@ -2,6 +2,7 @@
 
 import * as db from '../db.js';
 import { uid } from '../format.js';
+import { recordAudit } from './auditLogService.js';
 
 export async function getAllProducts({ search = '' } = {}) {
   let rows = await db.getAll('products');
@@ -56,6 +57,7 @@ export async function saveProduct({ id, name, category, unit, price, cost, stock
       updatedAt: now,
     };
     await db.put('products', updated);
+    await recordAudit('update', 'product', updated.id, `Produk diperbarui: ${updated.name}`);
     return updated;
   }
   const created = {
@@ -73,6 +75,7 @@ export async function saveProduct({ id, name, category, unit, price, cost, stock
     updatedAt: now,
   };
   await db.put('products', created);
+  await recordAudit('create', 'product', created.id, `Produk dibuat: ${created.name}`);
   return created;
 }
 
@@ -82,4 +85,5 @@ export async function deleteProduct(id) {
   existing.isActive = 0;
   existing.updatedAt = new Date().toISOString();
   await db.put('products', existing);
+  await recordAudit('delete', 'product', id, `Produk dinonaktifkan: ${existing.name}`);
 }

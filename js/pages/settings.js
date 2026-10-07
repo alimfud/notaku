@@ -1,7 +1,7 @@
 // pages/settings.js
 
 import { getSettings, saveSettings } from '../services/settingsService.js';
-import { createBackupBlob, downloadBackup, restoreFromFile } from '../services/backupService.js';
+import { createBackupBlob, downloadBackup, restoreFromFile, getBackupSummary } from '../services/backupService.js';
 import { importLegacyFile } from '../services/legacyImportService.js';
 import { escapeHtml } from '../format.js';
 import { confirmDialog, alertDialog } from '../ui/dialog.js';
@@ -365,11 +365,14 @@ async function renderQris(root) {
 async function renderBackup(root) {
   setPageTitle('Backup / Restore');
   setTopbarActions([]);
+  const backupSummary = await getBackupSummary();
+  const backupSettings = (await getSettings()).autoBackup;
   root.innerHTML = `
     <div class="settings-section backup-section backup-section--download">
       <div class="settings-heading settings-heading-with-info"><span>Cadangkan Data</span><button type="button" class="backup-info-toggle" aria-expanded="false" aria-label="Info cadangkan data">ⓘ</button></div>
       <div class="settings-description backup-info-text" hidden>Unduh file cadangan seluruh data NotaKu (nota, produk, pelanggan, pengaturan), lalu simpan ke Google Drive atau tempat lain lewat aplikasi file HP kamu.</div>
       <button class="settings-button btn" id="btnBackup">Unduh Cadangan</button>
+      <div class="backup-data-summary"><span>Data tercatat: <b>${backupSummary.totalRecords}</b> baris</span><span>Backup terakhir: <b>${backupSettings.lastBackupAt ? new Date(backupSettings.lastBackupAt).toLocaleString('id-ID') : 'Belum pernah'}</b></span><span>Ukuran terakhir: <b>${backupSettings.backupSizeBytes ? `${(backupSettings.backupSizeBytes / 1024).toFixed(1)} KB` : 'Belum ada'}</b></span><span>Status: <b>${backupSettings.lastBackupError ? 'Gagal / tertunda' : backupSettings.lastBackupAt ? 'Berhasil' : 'Belum ada backup'}</b></span></div>
     </div>
     <div class="settings-section-bottom backup-section backup-section--auto">
       ${tile('⏱️', 'Atur Backup Otomatis', 'Jadwalkan backup ke Google Drive', 'settings/autobackup')}
@@ -406,6 +409,8 @@ async function renderBackup(root) {
     try {
       const blob = await createBackupBlob();
       downloadBackup(blob);
+      const latest = await getSettings();
+      await saveSettings({ autoBackup: { ...latest.autoBackup, backupSizeBytes: blob.size, lastBackupError: '' } });
       toast('Cadangan diunduh');
     } catch (e) { toast('Gagal membuat cadangan.'); }
   };
