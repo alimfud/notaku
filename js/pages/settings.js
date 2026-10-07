@@ -745,6 +745,9 @@ async function renderAutoBackup(root) {
     setBackupLoading(true, 'Mengambil data dari Google Drive…');
     try {
       await drive.pullFromCloud();
+      // Tutup overlay lebih dulu agar dialog keberhasilan dapat terlihat dan
+      // pengguna bisa menekan tombol OK.
+      setBackupLoading(false);
       await alertDialog({ title: 'Berhasil', message: 'Data berhasil ditarik dari Drive.' });
       navigate('home');
     } catch (e) {
