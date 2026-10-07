@@ -197,8 +197,7 @@
   #pageRoot[data-page="settings"][data-section="store"] .settings-privacy,
   #pageRoot[data-page="settings"]:is([data-section="backup"], [data-section="autobackup"]) .settings-section-bottom,
   :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-form-card,
-  [data-page="sale-detail"] .sale-detail-share-options,
-  [data-page="settings"] .settings-theme {
+  [data-page="sale-detail"] .sale-detail-share-options {
     background:var(--cl-card); border:1px solid var(--cl-line); border-radius:28px; box-shadow:var(--cl-shadow);
   }
 
@@ -415,9 +414,6 @@
   [data-page="settings"] .settings-logo-control output { background:var(--cl-coral); color:#fff; }
   [data-page="settings"] #logoMaxWidth::-webkit-slider-thumb { background:#ef7d55; }
   [data-page="settings"] #logoMaxWidth::-moz-range-thumb { background:#ef7d55; }
-  [data-page="settings"] .theme-switch { background:#f7e9d6; box-shadow:var(--cl-inset); border-radius:999px; }
-  [data-page="settings"] .theme-switch button { border-radius:999px; }
-  [data-page="settings"] .theme-switch button.active { background:var(--cl-coral); color:#fff; box-shadow:var(--cl-coral-shadow); }
 
   /* ---------- Grafik ---------- */
   .business-bars { background:repeating-linear-gradient(to top,transparent 0,transparent 76px,rgba(170,125,85,.22) 77px,rgba(170,125,85,.22) 78px); }

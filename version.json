@@ -1,4 +1,4 @@
 {
-  "version": "1.13.0",
-  "notes": "Dukungan sesi Google persisten melalui Cloudflare Pages dan Cloudflare KV."
+  "version": "1.13.1",
+  "notes": "Penyederhanaan tema tampilan menjadi Clay dan Neo."
 }

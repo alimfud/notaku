@@ -11,7 +11,7 @@ const THEME_LINK = { dark: 'themeNeo', clay: 'themeClay' };
 export function getTheme() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    // Tema lama (Maroon/Glass) sudah tidak tersedia; kembali ke Clay.
+    // Nilai tema lama yang tersimpan di perangkat kembali ke Clay.
     return saved === 'dark' ? 'dark' : DEFAULT_THEME;
   } catch { return DEFAULT_THEME; }
 }
