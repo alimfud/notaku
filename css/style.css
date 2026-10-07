@@ -301,3 +301,6 @@ body{
 .app-lock-submit{width:100%;margin:4px 0 0;}
 .app-lock-biometric{width:100%;margin:10px 0 0;}
 .app-lock-error{min-height:18px;margin-top:12px;color:var(--danger,#b33b47);font-size:12px;line-height:1.4;}
+.app-lock-forgot{margin-top:4px;padding:5px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:11px;text-decoration:underline;text-underline-offset:2px;cursor:pointer;}
+.app-lock-forgot:hover,.app-lock-forgot:focus-visible{color:var(--ink);}
+.app-lock-forgot:disabled{cursor:wait;opacity:.55;}
