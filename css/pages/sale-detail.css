@@ -45,6 +45,10 @@
 [data-page="sale-detail"] .receipt-alert { margin:10px 0 0; padding:10px 12px; border:1px solid color-mix(in srgb,var(--primary) 18%,var(--outline)); border-radius:11px; }
 [data-page="sale-detail"] .receipt-alert-text { font-size:11.5px; line-height:1.45; }
 [data-page="sale-detail"] .receipt-alert-action { flex-shrink:0; }
+@media(max-width:430px) {
+  [data-page="sale-detail"] .receipt-alert { align-items:flex-start; flex-wrap:wrap; }
+  [data-page="sale-detail"] .receipt-alert-action { margin-left:auto; }
+}
 [data-page="sale-detail"] .sale-process-card { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:10px 0 0; padding:11px 12px; border:1px solid color-mix(in srgb,var(--primary) 20%,var(--outline)); border-radius:12px; background:color-mix(in srgb,var(--surface) 90%,var(--primary-container)); }
 [data-page="sale-detail"] .sale-process-card-copy { min-width:0; }
 [data-page="sale-detail"] .sale-process-card-copy small { display:block; color:var(--muted); font-size:9px; font-weight:800; letter-spacing:.07em; }

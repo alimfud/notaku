@@ -1,6 +1,7 @@
 // pages/customers.js
 
 import { getAllCustomers, getCustomer, saveCustomer, deleteCustomer } from '../services/customerService.js';
+import { duplicateSale } from '../services/saleService.js';
 import * as db from '../db.js';
 import { escapeHtml, rupiah, dateShort, toWhatsAppNumber } from '../format.js';
 import { openSheet, confirmDialog } from '../ui/dialog.js';
@@ -124,11 +125,14 @@ async function renderDetail(root, customerId) {
             const paid = paidBySale.get(sale.id) || 0;
             const remaining = Math.max(0, Number(sale.total || 0) - paid);
             const status = paid > sale.total ? 'OVERPAID' : paid >= sale.total ? 'PAID' : paid > 0 ? 'PARTIAL' : 'UNPAID';
-            return `<button class="customer-history-row" type="button" data-sale-id="${escapeHtml(sale.id)}">
-              <span class="customer-history-main"><b>${escapeHtml(sale.invoiceNumber || 'Nota tanpa nomor')}</b><small>${escapeHtml(dateShort(sale.saleDate))}${sale.saleTime ? ` · ${escapeHtml(sale.saleTime)}` : ''}</small></span>
-              <span class="customer-history-side"><strong>${rupiah(sale.total)}</strong><em data-status="${escapeHtml(status)}">${STATUS_LABELS[status] || escapeHtml(status)}</em>${remaining > 0 ? `<small>Piutang ${rupiah(remaining)}</small>` : ''}</span>
-              <span class="customer-history-chevron" aria-hidden="true">›</span>
-            </button>`;
+            return `<div class="customer-history-row">
+              <button class="customer-history-open" type="button" data-sale-id="${escapeHtml(sale.id)}">
+                <span class="customer-history-main"><b>${escapeHtml(sale.invoiceNumber || 'Nota tanpa nomor')}</b><small>${escapeHtml(dateShort(sale.saleDate))}${sale.saleTime ? ` · ${escapeHtml(sale.saleTime)}` : ''}</small></span>
+                <span class="customer-history-side"><strong>${rupiah(sale.total)}</strong><em data-status="${escapeHtml(status)}">${STATUS_LABELS[status] || escapeHtml(status)}</em>${remaining > 0 ? `<small>Piutang ${rupiah(remaining)}</small>` : ''}</span>
+                <span class="customer-history-chevron" aria-hidden="true">›</span>
+              </button>
+              <button class="customer-history-repeat" type="button" data-repeat-sale-id="${escapeHtml(sale.id)}" aria-label="Pesan ulang dari ${escapeHtml(sale.invoiceNumber || 'nota ini')}" title="Pesan ulang">↻</button>
+            </div>`;
           }).join('') : '<div class="customer-detail-empty"><p>Belum ada nota untuk pelanggan ini.</p><button class="btn" id="newCustomerSale" type="button">Buat nota</button></div>'}
         </div>
       </section>
@@ -138,7 +142,26 @@ async function renderDetail(root, customerId) {
   root.querySelectorAll('[data-sale-id]').forEach((row) => {
     row.onclick = () => navigate(`sale/${encodeURIComponent(row.dataset.saleId)}`);
   });
+  root.querySelectorAll('[data-repeat-sale-id]').forEach((button) => {
+    button.onclick = () => handleRepeatOrder(button.dataset.repeatSaleId, customer);
+  });
   root.querySelector('#newCustomerSale')?.addEventListener('click', () => navigate('sale/new'));
+}
+
+async function handleRepeatOrder(saleId, customer) {
+  const confirmed = await confirmDialog({
+    title: 'Pesan ulang?',
+    message: 'Nota baru akan dibuat dari pesanan ini menggunakan data pelanggan terbaru. Pembayaran lama tidak ikut disalin.',
+    confirmLabel: 'Buat Pesanan Ulang',
+  });
+  if (!confirmed) return;
+  try {
+    const id = await duplicateSale(saleId, { id: customer.id, name: customer.name, phone: customer.phone || '', address: customer.address || '' });
+    toast('Pesanan ulang berhasil dibuat');
+    navigate(`sale/${id}/edit`);
+  } catch (error) {
+    toast(error.userMessage || error.message || 'Gagal membuat pesanan ulang.');
+  }
 }
 
 async function drawList(root, search, sortMode = 'name') {

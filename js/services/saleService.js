@@ -360,13 +360,14 @@ export async function deleteSale(saleId) {
   }
 }
 
-export async function duplicateSale(saleId) {
+export async function duplicateSale(saleId, customerOverride = null) {
   const source = await getSaleSummary(saleId);
   if (!source) throw new AppError('Nota tidak ditemukan.');
   const items = await db.getByIndex('saleItems', 'saleId', saleId);
   const lines = items.map((item) => ({ productId: item.productId, name: item.productName, unit: item.unit, qty: item.qty, price: item.price, note: item.note }));
+  const customer = customerOverride || { id: source.sale.customerId, name: source.sale.customerName, phone: source.sale.customerPhone, address: source.sale.customerAddress };
   const id = await createSale({
-    customer: { id: source.sale.customerId, name: source.sale.customerName, phone: source.sale.customerPhone, address: source.sale.customerAddress },
+    customer,
     lines, adjustments: source.sale.adjustments, saleDate: todayDbDate(), saleTime: timeLabel(new Date()), note: source.sale.note || '',
   });
   await recordAudit('duplicate', 'sale', id, `Salinan dari nota ${source.sale.invoiceNumber}`);

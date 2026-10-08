@@ -1,6 +1,6 @@
 // pages/saleDetail.js
 
-import { getSaleSummary, addPayment, updatePayment, deletePayment, deleteSale, duplicateSale, setProcessStatus, getProcessStatus, PROCESS_STATUS_LABEL, revertAutoLunas, AppError } from '../services/saleService.js';
+import { getSaleSummary, addPayment, updatePayment, deletePayment, deleteSale, duplicateSale, setProcessStatus, getProcessStatus, PROCESS_STATUS, PROCESS_STATUS_LABEL, AppError } from '../services/saleService.js';
 import * as db from '../db.js';
 import { getSettings } from '../services/settingsService.js';
 import { rupiah, dateShort, escapeHtml, qtyLabel, resolveFooterNote, maskPhone, toWhatsAppNumber } from '../format.js';
@@ -77,14 +77,10 @@ async function draw(root, saleId) {
   const addressPhoneLine = [sale.customerAddress, phoneDisplay].filter(Boolean).join(' • ');
 
   root.innerHTML = `
-    ${sale.autoMarkedPaid ? `
+    ${sale.autoMarkedPaid || sale.autoCompleted ? `
       <div class="receipt-alert">
-        <div class="receipt-alert-text"><b>Pelunasan otomatis</b> dicatat pada tanggal pengambilan mulai 1 hari setelahnya. Pembayaran ini ikut dihitung dalam laporan.</div>
-        <button id="revertAutoBtn" class="receipt-alert-action">Batalkan</button>
-      </div>` : ''}
-    ${sale.autoCompleted ? `
-      <div class="receipt-alert receipt-alert--completed">
-        <div class="receipt-alert-text">Ditandai <b>SELESAI otomatis</b> mulai 1 hari setelah tanggal pengambilan dan LUNAS otomatis. "Tandai Belum Selesai" juga membatalkan LUNAS otomatis jika status tersebut masih aktif.</div>
+        <div class="receipt-alert-text"><b>LUNAS dan SUDAH DIAMBIL otomatis</b> karena tanggal pengambilan telah lewat. Jika pesanan sebenarnya belum diambil, ubah Status Proses di bawah atau tekan tombol <b>Belum Diambil</b>. DP dan pembayaran manual tetap tersimpan.</div>
+        <button id="revertAutoBtn" class="receipt-alert-action">Belum Diambil</button>
       </div>` : ''}
     <section class="sale-process-card">
       <div class="sale-process-card-copy"><small>STATUS PROSES PESANAN</small><strong>${PROCESS_STATUS_LABEL[processStatus]}</strong></div>
@@ -163,13 +159,13 @@ async function draw(root, saleId) {
   if (revertBtn) {
     revertBtn.onclick = async () => {
       const confirmed = await confirmDialog({
-        title: 'Batalkan LUNAS Otomatis?',
-        message: 'Catatan pelunasan otomatis akan dihapus. DP dan pembayaran manual tetap tersimpan. Status nota dihitung ulang dan otomatis lunas tidak dijalankan lagi untuk nota ini.',
-        confirmLabel: 'Ya, Batalkan',
+        title: 'Pesanan Belum Diambil?',
+        message: 'Pelunasan otomatis akan dihapus dan status proses dikembalikan ke BARU. DP serta pembayaran manual tetap tersimpan. Setelah itu status dapat diubah menjadi DIKERJAKAN atau SIAP DIAMBIL.',
+        confirmLabel: 'Ya, Belum Diambil',
       });
       if (!confirmed) return;
-      await revertAutoLunas(saleId);
-      toast('Status LUNAS otomatis dibatalkan');
+      await setProcessStatus(saleId, PROCESS_STATUS.NEW);
+      toast('Pelunasan otomatis dibatalkan dan status dikembalikan ke BARU');
       await draw(root, saleId);
     };
   }
