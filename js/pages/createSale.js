@@ -1,24 +1,29 @@
 // pages/createSale.js — wrapper tipis di atas saleFormShared.js.
 
 import { renderSaleForm } from './saleFormShared.js';
-import { cashCustomer } from '../services/customerService.js';
+import { cashCustomer, getCustomer } from '../services/customerService.js';
 import { createSale, AppError } from '../services/saleService.js';
 import { toast } from '../ui/toast.js';
 import { setPageTitle, setTopbarActions, replaceRoute } from '../app.js';
 import { todayDbDate, timeLabel } from '../format.js';
 import { getSaleDraft, clearSaleDraft } from '../services/saleDraftService.js';
 
-export async function render(root) {
+export async function render(root, params = []) {
   setPageTitle('Nota Baru');
   setTopbarActions([]);
+  const requestedCustomer = params[0] ? await getCustomer(decodeURIComponent(params[0])) : null;
+  const preferredCustomer = requestedCustomer?.isActive !== 0 ? requestedCustomer : null;
   const savedDraft = getSaleDraft();
-  const shouldResume = savedDraft && (savedDraft.lines?.length || savedDraft.note || savedDraft.customer?.name || savedDraft.payment)
-    ? window.confirm('Draf nota sebelumnya ditemukan. Lanjutkan draf tersebut?')
+  const hasDraft = Boolean(savedDraft && (savedDraft.lines?.length || savedDraft.note || savedDraft.customer?.name || savedDraft.payment));
+  const shouldResume = hasDraft
+    ? preferredCustomer
+      ? !window.confirm(`Draf nota sebelumnya ditemukan. Tekan OK untuk mengganti draf dan membuat pesanan baru untuk ${preferredCustomer.name}. Tekan Batal untuk melanjutkan draf lama.`)
+      : window.confirm('Draf nota sebelumnya ditemukan. Lanjutkan draf tersebut?')
     : false;
   if (savedDraft && !shouldResume) clearSaleDraft();
   const initial = shouldResume
     ? { ...savedDraft, draftRestored: true, customer: savedDraft.customer || cashCustomer() }
-    : { customer: cashCustomer(), saleDate: todayDbDate(), saleTime: timeLabel(new Date()) };
+    : { customer: preferredCustomer || cashCustomer(), saleDate: todayDbDate(), saleTime: timeLabel(new Date()) };
   await renderSaleForm(root, 'create', initial, async (state) => {
     try {
       const saleId = await createSale({

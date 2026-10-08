@@ -134,7 +134,9 @@
     box-shadow:14px 0 34px rgba(110,80,50,.28), inset -2px 0 4px rgba(255,255,255,.5);
   }
   .drawer-title { color:#2f5a48; }
+  .drawer-section-label { color:#719181; }
   .drawer-item { color:#3f6b59; }
+  .drawer-item.active { background:rgba(255,255,255,.45); }
   .drawer-item:active { background:rgba(255,255,255,.45); }
   .drawer-sep { background:rgba(255,255,255,.6); }
   .drawer-overlay, .sheet-backdrop, .dialog-backdrop { background:rgba(110,80,50,.38); }

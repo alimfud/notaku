@@ -113,7 +113,9 @@
   /* ---------- Drawer, overlay, popup ---------- */
   .drawer { background:linear-gradient(180deg,#2a3475,#161d47); color:#f2f0ff; box-shadow:14px 0 40px rgba(4,6,28,.7); border-radius:0 28px 28px 0; }
   .drawer-title { color:#fff; }
+  .drawer-section-label { color:#929bd0; }
   .drawer-item { color:#d6daf5; }
+  .drawer-item.active { background:rgba(255,255,255,.08); }
   .drawer-item:active { background:rgba(255,255,255,.08); }
   .drawer-sep { background:var(--nv-line); }
   .drawer-overlay, .sheet-backdrop, .dialog-backdrop { background:rgba(6,9,30,.62); }

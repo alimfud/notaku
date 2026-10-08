@@ -144,9 +144,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.5-2.4.6a7.6 7.6 0 0 0-1.7-1L15 3h-6l-.3 2.6a7.6 7.6 0 0 0-1.7 1l-2.4-.6-2 3.5L4.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.5 2.4-.6a7.6 7.6 0 0 0 1.7 1L9 21h6l.3-2.6a7.6 7.6 0 0 0 1.7-1l2.4.6 2-3.5z"/></svg>
       <span>Pengaturan</span>
     </button>
-    <button class="nav-btn nav-btn--mobile-only" data-route="settings">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M19.4 13a7.6 7.6 0 000-2l2-1.5-2-3.5-2.4.6a7.6 7.6 0 00-1.7-1L15 3h-6l-.3 2.6a7.6 7.6 0 00-1.7 1l-2.4-.6-2 3.5L4.6 11a7.6 7.6 0 000 2l-2 1.5 2 3.5 2.4-.6a7.6 7.6 0 001.7 1L9 21h6l.3-2.6a7.6 7.6 0 001.7-1l2.4.6 2-3.5L19.4 13z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
-      <span>Lainnya</span>
+    <button class="nav-btn nav-btn--mobile-only" data-route="customers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M17 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/></svg>
+      <span>Pelanggan</span>
     </button>
   </nav>
 </div>
@@ -154,13 +154,24 @@
 <div id="drawerOverlay" class="drawer-overlay hidden"></div>
 <aside id="drawer" class="drawer">
   <div class="drawer-title">NotaKu</div>
+  <div class="drawer-section-label">Menu Utama</div>
   <button class="drawer-item" data-route="dashboard">Beranda</button>
   <button class="drawer-item" data-route="home">Nota</button>
   <button class="drawer-item" data-route="products">Produk</button>
+  <button class="drawer-item" data-route="expenses">Biaya</button>
   <button class="drawer-item" data-route="customers">Pelanggan</button>
   <button class="drawer-item" data-route="reports">Laporan</button>
   <div class="drawer-sep"></div>
-  <button class="drawer-item" data-route="settings">Setting</button>
+  <div class="drawer-section-label">Pengaturan</div>
+  <button class="drawer-item" data-route="settings/store">Info Toko</button>
+  <button class="drawer-item" data-route="settings/invoice">Nomor Nota</button>
+  <button class="drawer-item" data-route="settings/printer">Printer</button>
+  <button class="drawer-item" data-route="settings/qris">QRIS</button>
+  <button class="drawer-item" data-route="settings/security">Kunci Aplikasi</button>
+  <button class="drawer-item" data-route="settings/help">Pusat Bantuan</button>
+  <button class="drawer-item" data-route="settings/backup">Backup / Restore</button>
+  <button class="drawer-item" data-route="settings/trash">Tempat Sampah</button>
+  <button class="drawer-item" data-route="settings/audit">Riwayat Aktivitas</button>
 </aside>
 
 <div id="sheetRoot"></div>

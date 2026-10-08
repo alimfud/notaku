@@ -246,9 +246,9 @@ async function handleRouteChange() {
   btnBack.classList.toggle('hidden', isTopLevel);
   btnMenu.classList.toggle('hidden', !isTopLevel);
   bottomnav.classList.toggle('hidden', !isTopLevel && !keepDesktopSettingsNav);
-  // Di mobile semua halaman pengaturan memakai satu tombol "Lainnya";
-  // sub-menu tetap bisa memiliki tombol spesifik di sidebar desktop.
-  const navRoute = !hasWideSidebar && (['customers', 'reports'].includes(route) || route === 'settings')
+  // Laporan dan pengaturan dibuka dari menu samping di mobile, sehingga tidak
+  // memiliki tab aktif pada menu bawah. Pelanggan memiliki tab sendiri.
+  const navRoute = !hasWideSidebar && (route === 'reports' || route === 'settings')
     ? 'settings'
     : route === 'settings' && params.length
       ? (params[0] === 'autobackup' ? 'settings/backup' : `settings/${params[0]}`)
@@ -258,6 +258,19 @@ async function handleRouteChange() {
     b.classList.toggle('active', active);
     if (active) b.setAttribute('aria-current', 'page');
     else b.removeAttribute('aria-current');
+  });
+  const drawerRoute = route === 'sale'
+    ? 'home'
+    : route === 'settings' && params[0] === 'autobackup'
+      ? 'settings/backup'
+      : route === 'settings' && params.length
+        ? `settings/${params[0]}`
+        : route;
+  document.querySelectorAll('.drawer-item').forEach((item) => {
+    const active = item.dataset.route === drawerRoute;
+    item.classList.toggle('active', active);
+    if (active) item.setAttribute('aria-current', 'page');
+    else item.removeAttribute('aria-current');
   });
 
   const page = route === 'sale'

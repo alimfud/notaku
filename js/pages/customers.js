@@ -113,6 +113,7 @@ async function renderDetail(root, customerId) {
         ${whatsappLink ? `<a class="customer-detail-whatsapp" href="${escapeHtml(whatsappLink)}" target="_blank" rel="noopener" aria-label="Chat WhatsApp ${escapeHtml(customer.name)}"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5a12.5 12.5 0 0 0-10.6 19.1L4 28l5.7-1.4A12.5 12.5 0 1 0 16 3.5Z"/><text x="16" y="18.7">WA</text></svg></a>` : ''}
         <button class="customer-detail-edit" id="editCustomer" type="button">Edit</button>
       </section>
+      <button class="customer-detail-new-order" id="newCustomerOrder" type="button"><span>+</span> Pesanan Baru</button>
       <section class="customer-detail-stats" aria-label="Ringkasan pelanggan">
         <div class="customer-stat"><small>Total transaksi</small><strong>${rupiah(totalTransactions)}</strong><span>${sales.length} nota</span></div>
         <div class="customer-stat"><small>Total pembayaran</small><strong>${rupiah(totalPaid)}</strong><span>Semua pembayaran</span></div>
@@ -139,13 +140,15 @@ async function renderDetail(root, customerId) {
     </div>`;
 
   root.querySelector('#editCustomer').onclick = () => openForm(root, customer, '', () => renderDetail(root, customerId), () => navigate('customers'));
+  const openNewOrder = () => navigate(`sale/new/${encodeURIComponent(customer.id)}`);
+  root.querySelector('#newCustomerOrder').onclick = openNewOrder;
   root.querySelectorAll('[data-sale-id]').forEach((row) => {
     row.onclick = () => navigate(`sale/${encodeURIComponent(row.dataset.saleId)}`);
   });
   root.querySelectorAll('[data-repeat-sale-id]').forEach((button) => {
     button.onclick = () => handleRepeatOrder(button.dataset.repeatSaleId, customer);
   });
-  root.querySelector('#newCustomerSale')?.addEventListener('click', () => navigate('sale/new'));
+  root.querySelector('#newCustomerSale')?.addEventListener('click', openNewOrder);
 }
 
 async function handleRepeatOrder(saleId, customer) {

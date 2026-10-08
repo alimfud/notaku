@@ -49,7 +49,7 @@ export async function render(root) {
     <div class="dashboard-period-control"><button type="button" class="dashboard-filter-toggle" id="dashboardFilterToggle" aria-expanded="false" aria-label="Pilih periode laporan">${shortcutIcon('calendar')}</button><div class="dashboard-period-filter" id="dashboardPeriodFilter" aria-label="Filter periode dashboard" hidden>${[['today','Hari ini'],['week','7 hari'],['month','Bulan ini'],['year','Tahun ini']].map(([value,label]) => `<button type="button" data-dashboard-period="${value}" class="${dashboardPeriod === value ? 'active' : ''}">${label}</button>`).join('')}</div></div>
     <section class="dashboard-reminders"><div class="dashboard-section-row"><div><h3>Jadwal & Pengingat</h3></div></div>${reminders.length ? `<div class="dashboard-reminder-list">${reminders.map(reminderCard).join('')}</div>` : '<div class="dashboard-reminder-empty">Belum ada tagihan atau jadwal pickup yang perlu diingatkan.</div>'}</section>
     <div class="dashboard-section"><h3>Akses cepat</h3></div>
-    <div class="dashboard-shortcuts">${[['customers','Pelanggan','users'],['expenses','Pengeluaran','wallet'],['reports','Laporan','chart'],['settings','Lainnya','settings']].map(([route, label, icon]) => `<button data-go="${route}"><span class="dashboard-shortcut-icon">${shortcutIcon(icon)}</span>${label}</button>`).join('')}</div>
+    <div class="dashboard-shortcuts">${[['settings/backup','Cadangan','backup'],['expenses','Pengeluaran','wallet'],['reports','Laporan','chart'],['settings','Lainnya','settings']].map(([route, label, icon]) => `<button data-go="${route}"><span class="dashboard-shortcut-icon">${shortcutIcon(icon)}</span>${label}</button>`).join('')}</div>
     
 	
     
@@ -155,6 +155,7 @@ function annualMiniChart({ year, monthly }) {
 function shortcutIcon(name) {
   const paths = {
     users: '<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M17 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/>',
+    backup: '<path d="M20 16.5A4.5 4.5 0 0 0 18 8h-1.1A6 6 0 0 0 5 9.5 3.5 3.5 0 0 0 5.5 16H8"/><path d="M12 12v9m-3-3 3 3 3-3"/>',
     wallet: '<rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 8h18M16 13h5M16 16h1"/>',
     calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9h18M8 3v4M16 3v4M8 13h3M8 17h6"/>',
     chart: '<path d="M4 20V10M12 20V4M20 20v-7"/>',
