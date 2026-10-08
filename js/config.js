@@ -11,3 +11,8 @@
  * Cara mendapatkannya: lihat docs/DRIVE_SETUP.md (gratis, sekali setup).
  */
 export const GOOGLE_CLIENT_ID = '329437953527-hloho20c8qv1kt25j09r46vvunc8vrlt.apps.googleusercontent.com';
+
+// Kontak bantuan pemilik NotaKu (opsional). Isi dengan nomor WhatsApp lokal.
+// Jika kosong, Pusat Bantuan memakai nomor toko dari Info Toko bila tersedia.
+export const OWNER_NAME = 'Developer NotaKu';
+export const OWNER_WHATSAPP = '6285156657771';

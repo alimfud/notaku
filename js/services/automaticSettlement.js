@@ -45,6 +45,7 @@ export function settlementChanges(sales, payments, today, timestamp) {
     if (['PAID', 'OVERPAID'].includes(status) && !sale.completed) {
       sale.autoCompleted = 1;
       sale.completed = 1;
+      sale.processStatus = 'PICKED_UP';
       changed = true;
     }
     if (changed) updates.push({ ...sale, updatedAt: timestamp });

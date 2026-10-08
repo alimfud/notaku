@@ -1,6 +1,6 @@
 // pages/saleDetail.js
 
-import { getSaleSummary, addPayment, updatePayment, deletePayment, deleteSale, duplicateSale, setCompleted, revertAutoLunas, AppError } from '../services/saleService.js';
+import { getSaleSummary, addPayment, updatePayment, deletePayment, deleteSale, duplicateSale, setProcessStatus, getProcessStatus, PROCESS_STATUS_LABEL, revertAutoLunas, AppError } from '../services/saleService.js';
 import * as db from '../db.js';
 import { getSettings } from '../services/settingsService.js';
 import { rupiah, dateShort, escapeHtml, qtyLabel, resolveFooterNote, maskPhone, toWhatsAppNumber } from '../format.js';
@@ -62,6 +62,7 @@ async function draw(root, saleId) {
   items.sort((a, b) => a.sortOrder - b.sortOrder);
   const settings = await withTimeout(getSettings(), 5000);
   const { sale, paidAmount, remaining, payments, displayStatus } = summary;
+  const processStatus = getProcessStatus(sale);
   const showQris = settings.qrisEnabled && settings.qrisImageData && displayStatus !== 'PAID' && displayStatus !== 'OVERPAID';
   const phoneDisplay = displayPhone(sale.customerPhone, settings);
 
@@ -85,6 +86,12 @@ async function draw(root, saleId) {
       <div class="receipt-alert receipt-alert--completed">
         <div class="receipt-alert-text">Ditandai <b>SELESAI otomatis</b> mulai 1 hari setelah tanggal pengambilan dan LUNAS otomatis. "Tandai Belum Selesai" juga membatalkan LUNAS otomatis jika status tersebut masih aktif.</div>
       </div>` : ''}
+    <section class="sale-process-card">
+      <div class="sale-process-card-copy"><small>STATUS PROSES PESANAN</small><strong>${PROCESS_STATUS_LABEL[processStatus]}</strong></div>
+      <select id="processStatus" aria-label="Status proses pesanan">
+        ${Object.entries(PROCESS_STATUS_LABEL).map(([value, label]) => `<option value="${value}" ${value === processStatus ? 'selected' : ''}>${label}</option>`).join('')}
+      </select>
+    </section>
     <div class="sale-detail-receipt-wrap">
       <div class="receipt" id="receiptCapture">
         ${receiptLogoMarkup(settings)}
@@ -136,19 +143,22 @@ async function draw(root, saleId) {
           </button>`).join('')}
       </div>` : ''}
     <div class="sale-detail-actions">
-      <button id="toggleCompletedBtn" class="sale-detail-complete-action btn ${sale.completed ? 'secondary' : ''}">${sale.completed ? '↺ Tandai Belum Selesai' : '✓ Tandai Selesai'}</button>
       <button id="addPaymentBtn" class="sale-detail-secondary-action btn secondary">+ Tambah Pembayaran</button>
       <button id="printBtn" class="sale-detail-secondary-action btn secondary">Bagikan / Salin Nota</button>
     </div>
   `;
 
   root.querySelector('#addPaymentBtn').onclick = () => handleAddPayment(root, saleId, remaining);
-  root.querySelector('#printBtn').onclick = () => showShareSheet(root, saleId, sale, items, settings, paidAmount, remaining);
-  root.querySelector('#toggleCompletedBtn').onclick = async () => {
-    await setCompleted(saleId, !sale.completed);
-    toast(sale.completed ? 'Ditandai belum selesai' : 'Ditandai selesai');
-    await draw(root, saleId);
+  root.querySelector('#processStatus').onchange = async (event) => {
+    try {
+      await setProcessStatus(saleId, event.target.value);
+      toast(`Status proses: ${PROCESS_STATUS_LABEL[event.target.value]}`);
+      await draw(root, saleId);
+    } catch (error) {
+      toast(error.userMessage || error.message || 'Gagal mengubah status proses.');
+    }
   };
+  root.querySelector('#printBtn').onclick = () => showShareSheet(root, saleId, sale, items, settings, paidAmount, remaining);
   const revertBtn = root.querySelector('#revertAutoBtn');
   if (revertBtn) {
     revertBtn.onclick = async () => {

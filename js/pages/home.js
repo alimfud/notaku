@@ -1,6 +1,6 @@
 // pages/home.js
 
-import { getAllSaleSummaries, setCompleted } from '../services/saleService.js';
+import { getAllSaleSummaries, getProcessStatus, PROCESS_STATUS_LABEL } from '../services/saleService.js';
 import { rupiah, dateShort, initials, escapeHtml, todayDbDate, dbDate } from '../format.js';
 import { STATUS_LABEL } from '../services/saleCalculation.js';
 import { navigate, setTopbarActions, setPageTitle } from '../app.js';
@@ -181,6 +181,7 @@ async function renderList(root) {
 
   listEl.innerHTML = summaries.map((s) => {
     const status = s.displayStatus;
+    const processLabel = PROCESS_STATUS_LABEL[getProcessStatus(s.sale)];
     const autoTag = s.sale.autoMarkedPaid ? ' <span class="home-layout-5">(otomatis)</span>' : '';
     const dateLabel = _sortBy === 'created'
       ? new Date(s.sale.createdAt).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -189,7 +190,7 @@ async function renderList(root) {
       <button class="row" data-id="${s.sale.id}" style="opacity:${s.sale.completed ? 0.55 : 1};">
         <div class="avatar"><span>${initials(s.sale.customerName)}</span></div>
         <div class="row-body">
-          <div class="row-title">${escapeHtml(s.sale.customerName)}${s.sale.completed ? ' <span class="home-layout-6">SELESAI</span>' : ''}</div>
+          <div class="row-title">${escapeHtml(s.sale.customerName)} <span class="home-layout-6">${processLabel}</span></div>
           ${s.sale.customerAddress?.trim() ? `<div class="nota-address">${escapeHtml(s.sale.customerAddress.trim())}</div>` : ''}
           <div class="row-meta"><span class="nota-date">${dateLabel}</span> <span class="nota-invoice">• ${escapeHtml(s.sale.invoiceNumber)}</span></div>
         </div>

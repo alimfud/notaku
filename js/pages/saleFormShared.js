@@ -11,6 +11,7 @@ import { calculateSubtotal, computeAdjustments, defaultAdjustments } from '../se
 import { rupiah, escapeHtml, qtyLabel } from '../format.js';
 import { openSheet } from '../ui/dialog.js';
 import { toast } from '../ui/toast.js';
+import { saveSaleDraft, clearSaleDraft } from '../services/saleDraftService.js';
 
 /**
  * @param {HTMLElement} root
@@ -31,12 +32,14 @@ export async function renderSaleForm(root, mode, initial, onSave) {
     products: await getAllProducts(),
     saving: false,
     editDetailsExpanded: false,
+    draftRestored: Boolean(initial.draftRestored),
   };
 
   draw(root, mode, state, onSave);
 }
 
 function draw(root, mode, state, onSave) {
+  if (mode === 'create' && !state.saving) saveSaleDraft(state);
   root.dataset.formDirty = '1';
   root._notakuEditDetailsCleanup?.();
   root._notakuEditDetailsCleanup = null;
@@ -101,6 +104,7 @@ function draw(root, mode, state, onSave) {
           </div>
         </div>
       </section>
+      ${mode === 'create' && state.draftRestored ? `<div class="sale-draft-notice"><span>↶ Draf nota dipulihkan otomatis</span><button id="clearDraftBtn" type="button">Mulai baru</button></div>` : ''}
   `;
 
   root.innerHTML = `
@@ -171,9 +175,9 @@ function draw(root, mode, state, onSave) {
   drawLines(root, state);
   wireScanInput(root, state);
 
-  root.querySelector('#custName')?.addEventListener('input', (e) => { state.customer.name = e.target.value; });
-  root.querySelector('#custAddress')?.addEventListener('input', (e) => { state.customer.address = e.target.value; });
-  root.querySelector('#custPhone')?.addEventListener('input', (e) => { state.customer.phone = e.target.value; });
+  root.querySelector('#custName')?.addEventListener('input', (e) => { state.customer.name = e.target.value; saveDraftIfCreate(mode, state); });
+  root.querySelector('#custAddress')?.addEventListener('input', (e) => { state.customer.address = e.target.value; saveDraftIfCreate(mode, state); });
+  root.querySelector('#custPhone')?.addEventListener('input', (e) => { state.customer.phone = e.target.value; saveDraftIfCreate(mode, state); });
   root.querySelector('#pickCustomerBtn')?.addEventListener('click', () => pickCustomer(root, mode, state, onSave));
 
   const panel = root.querySelector('#editDetailsPanel');
@@ -210,8 +214,12 @@ function draw(root, mode, state, onSave) {
   window.addEventListener('scroll', collapseAfterScroll, true);
   root._notakuEditDetailsCleanup = () => window.removeEventListener('scroll', collapseAfterScroll, true);
 
-  root.querySelector('#fDate')?.addEventListener('change', (e) => { state.saleDate = e.target.value; });
-  root.querySelector('#fTime')?.addEventListener('change', (e) => { state.saleTime = e.target.value; });
+  root.querySelector('#fDate')?.addEventListener('change', (e) => { state.saleDate = e.target.value; saveDraftIfCreate(mode, state); });
+  root.querySelector('#fTime')?.addEventListener('change', (e) => { state.saleTime = e.target.value; saveDraftIfCreate(mode, state); });
+  root.querySelector('#clearDraftBtn')?.addEventListener('click', () => {
+    clearSaleDraft();
+    window.location.reload();
+  });
 
   root.querySelector('#adjustmentsBtn').onclick = () => editAdjustments(root, mode, state, onSave);
   root.querySelector('#manualItemBtn').onclick = () => addManualItem(root, mode, state, onSave);
@@ -247,6 +255,10 @@ function captureEditDetails(root, state) {
   if (address) state.customer.address = address.value;
   if (date) state.saleDate = date.value || null;
   if (time) state.saleTime = time.value || null;
+}
+
+function saveDraftIfCreate(mode, state) {
+  if (mode === 'create') saveSaleDraft(state);
 }
 
 function syncEditDetailsPanel(root, state) {
@@ -705,6 +717,8 @@ async function editAdjustments(root, mode, state, onSave) {
 }
 
 async function save(root, mode, state, onSave) {
+  captureEditDetails(root, state);
+  saveDraftIfCreate(mode, state);
   if (!state.customer.name.trim()) { toast('Nama pelanggan wajib diisi.'); return; }
   if (!state.saleDate) { toast('Tanggal pengambilan wajib diisi.'); return; }
   if (!state.saleTime) { toast('Jam pengambilan wajib diisi.'); return; }

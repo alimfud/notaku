@@ -1,16 +1,17 @@
 // pages/settings.js
 
 import { getSettings, saveSettings } from '../services/settingsService.js';
+import { OWNER_NAME, OWNER_WHATSAPP } from '../config.js';
 import { createBackupBlob, downloadBackup, restoreFromFile, getBackupSummary, compareBackupFile } from '../services/backupService.js';
 import { importLegacyFile } from '../services/legacyImportService.js';
-import { escapeHtml } from '../format.js';
+import { escapeHtml, toWhatsAppNumber } from '../format.js';
 import { confirmDialog, alertDialog } from '../ui/dialog.js';
 import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, checkForUpdate } from '../app.js';
 import { APP_VERSION } from '../version.js';
 import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
 import * as db from '../db.js';
-import { getAuditLogs, recordAudit } from '../services/auditLogService.js';
+import { formatAuditDetails, getAuditLogs, recordAudit } from '../services/auditLogService.js';
 import { registerBiometric, biometricAvailable } from '../services/appLockService.js';
 
 function setBackupLoading(visible, message = 'Sedang memproses…') {
@@ -92,6 +93,7 @@ export async function render(root, params) {
   if (sub === 'printer') return renderPrinter(root);
   if (sub === 'qris') return renderQris(root);
   if (sub === 'security') return renderSecurity(root);
+  if (sub === 'help') return renderHelp(root);
   if (sub === 'backup') return renderBackup(root);
   if (sub === 'autobackup') return renderAutoBackup(root);
   if (sub === 'trash') return renderTrash(root);
@@ -121,6 +123,7 @@ function renderHub(root) {
       ${tile('🖨️', 'Printer', 'Ukuran kertas & printer Bluetooth', 'settings/printer')}
       ${tile('🔳', 'QRIS', 'Tampilkan kode QRIS di struk belum lunas', 'settings/qris')}
       ${tile('🔒', 'Kunci Aplikasi', 'Sidik jari saat membuka NotaKu', 'settings/security')}
+      ${tile('💡', 'Pusat Bantuan', 'Instalasi, offline, versi & backup', 'settings/help')}
       <div class="settings-spacer"></div>
       ${tile('☁️', 'Backup / Restore', 'Cadangkan data & impor database lama', 'settings/backup')}
       ${tile('🗑️', 'Tempat Sampah', 'Pulihkan nota yang terhapus', 'settings/trash')}
@@ -135,6 +138,52 @@ function renderHub(root) {
   root.querySelectorAll('[data-route]').forEach((el) => {
     el.onclick = () => navigate(el.dataset.route);
   });
+}
+
+async function renderHelp(root) {
+  setPageTitle('Pusat Bantuan');
+  setTopbarActions([]);
+  const [settings, install] = await Promise.all([
+    getSettings(),
+    import('../installPrompt.js').then(({ getInstallReadiness }) => getInstallReadiness()),
+  ]);
+  const backup = settings.autoBackup || {};
+  const renderBackupDate = (value) => value ? new Date(value).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'Belum pernah';
+  const renderInstall = (status) => {
+    const action = status.state === 'ready'
+      ? '<button type="button" class="btn small" id="btnHelpInstall">Pasang sekarang</button>'
+      : status.state === 'installed' ? '' : '<button type="button" class="btn small secondary" id="btnHelpInstall">Cara memasang</button>';
+    return `<article class="settings-help-status" data-state="${escapeHtml(status.state)}"><span class="settings-help-status-icon">${status.state === 'installed' ? '✓' : '⌂'}</span><div><b>${escapeHtml(status.label)}</b><small>${escapeHtml(status.detail)}</small></div>${action}</article>`;
+  };
+  const backupState = backup.lastBackupError ? 'error' : backup.lastBackupAt ? 'success' : 'empty';
+  const backupLabel = backup.lastBackupError ? 'Backup terakhir bermasalah' : backup.lastBackupAt ? 'Backup terakhir berhasil' : 'Belum ada backup';
+  const backupDetail = backup.lastBackupError ? backup.lastBackupError : backup.lastBackupAt ? `Dibuat ${renderBackupDate(backup.lastBackupAt)}${backup.backupSizeBytes ? ` · ${(backup.backupSizeBytes / 1024).toFixed(1)} KB` : ''}` : 'Cadangkan data untuk menjaga data tetap aman.';
+  const ownerNumber = toWhatsAppNumber(OWNER_WHATSAPP || settings.storePhone);
+  const ownerContact = ownerNumber
+    ? `<a class="settings-help-contact" href="https://wa.me/${ownerNumber}?text=${encodeURIComponent('Halo Developer NotaKu, saya ingin meminta bantuan terkait aplikasi NotaKu.')}" target="_blank" rel="noopener"><span class="settings-help-contact-icon">WA</span><span><b>Chat ${escapeHtml(OWNER_WHATSAPP ? OWNER_NAME : 'toko')}</b><small>Buka WhatsApp untuk meminta bantuan</small></span><i>›</i></a>`
+    : '<div class="settings-help-contact settings-help-contact--empty"><span class="settings-help-contact-icon">?</span><span><b>Kontak bantuan belum diatur</b><small>Nomor WhatsApp owner belum tersedia.</small></span></div>';
+  root.innerHTML = `<div class="settings-simple-page settings-help-page"><div class="settings-page-intro"><h2>Pusat Bantuan</h2><p>Periksa kondisi NotaKu dan cara memasangnya di perangkat.</p></div><section class="settings-help-list"><article class="settings-help-status" data-state="info"><span class="settings-help-status-icon">ℹ</span><div><b>Versi aplikasi</b><small>NotaKu Web v${escapeHtml(APP_VERSION)}</small></div><button type="button" class="btn small secondary" id="btnHelpUpdate">Cek pembaruan</button></article><article class="settings-help-status" data-state="${navigator.onLine ? 'online' : 'offline'}"><span class="settings-help-status-icon">${navigator.onLine ? '●' : '◌'}</span><div><b>Status koneksi</b><small>${navigator.onLine ? 'Online · koneksi internet tersedia' : 'Offline · data lokal tetap bisa digunakan'}</small></div></article>${renderInstall(install)}<article class="settings-help-status" data-state="${backupState}"><span class="settings-help-status-icon">${backupState === 'success' ? '✓' : backupState === 'error' ? '!' : '↓'}</span><div><b>${escapeHtml(backupLabel)}</b><small>${escapeHtml(backupDetail)}</small></div><button type="button" class="btn small secondary" id="btnHelpBackup">Buka backup</button></article></section><div class="settings-help-note">NotaKu menyimpan data utama di perangkat. Saat offline, transaksi tetap dapat dibuat dan dibaca; backup ke Google Drive membutuhkan internet.</div></div>`;
+  root.querySelector('.settings-help-note').insertAdjacentHTML('beforebegin', `<section class="settings-help-section"><h3>Fitur NotaKu</h3><details open><summary>Penjualan dan nota</summary><p>Buat, ubah, gandakan, cetak, dan bagikan nota penjualan. Nota yang belum selesai dapat tersimpan sebagai draf otomatis.</p></details><details><summary>Proses pesanan</summary><p>Pantau pesanan dari <b>Baru</b>, <b>Dikerjakan</b>, <b>Siap Diambil</b>, sampai <b>Sudah Diambil</b>.</p></details><details><summary>Jadwal dan pengingat</summary><p>Jadwal pengambilan dan tagihan tampil dalam satu tempat. Tombol WA dapat mengirim pengingat langsung ke pelanggan.</p></details><details><summary>Pelanggan dan produk</summary><p>Simpan data pelanggan, riwayat nota, daftar produk, harga, dan kategori untuk mempercepat transaksi.</p></details><details><summary>Pembayaran dan laporan</summary><p>Catat pembayaran penuh atau sebagian, lihat status lunas, dan pantau penjualan, pembayaran, serta pengeluaran.</p></details><details><summary>Cetak dan berbagi</summary><p>Cetak nota melalui printer Bluetooth, simpan sebagai PDF, atau bagikan nota kepada pelanggan.</p></details><details><summary>QRIS</summary><p>Tampilkan QRIS toko pada nota yang belum lunas agar pelanggan dapat membayar dengan mudah.</p></details><details><summary>Keamanan dan privasi</summary><p>Gunakan kunci aplikasi dengan PIN atau biometrik, serta atur tampilan nomor WhatsApp pelanggan pada struk.</p></details><details><summary>Backup dan sinkronisasi</summary><p>Unduh backup lokal, pulihkan data, atau gunakan Google Drive untuk backup otomatis dan sinkronisasi antarperangkat.</p></details><details><summary>Riwayat aktivitas dan tempat sampah</summary><p>Periksa perubahan penting pada data dan pulihkan nota yang tidak sengaja dihapus.</p></details></section><section class="settings-help-section"><h3>Panduan singkat</h3><details><summary>Bagaimana cara memasang NotaKu?</summary><p>Gunakan tombol instalasi di atas. Jika belum tersedia, buka menu ⋮ Chrome lalu pilih <b>Instal aplikasi</b> atau <b>Tambahkan ke layar utama</b>.</p></details><details><summary>Apakah NotaKu bisa digunakan offline?</summary><p>Ya. Nota, pelanggan, produk, dan laporan tetap dapat dibuka tanpa internet. Google Drive, pembaruan, dan WhatsApp memerlukan koneksi.</p></details><details><summary>Bagaimana menjaga data tetap aman?</summary><p>Lakukan backup rutin, terutama sebelum berganti perangkat atau menghapus data browser.</p></details></section><section class="settings-help-section settings-help-contact-section"><h3>Bantuan dan kontak</h3>${ownerContact}</section>`);
+  // Daftar fitur yang terlalu panjang dihapus dari tampilan; Pusat Bantuan
+  // difokuskan pada kondisi aplikasi, panduan praktis, backup, dan kontak.
+  root.querySelector('.settings-help-section')?.remove();
+  root.querySelector('#btnHelpUpdate').onclick = () => checkForUpdate(false);
+  root.querySelector('#btnHelpBackup').onclick = () => navigate('settings/backup');
+  root.querySelector('#btnHelpInstall')?.addEventListener('click', async () => {
+    const { requestInstall, getInstallReadiness } = await import('../installPrompt.js');
+    const installed = await requestInstall();
+    if (!installed) {
+      const current = await getInstallReadiness();
+      alertDialog({ title: current.label, message: current.detail });
+    }
+    await renderHelp(root);
+  });
+  const refresh = () => {
+    if (window.location.hash === '#/settings/help') renderHelp(root);
+  };
+  window.addEventListener('online', refresh, { once: true });
+  window.addEventListener('offline', refresh, { once: true });
+  window.addEventListener('notaku-install-status', refresh, { once: true });
 }
 
 async function renderSecurity(root) {
@@ -198,7 +247,8 @@ async function renderTrash(root) {
 async function renderAudit(root) {
   setPageTitle('Riwayat Aktivitas'); setTopbarActions([]);
   const logs = await getAuditLogs();
-  root.innerHTML = `<div class="settings-simple-page settings-audit-page"><div class="settings-page-intro"><h2>Riwayat Aktivitas</h2><p>Perubahan penting pada data NotaKu.</p></div><div class="settings-audit-list">${logs.length ? logs.map((log) => `<article class="settings-audit-item"><span class="settings-audit-dot" data-action="${escapeHtml(log.action)}"></span><div><b>${escapeHtml(log.details || log.action)}</b><small>${escapeHtml(log.entityType)} · ${new Date(log.createdAt).toLocaleString('id-ID')}</small></div></article>`).join('') : '<div class="settings-empty-card"><span>✓</span><b>Belum ada aktivitas</b><small>Perubahan data akan tercatat di sini.</small></div>'}</div></div>`;
+  const entityLabels = { sale: 'Nota', customer: 'Pelanggan', product: 'Produk', expense: 'Pengeluaran' };
+  root.innerHTML = `<div class="settings-simple-page settings-audit-page"><div class="settings-page-intro"><h2>Riwayat Aktivitas</h2><p>Perubahan penting pada data NotaKu.</p></div><div class="settings-audit-list">${logs.length ? logs.map((log) => `<article class="settings-audit-item"><span class="settings-audit-dot" data-action="${escapeHtml(log.action)}"></span><div><b>${escapeHtml(formatAuditDetails(log.details || log.action))}</b><small>${escapeHtml(entityLabels[log.entityType] || 'Data')} · ${new Date(log.createdAt).toLocaleString('id-ID')}</small></div></article>`).join('') : '<div class="settings-empty-card"><span>✓</span><b>Belum ada aktivitas</b><small>Perubahan data akan tercatat di sini.</small></div>'}</div></div>`;
 }
 
 async function renderStore(root) {
@@ -519,7 +569,7 @@ async function renderBackup(root) {
       const blob = await createBackupBlob();
       downloadBackup(blob);
       const latest = await getSettings();
-      await saveSettings({ autoBackup: { ...latest.autoBackup, backupSizeBytes: blob.size, lastBackupError: '' } });
+      await saveSettings({ autoBackup: { ...latest.autoBackup, backupSizeBytes: blob.size, lastBackupAt: new Date().toISOString(), lastBackupError: '' } });
       toast('Cadangan diunduh');
     } catch (e) { toast('Gagal membuat cadangan.'); }
   };

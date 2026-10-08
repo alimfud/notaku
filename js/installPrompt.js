@@ -12,7 +12,7 @@
 
 let deferredPrompt = null;
 
-function isStandalone() {
+export function isAppInstalled() {
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
 
@@ -20,8 +20,29 @@ function isIos() {
   return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 }
 
+export async function getInstallReadiness() {
+  if (isAppInstalled()) return { state: 'installed', label: 'Sudah terpasang', detail: 'NotaKu sedang berjalan sebagai aplikasi.' };
+  if (!window.isSecureContext && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+    return { state: 'unavailable', label: 'Belum siap dipasang', detail: 'Instalasi membutuhkan koneksi HTTPS.' };
+  }
+  if (deferredPrompt) return { state: 'ready', label: 'Siap dipasang', detail: 'Browser sudah menyediakan tombol instalasi NotaKu.' };
+  if (isIos()) return { state: 'manual', label: 'Pasang lewat menu Safari', detail: 'Ketuk Bagikan, lalu pilih “Tambah ke Layar Utama”.' };
+  const registration = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration().catch(() => null) : null;
+  if (!registration) return { state: 'waiting', label: 'Menyiapkan instalasi', detail: 'Buka ulang halaman setelah koneksi internet tersedia.' };
+  return { state: 'manual', label: 'Pasang lewat menu browser', detail: 'Buka menu ⋮ Chrome, lalu pilih “Instal aplikasi” atau “Tambahkan ke layar utama”.' };
+}
+
+export async function requestInstall() {
+  if (!deferredPrompt) return false;
+  deferredPrompt.prompt();
+  const result = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  window.dispatchEvent(new CustomEvent('notaku-install-status', { detail: result }));
+  return result.outcome === 'accepted';
+}
+
 function showBanner(onInstallClick, isIosManual, isManualFallback = false) {
-  if (isStandalone() || sessionStorage.getItem('installBannerDismissed')) return;
+  if (isAppInstalled() || sessionStorage.getItem('installBannerDismissed')) return;
   document.getElementById('installBanner')?.remove();
   const banner = document.createElement('div');
   banner.id = 'installBanner';
@@ -57,16 +78,15 @@ function showBanner(onInstallClick, isIosManual, isManualFallback = false) {
 }
 
 export function initInstallPrompt() {
-  if (isStandalone()) return;
+  if (isAppInstalled()) return;
 
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
     showBanner(async () => {
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      deferredPrompt = null;
+      await requestInstall();
     }, false);
+    window.dispatchEvent(new Event('notaku-install-status'));
   });
 
   // Safari iOS tidak mengirim beforeinstallprompt — tampilkan instruksi manual.
@@ -85,5 +105,6 @@ export function initInstallPrompt() {
   window.addEventListener('appinstalled', () => {
     const banner = document.getElementById('installBanner');
     if (banner) banner.remove();
+    window.dispatchEvent(new Event('notaku-install-status'));
   });
 }

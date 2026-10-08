@@ -2,9 +2,10 @@ import { getAllSaleSummaries } from '../services/saleService.js';
 import { getSettings } from '../services/settingsService.js';
 import { generateReport, generateAnnualTrend } from '../services/reportService.js';
 import { dailyChart, wireBusinessCharts } from '../ui/businessCharts.js';
-import { rupiah, dateShort, escapeHtml, initials } from '../format.js';
+import { rupiah, dateShort, escapeHtml } from '../format.js';
 import { STATUS_LABEL } from '../services/saleCalculation.js';
 import { navigate, setPageTitle, setTopbarActions } from '../app.js';
+import { getReminderItems, reminderWhatsAppUrl } from '../services/reminderService.js';
 
 let dashboardPeriod = 'week';
 
@@ -18,7 +19,7 @@ export async function render(root) {
   const orderPeriodLabel = `${dateShort(orders.start)} – ${dateShort(orders.end)}`;
   const pending = summaries.filter(({ sale }) => !sale.completed);
   const pickupThisWeek = pending.filter(({ sale }) => sale.saleDate >= start && sale.saleDate <= end);
-  const upcoming = [...pickupThisWeek].sort((a, b) => (a.sale.saleDate + a.sale.saleTime).localeCompare(b.sale.saleDate + b.sale.saleTime)).slice(0, 5);
+  const reminders = getReminderItems(summaries).slice(0, 6);
   const pickupCountText = pickupThisWeek.length ? `Ada ${pickupThisWeek.length}` : 'Tidak ada';
   const unpaidValue = rupiah(report.totalReceivables);
   const hour = new Date().getHours();
@@ -30,14 +31,12 @@ export async function render(root) {
       <section class="dashboard-attention"><div class="dashboard-card-heading"><div><span>PERLU PERHATIAN </span></div><small>${periodLabel}</small></div><div class="dashboard-attention-list"><div class="dashboard-attention-item dashboard-attention-item--pickup"><span class="dashboard-attention-icon" aria-hidden="true">${shortcutIcon('calendar')}</span><span class="dashboard-attention-copy"><b>Jadwal Pickup</b><small>Pesanan akan diambil</small></span><button class="dashboard-attention-action" data-go="home/pickup" aria-label="Buka Jadwal Pickup"><strong>${pickupCountText}<i aria-hidden="true">›</i></strong></button></div><div class="dashboard-attention-item dashboard-attention-item--unpaid"><span class="dashboard-attention-icon" aria-hidden="true">${shortcutIcon('wallet')}</span><span class="dashboard-attention-copy"><b>Belum Lunas</b><small>Piutang periode ini</small></span><button class="dashboard-attention-action" data-go="home/unpaid" aria-label="Buka daftar Belum Lunas"><strong>${unpaidValue}<i aria-hidden="true">›</i></strong></button></div></div></section>
     </div>
     <div class="dashboard-period-control"><button type="button" class="dashboard-filter-toggle" id="dashboardFilterToggle" aria-expanded="false" aria-label="Pilih periode laporan">${shortcutIcon('calendar')}</button><div class="dashboard-period-filter" id="dashboardPeriodFilter" aria-label="Filter periode dashboard" hidden>${[['today','Hari ini'],['week','7 hari'],['month','Bulan ini'],['year','Tahun ini']].map(([value,label]) => `<button type="button" data-dashboard-period="${value}" class="${dashboardPeriod === value ? 'active' : ''}">${label}</button>`).join('')}</div></div>
+    <section class="dashboard-reminders"><div class="dashboard-section-row"><div><h3>Jadwal & Pengingat</h3></div></div>${reminders.length ? `<div class="dashboard-reminder-list">${reminders.map((item) => `<div class="dashboard-reminder-item"><button class="dashboard-reminder-main" data-go="sale/${escapeHtml(item.sale.id)}"><span class="dashboard-reminder-icon">${item.type === 'payment' ? '💳' : '📅'}</span><span class="dashboard-reminder-copy"><b>${escapeHtml(item.sale.customerName)} <em>${escapeHtml(item.processLabel)}</em></b><small>${dateShort(item.sale.saleDate)} · ${escapeHtml(item.sale.saleTime || '')} · ${escapeHtml(item.sale.invoiceNumber)}</small><span class="dashboard-reminder-tags">${item.pickupLabel ? `<i class="dashboard-reminder-tag dashboard-reminder-tag--pickup">${escapeHtml(item.pickupLabel)}</i>` : ''}${item.paymentLabel ? `<i class="dashboard-reminder-tag dashboard-reminder-tag--payment">${escapeHtml(item.paymentLabel)}</i>` : ''}</span></span><span class="dashboard-reminder-total"><strong>${rupiah(item.sale.total)}</strong><small>${STATUS_LABEL[item.displayStatus] || ''}</small></span></button>${item.phone ? `<a class="dashboard-reminder-wa" href="${escapeHtml(reminderWhatsAppUrl(item))}" target="_blank" rel="noopener" aria-label="Kirim pengingat WhatsApp ke ${escapeHtml(item.sale.customerName)}"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5a12.5 12.5 0 0 0-10.6 19.1L4 28l5.7-1.4A12.5 12.5 0 1 0 16 3.5Z"/><text x="16" y="18.7">WA</text></svg></a>` : '<span class="dashboard-reminder-no-phone">No WA</span>'}</div>`).join('')}</div>` : '<div class="dashboard-reminder-empty">Belum ada tagihan atau jadwal pickup yang perlu diingatkan.</div>'}</section>
     <div class="dashboard-section"><h3>Akses cepat</h3></div>
     <div class="dashboard-shortcuts">${[['customers','Pelanggan','users'],['expenses','Pengeluaran','wallet'],['reports','Laporan','chart'],['settings','Lainnya','settings']].map(([route, label, icon]) => `<button data-go="${route}"><span class="dashboard-shortcut-icon">${shortcutIcon(icon)}</span>${label}</button>`).join('')}</div>
     
 	
     
-	<div class="dashboard-section-row"><div><h3>Jadwal pengambilan</h3></div><button data-go="home">Lihat semua <i>›</i></button></div>
-    <div class="dashboard-orders">${upcoming.length ? upcoming.map(s => `<button class="row" data-go="sale/${escapeHtml(s.sale.id)}"><span class="avatar"><span>${escapeHtml(initials(s.sale.customerName))}</span></span><span class="row-body"><span class="row-title">${escapeHtml(s.sale.customerName)}</span>${s.sale.customerAddress?.trim() ? `<span class="nota-address">${escapeHtml(s.sale.customerAddress.trim())}</span>` : ''}<span class="row-meta"><span class="nota-date">${dateShort(s.sale.saleDate)} • ${escapeHtml(s.sale.saleTime || '')}</span> <span class="nota-invoice">• ${escapeHtml(s.sale.invoiceNumber)}</span></span></span><span class="row-trailing"><span class="row-money">${rupiah(s.sale.total)}</span><span class="payment-badge" data-status="${s.displayStatus}">${STATUS_LABEL[s.displayStatus]}</span></span></button>`).join('') : '<div class="empty-state"><p>Belum ada jadwal pengambilan mendatang.<br>Mulai dengan membuat nota baru.</p></div>'}</div>
-	
 	${dailyChart(orders.daily, { compact: true, dateBasis: 'created', periodLabel: orderPeriodLabel })}
   `;
   root.querySelectorAll('[data-go]').forEach(button => button.onclick = () => navigate(button.dataset.go));

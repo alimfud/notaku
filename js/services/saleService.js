@@ -7,13 +7,33 @@ import { generateAndAdvance } from './invoiceNumber.js';
 import { saveCustomer } from './customerService.js';
 import { getSaleProductPriceUpdates } from './productService.js';
 import { isSettlementDue, settlementChanges } from './automaticSettlement.js';
-import { recordAudit } from './auditLogService.js';
+import { formatAuditChange, recordAudit } from './auditLogService.js';
 
 export class AppError extends Error {
   constructor(message) {
     super(message);
     this.userMessage = message;
   }
+}
+
+export const PROCESS_STATUS = {
+  NEW: 'NEW',
+  IN_PROGRESS: 'IN_PROGRESS',
+  READY: 'READY',
+  PICKED_UP: 'PICKED_UP',
+};
+
+export const PROCESS_STATUS_LABEL = {
+  NEW: 'BARU',
+  IN_PROGRESS: 'DIKERJAKAN',
+  READY: 'SIAP DIAMBIL',
+  PICKED_UP: 'SUDAH DIAMBIL',
+};
+
+export function getProcessStatus(sale) {
+  return PROCESS_STATUS_LABEL[sale?.processStatus]
+    ? sale.processStatus
+    : sale?.completed ? PROCESS_STATUS.PICKED_UP : PROCESS_STATUS.NEW;
 }
 
 /**
@@ -115,6 +135,7 @@ export async function createSale({ customer, lines, adjustments = null, discount
       status,
       isDeleted: 0,
       completed: 0,        // penanda "sudah selesai dikerjakan/diambil" — beda dari status pembayaran
+      processStatus: PROCESS_STATUS.NEW,
       autoMarkedPaid: 0,   // LUNAS otomatis 1 hari setelah tanggal pengambilan
       autoLunasOverridden: 0, // true kalau user pernah membatalkan status LUNAS otomatis -> aturan tidak berlaku lagi utk nota ini
       createdAt: now.toISOString(),
@@ -199,6 +220,7 @@ export async function updatePayment(paymentId, { amount, paymentDate, paymentTim
       const paid = payments.reduce((sum, p) => sum + (p.id === paymentId ? amount : p.amount), 0);
       if (current.isAutomatic && sale.autoCompleted && sale.total - paid > 0.5) {
         sale.completed = 0;
+        sale.processStatus = PROCESS_STATUS.NEW;
         sale.autoCompleted = 0;
       }
       return { sale: { ...sale, status: resolveStatus(sale.total, paid), updatedAt: new Date().toISOString() }, payments: [updated] };
@@ -220,7 +242,7 @@ export async function deletePayment(paymentId) {
       if (current.isAutomatic) {
         sale.autoMarkedPaid = 0;
         sale.autoLunasOverridden = 1;
-        if (sale.autoCompleted) { sale.completed = 0; sale.autoCompleted = 0; }
+        if (sale.autoCompleted) { sale.completed = 0; sale.processStatus = PROCESS_STATUS.NEW; sale.autoCompleted = 0; }
       }
       const paid = payments.filter(p => p.id !== paymentId).reduce((sum, p) => sum + p.amount, 0);
       return { sale: { ...sale, status: resolveStatus(sale.total, paid), updatedAt: new Date().toISOString() }, removeIds: [paymentId] };
@@ -309,8 +331,12 @@ export async function updateSale(saleId, { customer, lines, adjustments = null, 
     await db.bulkPutMulti(writes);
     const changed = [];
     for (const key of ['customerId', 'customerName', 'customerPhone', 'customerAddress', 'saleDate', 'saleTime', 'total', 'note', 'status']) {
-      if (String(existing[key] ?? '') !== String(updatedSale[key] ?? '')) changed.push(`${key}: "${existing[key] ?? ''}" → "${updatedSale[key] ?? ''}"`);
+      if (String(existing[key] ?? '') !== String(updatedSale[key] ?? '')) {
+        const formatted = formatAuditChange(key, existing[key], updatedSale[key]);
+        if (formatted) changed.push(formatted);
+      }
     }
+    if (!changed.length && String(existing.customerId ?? '') !== String(updatedSale.customerId ?? '')) changed.push('Pelanggan dihubungkan ke data pelanggan');
     await recordAudit('update', 'sale', saleId, changed.length ? `Nota ${existing.invoiceNumber} diubah — ${changed.join('; ')}` : `Nota ${existing.invoiceNumber} dibuka tanpa perubahan nilai`);
   } catch (e) {
     if (e instanceof AppError) throw e;
@@ -357,21 +383,29 @@ export function computeDisplayStatus(sale, paidAmount) {
 
 /** Tandai nota selesai dikerjakan/diambil atau belum — independen dari status pembayaran. */
 export async function setCompleted(saleId, completed) {
+  return setProcessStatus(saleId, completed ? PROCESS_STATUS.PICKED_UP : PROCESS_STATUS.NEW);
+}
+
+/** Ubah tahapan pengerjaan pesanan, terpisah dari status pembayaran. */
+export async function setProcessStatus(saleId, processStatus) {
+  if (!PROCESS_STATUS_LABEL[processStatus]) throw new AppError('Status proses tidak valid.');
   let sale = await db.get('sales', saleId);
   if (!sale) return;
   // Reopening an auto-paid order is an explicit correction, so cancel that
   // automatic assumption as well rather than closing it again on the next read.
-  if (!completed && sale.autoMarkedPaid) {
+  if (processStatus !== PROCESS_STATUS.PICKED_UP && sale.autoMarkedPaid) {
     await revertAutoLunas(saleId);
     sale = await db.get('sales', saleId);
   }
-  sale.completed = completed ? 1 : 0;
-  if (!completed) {
+  sale.processStatus = processStatus;
+  sale.completed = processStatus === PROCESS_STATUS.PICKED_UP ? 1 : 0;
+  if (processStatus !== PROCESS_STATUS.PICKED_UP) {
     sale.completedOverridden = 1;
     sale.autoCompleted = 0;
   }
   sale.updatedAt = new Date().toISOString();
   await db.put('sales', sale);
+  await recordAudit('update', 'sale', saleId, `Status proses nota ${sale.invoiceNumber}: ${PROCESS_STATUS_LABEL[processStatus]}`);
 }
 
 // One run for payment + completion; never reuse an old changed-count as a new event.
@@ -423,7 +457,7 @@ export async function revertAutoLunas(saleId) {
     const paidAmount = payments.filter(p => !p.isAutomatic).reduce((sum, p) => sum + p.amount, 0);
     sale.autoMarkedPaid = 0;
     sale.autoLunasOverridden = 1;
-    if (sale.autoCompleted) { sale.completed = 0; sale.autoCompleted = 0; }
+    if (sale.autoCompleted) { sale.completed = 0; sale.processStatus = PROCESS_STATUS.NEW; sale.autoCompleted = 0; }
     return { sale: { ...sale, status: resolveStatus(sale.total, paidAmount), updatedAt: new Date().toISOString() }, removeIds };
   });
 }
