@@ -9,6 +9,22 @@ import { getReminderItems, reminderWhatsAppUrl } from '../services/reminderServi
 
 let dashboardPeriod = 'week';
 
+function reminderCard(item) {
+  const address = item.sale.customerAddress
+    ? `<small class="dashboard-reminder-address">${escapeHtml(item.sale.customerAddress)}</small>`
+    : '';
+  const pickupTag = item.pickupLabel
+    ? `<span class="dashboard-reminder-tags"><i class="dashboard-reminder-tag dashboard-reminder-tag--pickup">${escapeHtml(item.pickupLabel)}</i></span>`
+    : '';
+  const balance = item.paymentLabel
+    ? `<i class="dashboard-reminder-balance">${escapeHtml(item.paymentLabel)}</i>`
+    : '';
+  const whatsapp = item.phone
+    ? `<a class="dashboard-reminder-wa" href="${escapeHtml(reminderWhatsAppUrl(item))}" target="_blank" rel="noopener" aria-label="Kirim pengingat WhatsApp ke ${escapeHtml(item.sale.customerName)}"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5a12.5 12.5 0 0 0-10.6 19.1L4 28l5.7-1.4A12.5 12.5 0 1 0 16 3.5Z"/><text x="16" y="18.7">WA</text></svg></a>`
+    : '<span class="dashboard-reminder-no-phone">No WA</span>';
+  return `<div class="dashboard-reminder-item"><button class="dashboard-reminder-main" data-go="sale/${escapeHtml(item.sale.id)}"><span class="dashboard-reminder-icon">${item.type === 'payment' ? '💳' : '📅'}</span><span class="dashboard-reminder-copy"><b>${escapeHtml(item.sale.customerName)} <em>${escapeHtml(item.processLabel)}</em></b><small>${dateShort(item.sale.saleDate)} · ${escapeHtml(item.sale.saleTime || '')} · ${escapeHtml(item.sale.invoiceNumber)}</small>${address}${pickupTag}</span><span class="dashboard-reminder-total"><strong>${rupiah(item.sale.total)}</strong><small>${STATUS_LABEL[item.displayStatus] || ''}</small>${balance}</span></button>${whatsapp}</div>`;
+}
+
 export async function render(root) {
   setPageTitle('NotaKu');
   setTopbarActions([]);
@@ -31,7 +47,7 @@ export async function render(root) {
       <section class="dashboard-attention"><div class="dashboard-card-heading"><div><span>PERLU PERHATIAN </span></div><small>${periodLabel}</small></div><div class="dashboard-attention-list"><div class="dashboard-attention-item dashboard-attention-item--pickup"><span class="dashboard-attention-icon" aria-hidden="true">${shortcutIcon('calendar')}</span><span class="dashboard-attention-copy"><b>Jadwal Pickup</b><small>Pesanan akan diambil</small></span><button class="dashboard-attention-action" data-go="home/pickup" aria-label="Buka Jadwal Pickup"><strong>${pickupCountText}<i aria-hidden="true">›</i></strong></button></div><div class="dashboard-attention-item dashboard-attention-item--unpaid"><span class="dashboard-attention-icon" aria-hidden="true">${shortcutIcon('wallet')}</span><span class="dashboard-attention-copy"><b>Belum Lunas</b><small>Piutang periode ini</small></span><button class="dashboard-attention-action" data-go="home/unpaid" aria-label="Buka daftar Belum Lunas"><strong>${unpaidValue}<i aria-hidden="true">›</i></strong></button></div></div></section>
     </div>
     <div class="dashboard-period-control"><button type="button" class="dashboard-filter-toggle" id="dashboardFilterToggle" aria-expanded="false" aria-label="Pilih periode laporan">${shortcutIcon('calendar')}</button><div class="dashboard-period-filter" id="dashboardPeriodFilter" aria-label="Filter periode dashboard" hidden>${[['today','Hari ini'],['week','7 hari'],['month','Bulan ini'],['year','Tahun ini']].map(([value,label]) => `<button type="button" data-dashboard-period="${value}" class="${dashboardPeriod === value ? 'active' : ''}">${label}</button>`).join('')}</div></div>
-    <section class="dashboard-reminders"><div class="dashboard-section-row"><div><h3>Jadwal & Pengingat</h3></div></div>${reminders.length ? `<div class="dashboard-reminder-list">${reminders.map((item) => `<div class="dashboard-reminder-item"><button class="dashboard-reminder-main" data-go="sale/${escapeHtml(item.sale.id)}"><span class="dashboard-reminder-icon">${item.type === 'payment' ? '💳' : '📅'}</span><span class="dashboard-reminder-copy"><b>${escapeHtml(item.sale.customerName)} <em>${escapeHtml(item.processLabel)}</em></b><small>${dateShort(item.sale.saleDate)} · ${escapeHtml(item.sale.saleTime || '')} · ${escapeHtml(item.sale.invoiceNumber)}</small><span class="dashboard-reminder-tags">${item.pickupLabel ? `<i class="dashboard-reminder-tag dashboard-reminder-tag--pickup">${escapeHtml(item.pickupLabel)}</i>` : ''}${item.paymentLabel ? `<i class="dashboard-reminder-tag dashboard-reminder-tag--payment">${escapeHtml(item.paymentLabel)}</i>` : ''}</span></span><span class="dashboard-reminder-total"><strong>${rupiah(item.sale.total)}</strong><small>${STATUS_LABEL[item.displayStatus] || ''}</small></span></button>${item.phone ? `<a class="dashboard-reminder-wa" href="${escapeHtml(reminderWhatsAppUrl(item))}" target="_blank" rel="noopener" aria-label="Kirim pengingat WhatsApp ke ${escapeHtml(item.sale.customerName)}"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5a12.5 12.5 0 0 0-10.6 19.1L4 28l5.7-1.4A12.5 12.5 0 1 0 16 3.5Z"/><text x="16" y="18.7">WA</text></svg></a>` : '<span class="dashboard-reminder-no-phone">No WA</span>'}</div>`).join('')}</div>` : '<div class="dashboard-reminder-empty">Belum ada tagihan atau jadwal pickup yang perlu diingatkan.</div>'}</section>
+    <section class="dashboard-reminders"><div class="dashboard-section-row"><div><h3>Jadwal & Pengingat</h3></div></div>${reminders.length ? `<div class="dashboard-reminder-list">${reminders.map(reminderCard).join('')}</div>` : '<div class="dashboard-reminder-empty">Belum ada tagihan atau jadwal pickup yang perlu diingatkan.</div>'}</section>
     <div class="dashboard-section"><h3>Akses cepat</h3></div>
     <div class="dashboard-shortcuts">${[['customers','Pelanggan','users'],['expenses','Pengeluaran','wallet'],['reports','Laporan','chart'],['settings','Lainnya','settings']].map(([route, label, icon]) => `<button data-go="${route}"><span class="dashboard-shortcut-icon">${shortcutIcon(icon)}</span>${label}</button>`).join('')}</div>
     

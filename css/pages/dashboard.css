@@ -67,33 +67,36 @@
 [data-page="dashboard"] .dashboard-reminders + .dashboard-section { margin-top:24px; }
 [data-page="dashboard"] .dashboard-section-row small { color:var(--muted); font-size:10px; }
 [data-page="dashboard"] .dashboard-reminder-list { overflow:hidden; border:1px solid color-mix(in srgb,var(--outline) 82%,#fff); border-radius:14px; background:linear-gradient(145deg,color-mix(in srgb,var(--surface) 96%,#fff),color-mix(in srgb,var(--surface-dim) 82%,var(--surface))); box-shadow:8px 10px 18px color-mix(in srgb,var(--ink) 13%,transparent),-4px -4px 12px color-mix(in srgb,var(--surface) 88%,#fff),inset 1px 1px 0 rgba(255,255,255,.72),inset -1px -1px 0 color-mix(in srgb,var(--ink) 8%,transparent); }
-html[data-theme="clay"] [data-page="dashboard"] .dashboard-reminder-list { border:0; background:#f7e9d6; box-shadow:var(--cl-inset); }
+html[data-theme="clay"] [data-page="dashboard"] .dashboard-reminder-list { border:1px solid rgba(190,145,63,.24); background:#fff6d8; box-shadow:inset 3px 3px 8px rgba(190,145,63,.22),inset -3px -3px 8px rgba(255,255,255,.92); }
+html[data-theme="clay"] [data-page="dashboard"] .dashboard-reminder-item { border-bottom-color:rgba(177,131,48,.18); }
 html[data-theme="dark"] [data-page="dashboard"] .dashboard-reminder-list { border:1px solid rgba(255,255,255,.05); background:#121843; box-shadow:var(--nv-inset); }
-[data-page="dashboard"] .dashboard-reminder-item { display:flex; align-items:center; gap:8px; min-width:0; padding:9px 12px; border-bottom:1px solid color-mix(in srgb,var(--outline) 70%,transparent); }
+[data-page="dashboard"] .dashboard-reminder-item { display:grid; grid-template-columns:minmax(0,1fr) 34px; align-items:center; gap:10px; min-width:0; padding:10px 12px; border-bottom:1px solid color-mix(in srgb,var(--outline) 70%,transparent); }
 [data-page="dashboard"] .dashboard-reminder-item:last-child { border-bottom:0; }
-[data-page="dashboard"] .dashboard-reminder-main { display:flex; min-width:0; flex:1; align-items:center; gap:9px; padding:0; border:0; background:none; color:var(--ink); text-align:left; cursor:pointer; }
+[data-page="dashboard"] .dashboard-reminder-main { display:grid; width:100%; min-width:0; grid-template-columns:29px minmax(0,1fr) auto; align-items:center; gap:9px; padding:0; border:0; background:none; color:var(--ink); text-align:left; cursor:pointer; }
 [data-page="dashboard"] .dashboard-reminder-icon { display:grid; width:29px; height:29px; flex:0 0 29px; place-items:center; border-radius:9px; background:var(--primary-container); font-size:14px; }
-[data-page="dashboard"] .dashboard-reminder-copy { display:block; min-width:0; flex:1; }
+[data-page="dashboard"] .dashboard-reminder-copy { display:block; min-width:0; overflow:hidden; }
 [data-page="dashboard"] .dashboard-reminder-copy b,
 [data-page="dashboard"] .dashboard-reminder-copy small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-[data-page="dashboard"] .dashboard-reminder-copy b { font-size:12px; }
-[data-page="dashboard"] .dashboard-reminder-copy b em { margin-left:4px; color:var(--primary); font-size:8.5px; font-style:normal; font-weight:800; letter-spacing:.03em; }
+[data-page="dashboard"] .dashboard-reminder-copy b { display:flex; align-items:baseline; gap:4px; font-size:12px; }
+[data-page="dashboard"] .dashboard-reminder-copy .dashboard-reminder-address { color:var(--muted); font-size:9.5px; }
+[data-page="dashboard"] .dashboard-reminder-copy b em { flex:none; margin-left:0; color:var(--primary); font-size:8.5px; font-style:normal; font-weight:800; letter-spacing:.03em; }
 [data-page="dashboard"] .dashboard-reminder-copy small { margin-top:2px; color:var(--muted); font-size:10px; }
 [data-page="dashboard"] .dashboard-reminder-tags { display:flex; flex-wrap:wrap; gap:3px; margin-top:4px; }
 [data-page="dashboard"] .dashboard-reminder-tag { padding:2px 4px; border-radius:4px; font-size:8px; font-style:normal; font-weight:800; line-height:1.1; }
 [data-page="dashboard"] .dashboard-reminder-tag--pickup { background:#fff0d4; color:#96600b; }
 [data-page="dashboard"] .dashboard-reminder-tag--payment { background:#fde4e5; color:#a13d48; }
-[data-page="dashboard"] .dashboard-reminder-total { display:flex; flex:0 0 auto; flex-direction:column; align-items:flex-end; gap:3px; }
+[data-page="dashboard"] .dashboard-reminder-total { display:flex; min-width:72px; align-self:start; flex-direction:column; align-items:flex-end; gap:3px; padding-top:1px; }
 [data-page="dashboard"] .dashboard-reminder-total strong { color:var(--ink); font-size:11px; font-variant-numeric:tabular-nums; white-space:nowrap; }
 [data-page="dashboard"] .dashboard-reminder-total small { padding:2px 5px; border-radius:5px; background:var(--primary-container); color:var(--primary); font-size:8px; font-weight:800; white-space:nowrap; }
-[data-page="dashboard"] .dashboard-reminder-wa { --wa-face:#d9f2e1; --wa-edge:#227447; --wa-depth:#9acdad; --wa-glow:rgba(255,255,255,.8); display:grid; width:34px; height:34px; flex:0 0 34px; place-items:center; color:var(--wa-edge); text-decoration:none; }
+[data-page="dashboard"] .dashboard-reminder-balance { padding:2px 4px; border-radius:4px; background:#fde4e5; color:#a13d48; font-size:7.5px; font-style:normal; font-weight:800; line-height:1.1; white-space:nowrap; }
+[data-page="dashboard"] .dashboard-reminder-wa { --wa-face:#d9f2e1; --wa-edge:#227447; --wa-depth:#9acdad; --wa-glow:rgba(255,255,255,.8); display:grid; width:34px; height:34px; place-items:center; justify-self:end; color:var(--wa-edge); text-decoration:none; }
 html[data-theme="clay"] [data-page="dashboard"] .dashboard-reminder-wa { --wa-face:#d8f2df; --wa-edge:#227447; --wa-depth:#91bd9f; --wa-glow:rgba(255,255,255,.86); }
 html[data-theme="dark"] [data-page="dashboard"] .dashboard-reminder-wa { --wa-face:#17473f; --wa-edge:#6be8c0; --wa-depth:#0b2b2b; --wa-glow:rgba(170,255,229,.42); }
 [data-page="dashboard"] .dashboard-reminder-wa svg { display:block; width:34px; height:34px; overflow:visible; fill:var(--wa-face); stroke:var(--wa-edge); stroke-width:1.8; transform:translateY(-1px); filter:drop-shadow(0 2px 0 var(--wa-depth)) drop-shadow(0 4px 4px color-mix(in srgb,var(--wa-depth) 46%,transparent)); }
 [data-page="dashboard"] .dashboard-reminder-wa text { fill:var(--wa-edge); stroke:none; font-family:var(--font); font-size:7px; font-weight:850; letter-spacing:-.2px; text-anchor:middle; paint-order:stroke; }
 [data-page="dashboard"] .dashboard-reminder-wa:hover svg { filter:drop-shadow(0 2px 0 var(--wa-depth)) drop-shadow(0 0 5px var(--wa-glow)); }
 [data-page="dashboard"] .dashboard-reminder-wa:active { transform:scale(.94); }
-[data-page="dashboard"] .dashboard-reminder-no-phone { color:var(--muted); font-size:9px; white-space:nowrap; }
+[data-page="dashboard"] .dashboard-reminder-no-phone { justify-self:end; color:var(--muted); font-size:9px; white-space:nowrap; }
 [data-page="dashboard"] .dashboard-reminder-empty { padding:14px; border:1px dashed var(--outline); border-radius:12px; color:var(--muted); font-size:11px; text-align:center; }
 [data-page="dashboard"] .dashboard-section { margin:0 0 8px; }
 [data-page="dashboard"] .dashboard-shortcuts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
@@ -162,6 +165,13 @@ html[data-theme="dark"] [data-page="dashboard"] .dashboard-reminder-wa { --wa-fa
   [data-page="dashboard"] .dashboard-attention-icon { grid-row:1; grid-column:1; }
   [data-page="dashboard"] .dashboard-attention-copy { grid-row:1; grid-column:2; }
   [data-page="dashboard"] .dashboard-attention-action { grid-row:1; grid-column:3; }
+  [data-page="dashboard"] .dashboard-reminder-item { grid-template-columns:minmax(0,1fr) 32px; gap:7px; padding:10px 9px; }
+  [data-page="dashboard"] .dashboard-reminder-main { grid-template-columns:27px minmax(0,1fr) auto; gap:7px; }
+  [data-page="dashboard"] .dashboard-reminder-icon { width:27px; height:27px; flex-basis:27px; font-size:13px; }
+  [data-page="dashboard"] .dashboard-reminder-total { min-width:68px; }
+  [data-page="dashboard"] .dashboard-reminder-total strong { font-size:10.5px; }
+  [data-page="dashboard"] .dashboard-reminder-wa,
+  [data-page="dashboard"] .dashboard-reminder-wa svg { width:32px; height:32px; }
 }
 
 @media(max-width:380px) {

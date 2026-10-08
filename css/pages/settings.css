@@ -55,7 +55,8 @@
 [data-page="settings"] .settings-help-section summary::-webkit-details-marker{display:none;}
 [data-page="settings"] .settings-help-section summary::after{float:right;color:var(--muted);content:'+';font-size:15px;line-height:12px;}
 [data-page="settings"] .settings-help-section details[open] summary::after{content:'−';}
-[data-page="settings"] .settings-help-section details p{margin:8px 0 1px;color:var(--muted);font-size:11px;line-height:1.5;}
+[data-page="settings"] .settings-help-section details p{margin:9px 0 1px;padding:9px 10px;border-left:3px solid color-mix(in srgb,var(--primary) 65%,var(--outline));border-radius:0 9px 9px 0;background:color-mix(in srgb,var(--surface-dim) 82%,var(--primary-container));color:var(--ink-soft,var(--ink));font-size:11px;line-height:1.55;}
+[data-page="settings"] .settings-help-section details[open]{background:color-mix(in srgb,var(--surface) 94%,var(--primary-container));}
 [data-page="settings"] .settings-help-contact-section{margin-top:16px;}
 [data-page="settings"] .settings-help-contact{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--outline);border-radius:13px;background:var(--surface);color:inherit;text-decoration:none;}
 [data-page="settings"] .settings-help-contact-icon{display:grid;width:31px;height:31px;flex:none;place-items:center;border-radius:50%;background:#d8f2df;color:#197a46;font-size:10px;font-weight:800;}

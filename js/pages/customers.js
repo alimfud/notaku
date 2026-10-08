@@ -2,7 +2,7 @@
 
 import { getAllCustomers, getCustomer, saveCustomer, deleteCustomer } from '../services/customerService.js';
 import * as db from '../db.js';
-import { escapeHtml, rupiah, dateShort } from '../format.js';
+import { escapeHtml, rupiah, dateShort, toWhatsAppNumber } from '../format.js';
 import { openSheet, confirmDialog } from '../ui/dialog.js';
 import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions } from '../app.js';
@@ -97,6 +97,8 @@ async function renderDetail(root, customerId) {
   const totalPaid = sales.reduce((sum, sale) => sum + (paidBySale.get(sale.id) || 0), 0);
   const receivable = Math.max(0, totalTransactions - totalPaid);
   const initials = escapeHtml((customer.name || '?').trim().slice(0, 1).toUpperCase());
+  const whatsappNumber = toWhatsAppNumber(customer.phone);
+  const whatsappLink = whatsappNumber ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Assalamu'alaikum ibu ${customer.name},`)}` : '';
 
   root.innerHTML = `
     <div class="customer-detail-page">
@@ -107,6 +109,7 @@ async function renderDetail(root, customerId) {
           <p>${escapeHtml(customer.phone || 'Nomor telepon belum diisi')}</p>
           ${customer.address ? `<p>${escapeHtml(customer.address)}</p>` : ''}
         </div>
+        ${whatsappLink ? `<a class="customer-detail-whatsapp" href="${escapeHtml(whatsappLink)}" target="_blank" rel="noopener" aria-label="Chat WhatsApp ${escapeHtml(customer.name)}"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5a12.5 12.5 0 0 0-10.6 19.1L4 28l5.7-1.4A12.5 12.5 0 1 0 16 3.5Z"/><text x="16" y="18.7">WA</text></svg></a>` : ''}
         <button class="customer-detail-edit" id="editCustomer" type="button">Edit</button>
       </section>
       <section class="customer-detail-stats" aria-label="Ringkasan pelanggan">

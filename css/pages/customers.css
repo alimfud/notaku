@@ -43,6 +43,12 @@
 [data-page="customers"] .customer-detail-identity h2 { overflow:hidden; margin:0; color:var(--ink); font-size:18px; text-overflow:ellipsis; white-space:nowrap; }
 [data-page="customers"] .customer-detail-identity p { overflow:hidden; margin:3px 0 0; color:var(--ink-soft); font-size:11.5px; text-overflow:ellipsis; white-space:nowrap; }
 [data-page="customers"] .customer-detail-edit { flex:0 0 auto; padding:7px 11px; border:1px solid var(--outline); border-radius:9px; background:var(--surface-dim); color:var(--primary); font:700 11px var(--font); cursor:pointer; }
+[data-page="customers"] .customer-detail-whatsapp { display:grid; width:35px; height:35px; flex:0 0 35px; place-items:center; border:1px solid #83c798; border-radius:50%; background:linear-gradient(145deg,#e1f7e7,#bde5c8); color:#197a46; box-shadow:inset 0 1px 1px #fff9,0 3px 6px #197a4626; text-decoration:none; transition:transform .15s ease,box-shadow .15s ease; }
+[data-page="customers"] .customer-detail-whatsapp:hover { transform:translateY(-1px); box-shadow:inset 0 1px 1px #fff9,0 4px 8px #197a4638; }
+[data-page="customers"] .customer-detail-whatsapp:active { transform:translateY(1px); }
+[data-page="customers"] .customer-detail-whatsapp svg { width:25px; height:25px; overflow:visible; }
+[data-page="customers"] .customer-detail-whatsapp path { fill:currentColor; stroke:currentColor; stroke-width:1.2; stroke-linejoin:round; }
+[data-page="customers"] .customer-detail-whatsapp text { fill:#fff; font:800 7px Arial,sans-serif; text-anchor:middle; }
 [data-page="customers"] .customer-detail-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:10px; }
 [data-page="customers"] .customer-stat { min-width:0; padding:12px 10px; border:1px solid var(--outline); border-radius:12px; background:var(--surface); }
 [data-page="customers"] .customer-stat small, [data-page="customers"] .customer-stat span { display:block; color:var(--muted); font-size:9.5px; }

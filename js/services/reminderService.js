@@ -26,7 +26,9 @@ export function getReminderItems(summaries) {
     const hasPaymentReminder = remaining > 0.01 && sale.saleDate <= nextWeek;
     if (!hasPickupReminder && !hasPaymentReminder) continue;
 
-    const pickupLabel = overduePickup ? 'Pengambilan terlewat' : `Ambil ${dateShort(sale.saleDate)}`;
+    // Tanggal pengambilan sudah tampil di baris utama; tampilkan label hanya
+    // untuk kondisi khusus agar informasi tidak berulang.
+    const pickupLabel = overduePickup ? 'Pengambilan terlewat' : '';
     const paymentLabel = `Sisa ${rupiah(remaining)}`;
     const messageParts = [`Halo ${sale.customerName}, terkait nota ${sale.invoiceNumber} di NotaKu.`];
     if (hasPickupReminder) messageParts.push(overduePickup ? 'Pesanan belum diambil.' : `Pesanan dijadwalkan diambil ${dateShort(sale.saleDate)}.`);
