@@ -20,8 +20,9 @@ function isIos() {
   return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 }
 
-function showBanner(onInstallClick, isIosManual) {
+function showBanner(onInstallClick, isIosManual, isManualFallback = false) {
   if (isStandalone() || sessionStorage.getItem('installBannerDismissed')) return;
+  document.getElementById('installBanner')?.remove();
   const banner = document.createElement('div');
   banner.id = 'installBanner';
   banner.style.cssText = `
@@ -33,7 +34,7 @@ function showBanner(onInstallClick, isIosManual) {
     ? `<div style="flex:1;font-size:13px;line-height:1.4;">Pasang NotaKu di HP-mu: ketuk tombol <b>Bagikan</b> di Safari, lalu pilih <b>"Tambah ke Layar Utama"</b>.</div>
        <button id="dismissInstall" style="background:none;border:none;color:#fff;font-size:20px;padding:4px 8px;">×</button>`
     : `<div style="flex:1;font-size:13.5px;font-weight:600;">Pasang NotaKu sebagai aplikasi di HP-mu — lebih cepat & bisa dipakai offline.</div>
-       <button id="doInstall" style="background:#fff;color:#14151A;border:none;border-radius:8px;padding:9px 16px;font-weight:700;font-size:13px;flex-shrink:0;">Install</button>
+       <button id="doInstall" style="background:#fff;color:#14151A;border:none;border-radius:8px;padding:9px 16px;font-weight:700;font-size:13px;flex-shrink:0;">${isManualFallback ? 'Cara install' : 'Install'}</button>
        <button id="dismissInstall" style="background:none;border:none;color:#fff;font-size:20px;padding:4px 4px;flex-shrink:0;">×</button>`;
   document.body.appendChild(banner);
 
@@ -47,8 +48,10 @@ function showBanner(onInstallClick, isIosManual) {
     installBtn.onclick = async () => {
       if (onInstallClick) {
         await onInstallClick();
+        banner.remove();
+      } else {
+        alert('Untuk memasang NotaKu, ketuk menu ⋮ Chrome lalu pilih "Tambahkan ke layar utama" atau "Instal aplikasi".');
       }
-      banner.remove();
     };
   }
 }
@@ -69,6 +72,14 @@ export function initInstallPrompt() {
   // Safari iOS tidak mengirim beforeinstallprompt — tampilkan instruksi manual.
   if (isIos()) {
     setTimeout(() => showBanner(null, true), 1500);
+  } else {
+    // Chrome hanya mengirim beforeinstallprompt jika seluruh syarat PWA sudah
+    // terpenuhi. Tetap tampilkan bantuan manual bila event belum tersedia.
+    setTimeout(() => {
+      if (!deferredPrompt && !document.getElementById('installBanner')) {
+        showBanner(null, false, true);
+      }
+    }, 2500);
   }
 
   window.addEventListener('appinstalled', () => {

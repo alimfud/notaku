@@ -338,6 +338,11 @@ function registerServiceWorker() {
   }).catch(() => {});
 }
 
+// Pasang service worker dan listener instalasi seawal mungkin. Chrome dapat
+// mengirim beforeinstallprompt sebelum proses boot aplikasi selesai.
+registerServiceWorker();
+import('./installPrompt.js').then(({ initInstallPrompt }) => initInstallPrompt());
+
 // ---------------- Boot ----------------
 (async function boot() {
   const splashStarted = performance.now();
@@ -363,8 +368,6 @@ function registerServiceWorker() {
   // Pastikan pengingat sinkronisasi tampil sebelum aplikasi mulai memuat
   // navigasi tambahan atau menjalankan aktivitas latar belakang lain.
   await checkAutomaticSync({ promptIfNeeded: true });
-  registerServiceWorker();
-  import('./installPrompt.js').then(({ initInstallPrompt }) => initInstallPrompt());
   runBackgroundChecks();
   warmNavigation();
   scheduleAutomaticStatusRollover();
