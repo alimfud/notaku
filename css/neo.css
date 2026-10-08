@@ -301,9 +301,10 @@
 
   /* Perlu perhatian */
   [data-page="dashboard"] .dashboard-attention::after { border-color:rgba(255,255,255,.04); }
-  [data-page="dashboard"] .dashboard-attention-list { border-top-color:var(--nv-line); }
-  [data-page="dashboard"] .dashboard-attention-item:nth-child(2) { border-left-color:var(--nv-line); }
-  @media(max-width:390px) { [data-page="dashboard"] .dashboard-attention-item:nth-child(2) { border-top-color:var(--nv-line); } }
+  [data-page="dashboard"] .dashboard-attention-item { border-color:rgba(4,8,33,.22); background:var(--nv-card); box-shadow:inset 6px 6px 13px rgba(4,7,28,.78),inset -3px -3px 7px rgba(116,132,205,.10); }
+  [data-page="dashboard"] .dashboard-attention-item:has(.dashboard-attention-action:active) { box-shadow:inset 7px 7px 15px rgba(4,7,28,.86),inset -2px -2px 5px rgba(116,132,205,.08); }
+  [data-page="dashboard"] .dashboard-attention-item--pickup,
+  [data-page="dashboard"] .dashboard-attention-item--unpaid { background:var(--nv-card); }
   [data-page="dashboard"] .dashboard-attention-icon { background:rgba(255,90,114,.14); color:#ff8796; border:0; border-radius:8px; box-shadow:none; }
   [data-page="dashboard"] .dashboard-attention-item--unpaid .dashboard-attention-icon { background:rgba(255,194,71,.16); color:#ffc247; }
   [data-page="dashboard"] .dashboard-attention-action strong { color:#ffc247; }

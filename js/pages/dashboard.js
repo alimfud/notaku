@@ -2,12 +2,20 @@ import { getAllSaleSummaries } from '../services/saleService.js';
 import { getSettings } from '../services/settingsService.js';
 import { generateReport, generateAnnualTrend } from '../services/reportService.js';
 import { dailyChart, wireBusinessCharts } from '../ui/businessCharts.js';
-import { rupiah, dateShort, escapeHtml } from '../format.js';
+import { rupiah, dateShort, parseDbDate, escapeHtml } from '../format.js';
 import { STATUS_LABEL } from '../services/saleCalculation.js';
 import { navigate, setPageTitle, setTopbarActions } from '../app.js';
 import { getReminderItems, reminderWhatsAppUrl } from '../services/reminderService.js';
 
 let dashboardPeriod = 'week';
+
+function reminderDateIcon(dateValue) {
+  if (typeof dateValue !== 'string' || !dateValue) return '📅';
+  const date = parseDbDate(dateValue);
+  if (Number.isNaN(date.getTime())) return '📅';
+  const month = date.toLocaleDateString('id-ID', { month: 'short' }).replace('.', '').toUpperCase();
+  return `<span class="dashboard-reminder-calendar" aria-hidden="true"><small>${escapeHtml(month)}</small><b>${date.getDate()}</b></span>`;
+}
 
 function reminderCard(item) {
   const address = item.sale.customerAddress
@@ -22,7 +30,7 @@ function reminderCard(item) {
   const whatsapp = item.phone
     ? `<a class="dashboard-reminder-wa" href="${escapeHtml(reminderWhatsAppUrl(item))}" target="_blank" rel="noopener" aria-label="Kirim pengingat WhatsApp ke ${escapeHtml(item.sale.customerName)}"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5a12.5 12.5 0 0 0-10.6 19.1L4 28l5.7-1.4A12.5 12.5 0 1 0 16 3.5Z"/><text x="16" y="18.7">WA</text></svg></a>`
     : '<span class="dashboard-reminder-no-phone">No WA</span>';
-  return `<div class="dashboard-reminder-item"><button class="dashboard-reminder-main" data-go="sale/${escapeHtml(item.sale.id)}"><span class="dashboard-reminder-icon">${item.type === 'payment' ? '💳' : '📅'}</span><span class="dashboard-reminder-copy"><b>${escapeHtml(item.sale.customerName)} <em>${escapeHtml(item.processLabel)}</em></b><small>${dateShort(item.sale.saleDate)} · ${escapeHtml(item.sale.saleTime || '')} · ${escapeHtml(item.sale.invoiceNumber)}</small>${address}${pickupTag}</span><span class="dashboard-reminder-total"><strong>${rupiah(item.sale.total)}</strong><small>${STATUS_LABEL[item.displayStatus] || ''}</small>${balance}</span></button>${whatsapp}</div>`;
+  return `<div class="dashboard-reminder-item"><button class="dashboard-reminder-main" data-go="sale/${escapeHtml(item.sale.id)}"><span class="dashboard-reminder-icon">${item.type === 'payment' ? '💳' : reminderDateIcon(item.sale.saleDate)}</span><span class="dashboard-reminder-copy"><b>${escapeHtml(item.sale.customerName)} <em>${escapeHtml(item.processLabel)}</em></b><small>${dateShort(item.sale.saleDate)} · ${escapeHtml(item.sale.saleTime || '')} · ${escapeHtml(item.sale.invoiceNumber)}</small>${address}${pickupTag}</span><span class="dashboard-reminder-total"><strong>${rupiah(item.sale.total)}</strong><small>${STATUS_LABEL[item.displayStatus] || ''}</small>${balance}</span></button>${whatsapp}</div>`;
 }
 
 export async function render(root) {
