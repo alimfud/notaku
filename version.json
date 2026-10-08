@@ -1,4 +1,4 @@
 {
-  "version": "1.32.7",
-  "notes": "Permukaan kartu Perlu Perhatian disamakan untuk efek cekung."
+  "version": "1.32.8",
+  "notes": "Efek cekung kartu dashboard mengikuti kolom pencarian nota."
 }
