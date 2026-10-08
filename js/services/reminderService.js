@@ -18,11 +18,12 @@ export function getReminderItems(summaries) {
   for (const summary of summaries) {
     const { sale, remaining } = summary;
     if (sale.isDeleted) continue;
+    const pickedUp = Boolean(sale.completed) || getProcessStatus(sale) === 'PICKED_UP';
     const phone = toWhatsAppNumber(sale.customerPhone);
-    const overduePickup = !sale.completed && sale.saleDate < today;
-    const upcomingPickup = !sale.completed && sale.saleDate >= today && sale.saleDate <= nextWeek;
+    const overduePickup = !pickedUp && sale.saleDate < today;
+    const upcomingPickup = !pickedUp && sale.saleDate >= today && sale.saleDate <= nextWeek;
     const hasPickupReminder = overduePickup || upcomingPickup;
-    const hasPaymentReminder = remaining > 0.5 && sale.saleDate <= nextWeek;
+    const hasPaymentReminder = remaining > 0.01 && sale.saleDate <= nextWeek;
     if (!hasPickupReminder && !hasPaymentReminder) continue;
 
     const pickupLabel = overduePickup ? 'Pengambilan terlewat' : `Ambil ${dateShort(sale.saleDate)}`;

@@ -63,6 +63,7 @@ export async function mutateSettlementBatch(selectSale, updater) {
             invalidateStores(['sales', 'payments']);
             for (const sale of result.sales) t.objectStore('sales').put(sale);
             for (const payment of result.payments) t.objectStore('payments').put(payment);
+            for (const id of result.removeIds || []) t.objectStore('payments').delete(id);
           } catch (error) { failure = error; t.abort(); }
         };
       } catch (error) { failure = error; t.abort(); }

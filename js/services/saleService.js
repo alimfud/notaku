@@ -406,6 +406,7 @@ export async function setProcessStatus(saleId, processStatus) {
   sale.updatedAt = new Date().toISOString();
   await db.put('sales', sale);
   await recordAudit('update', 'sale', saleId, `Status proses nota ${sale.invoiceNumber}: ${PROCESS_STATUS_LABEL[processStatus]}`);
+  if (processStatus === PROCESS_STATUS.PICKED_UP) await applyAutomaticStatusRules();
 }
 
 // One run for payment + completion; never reuse an old changed-count as a new event.
