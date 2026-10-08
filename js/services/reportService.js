@@ -19,12 +19,14 @@ export async function generateReport(period, referenceDate = new Date()) {
     : new Date(now);
   let start, end, label;
 
-  if (period === 'orders-last7') {
+  if (period === 'orders-around-today') {
     const firstDay = new Date(now);
     firstDay.setDate(now.getDate() - 7);
+    const lastDay = new Date(now);
+    lastDay.setDate(now.getDate() + 7);
     start = dbDate(firstDay);
-    end = dbDate(now);
-    label = '7 Hari Terakhir';
+    end = dbDate(lastDay);
+    label = '7 Hari Sebelum & Sesudah';
   } else if (period === 'today') {
     start = end = todayDbDate();
     label = 'Hari Ini';
@@ -48,7 +50,7 @@ export async function generateReport(period, referenceDate = new Date()) {
     label = `${MONTH_LABELS_ID[month]} ${year}`;
   }
 
-  const saleDateKey = period === 'orders-last7' ? orderDate : sale => sale.saleDate;
+  const saleDateKey = period === 'orders-around-today' ? orderDate : sale => sale.saleDate;
   const sales = (await db.getAll('sales')).filter(s => {
     const date = saleDateKey(s);
     return !s.isDeleted && date >= start && date <= end;

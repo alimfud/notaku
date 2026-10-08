@@ -36,11 +36,11 @@ function reminderCard(item) {
 export async function render(root) {
   setPageTitle('NotaKu');
   setTopbarActions([]);
-  const [summaries, settings, report, orders, annual] = await Promise.all([getAllSaleSummaries(), getSettings(), generateReport(dashboardPeriod), generateReport(dashboardPeriod === 'week' ? 'orders-last7' : dashboardPeriod), generateAnnualTrend()]);
+  const [summaries, settings, report, orders, activity, annual] = await Promise.all([getAllSaleSummaries(), getSettings(), generateReport(dashboardPeriod), generateReport(dashboardPeriod === 'week' ? 'orders-last7' : dashboardPeriod), generateReport('orders-around-today'), generateAnnualTrend()]);
   if (root.dataset.pendingPage && root.dataset.pendingPage !== 'dashboard' && root.dataset.page !== 'dashboard') return;
   const { start, end } = report;
   const periodLabel = `${dateShort(start)} – ${dateShort(end)}`;
-  const orderPeriodLabel = `${dateShort(orders.start)} – ${dateShort(orders.end)}`;
+  const orderPeriodLabel = `${dateShort(activity.start)} – ${dateShort(activity.end)} · 7 hari sebelum & sesudah`;
   const pending = summaries.filter(({ sale }) => !sale.completed);
   const pickupThisWeek = pending.filter(({ sale }) => sale.saleDate >= start && sale.saleDate <= end);
   const reminders = getReminderItems(summaries).slice(0, 6);
@@ -55,13 +55,13 @@ export async function render(root) {
       <section class="dashboard-attention"><div class="dashboard-card-heading"><div><span>PERLU PERHATIAN </span></div><small>${periodLabel}</small></div><div class="dashboard-attention-list"><div class="dashboard-attention-item dashboard-attention-item--pickup"><span class="dashboard-attention-icon" aria-hidden="true">${shortcutIcon('calendar')}</span><span class="dashboard-attention-copy"><b>Jadwal Pickup</b><small>Pesanan akan diambil</small></span><button class="dashboard-attention-action" data-go="home/pickup" aria-label="Buka Jadwal Pickup"><strong>${pickupCountText}<i aria-hidden="true">›</i></strong></button></div><div class="dashboard-attention-item dashboard-attention-item--unpaid"><span class="dashboard-attention-icon" aria-hidden="true">${shortcutIcon('wallet')}</span><span class="dashboard-attention-copy"><b>Belum Lunas</b><small>Piutang periode ini</small></span><button class="dashboard-attention-action" data-go="home/unpaid" aria-label="Buka daftar Belum Lunas"><strong>${unpaidValue}<i aria-hidden="true">›</i></strong></button></div></div></section>
     </div>
     <div class="dashboard-period-control"><button type="button" class="dashboard-filter-toggle" id="dashboardFilterToggle" aria-expanded="false" aria-label="Pilih periode laporan">${shortcutIcon('calendar')}</button><div class="dashboard-period-filter" id="dashboardPeriodFilter" aria-label="Filter periode dashboard" hidden>${[['today','Hari ini'],['week','7 hari'],['month','Bulan ini'],['year','Tahun ini']].map(([value,label]) => `<button type="button" data-dashboard-period="${value}" class="${dashboardPeriod === value ? 'active' : ''}">${label}</button>`).join('')}</div></div>
-    <section class="dashboard-reminders"><div class="dashboard-section-row"><div><h3>Jadwal & Pengingat</h3></div></div>${reminders.length ? `<div class="dashboard-reminder-list">${reminders.map(reminderCard).join('')}</div>` : '<div class="dashboard-reminder-empty">Belum ada tagihan atau jadwal pickup yang perlu diingatkan.</div>'}</section>
     <div class="dashboard-section"><h3>Akses cepat</h3></div>
     <div class="dashboard-shortcuts">${[['settings/backup','Cadangan','backup'],['expenses','Pengeluaran','wallet'],['reports','Laporan','chart'],['settings','Lainnya','settings']].map(([route, label, icon]) => `<button data-go="${route}"><span class="dashboard-shortcut-icon">${shortcutIcon(icon)}</span>${label}</button>`).join('')}</div>
+    <section class="dashboard-reminders"><div class="dashboard-section-row"><div><h3>Jadwal & Pengingat</h3></div></div>${reminders.length ? `<div class="dashboard-reminder-list">${reminders.map(reminderCard).join('')}</div>` : '<div class="dashboard-reminder-empty">Belum ada tagihan atau jadwal pickup yang perlu diingatkan.</div>'}</section>
     
 	
     
-	${dailyChart(orders.daily, { compact: true, dateBasis: 'created', periodLabel: orderPeriodLabel })}
+	${dailyChart(activity.daily, { compact: true, dateBasis: 'created', periodLabel: orderPeriodLabel })}
   `;
   root.querySelectorAll('[data-go]').forEach(button => button.onclick = () => navigate(button.dataset.go));
   root.querySelector('#dashboardFilterToggle').onclick = (event) => {

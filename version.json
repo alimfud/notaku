@@ -1,4 +1,4 @@
 {
-  "version": "1.32.8",
-  "notes": "Efek cekung kartu dashboard mengikuti kolom pencarian nota."
+  "version": "1.32.20",
+  "notes": "Segmen aktivitas yang dipilih pada grafik dashboard diberi sorotan warna."
 }

@@ -9,6 +9,40 @@
 .business-bars-scroll { min-width:0; flex:1; overflow-x:auto; }
 .business-chart-canvas { position:relative; display:inline-block; min-width:100%; }
 .business-bars { position:relative; z-index:1; display:grid; grid-template-columns:repeat(var(--day-count),minmax(32px,1fr)); gap:5px; min-width:100%; width:max-content; background:repeating-linear-gradient(to top,transparent 0,transparent 76px,#eadfd6 77px,#eadfd6 78px); }
+.business-radial-wrap { display:flex; justify-content:center; width:100%; margin:2px auto 0; }
+.business-radial-chart { display:block; width:min(100%,280px); height:auto; overflow:visible; }
+.business-radial-day { cursor:pointer; outline:none; }
+.business-radial-segment { stroke:var(--surface); stroke-width:1.5; transition:filter .15s ease,opacity .15s ease; }
+.business-radial-segment--revenue { fill:#eadcc8; }
+.business-radial-segment--revenue.is-active { fill:#ff9a3c; }
+.business-radial-segment--received { fill:#eadcc8; }
+.business-radial-segment--received.is-active { fill:#2fe0b0; }
+.business-radial-segment--expenses { fill:#eadcc8; }
+.business-radial-segment--expenses.is-active { fill:#ff5d7a; }
+.business-radial-day:hover .business-radial-segment,
+.business-radial-day:focus-visible .business-radial-segment { filter:brightness(.9); }
+.business-radial-day[aria-pressed="true"] .business-radial-segment { stroke:var(--primary); stroke-width:2.5; }
+.business-radial-label { fill:var(--muted); font-size:8px; font-weight:700; text-anchor:middle; dominant-baseline:central; pointer-events:none; }
+.business-radial-center-label,.business-radial-center-caption { fill:var(--muted); font-size:8px; font-weight:700; text-anchor:middle; }
+.business-radial-center-value { fill:var(--ink); font-size:23px; font-weight:800; text-anchor:middle; dominant-baseline:central; }
+#pageRoot[data-page="dashboard"] .business-chart--radial { padding:14px; border:1px solid transparent; border-radius:28px; background:transparent; box-shadow:0 12px 22px -12px rgba(131,87,48,.42); }
+#pageRoot[data-page="dashboard"] .business-chart--radial .business-radial-segment { fill:#f0e4cf; stroke:#fff9ef; stroke-width:1.6; filter:drop-shadow(0 1px 1px rgba(126,91,54,.12)); }
+#pageRoot[data-page="dashboard"] .business-chart--radial .business-radial-segment--revenue.is-active { fill:#ee8c43; stroke:#fff9ef; }
+#pageRoot[data-page="dashboard"] .business-chart--radial .business-radial-segment--received.is-active { fill:#5d9680; stroke:#fff9ef; }
+#pageRoot[data-page="dashboard"] .business-chart--radial .business-radial-segment--expenses.is-active { fill:#ef6078; stroke:#fff9ef; }
+#pageRoot[data-page="dashboard"] .business-chart--radial .business-radial-day[aria-pressed="true"] .business-radial-segment:not(.is-active) { fill:color-mix(in srgb,var(--primary) 34%,#fff7ed); stroke:var(--primary); stroke-width:2; }
+#pageRoot[data-page="dashboard"] .business-chart--radial .business-radial-day[aria-pressed="true"] .business-radial-segment--revenue.is-active { fill:#ff9a3c; stroke:#fff9ef; stroke-width:2.4; filter:brightness(1.08) drop-shadow(0 0 4px rgba(238,140,67,.68)); }
+#pageRoot[data-page="dashboard"] .business-chart--radial .business-radial-day[aria-pressed="true"] .business-radial-segment--received.is-active { fill:#5d9680; stroke:#fff9ef; stroke-width:2.4; filter:brightness(1.08) drop-shadow(0 0 4px rgba(93,150,128,.68)); }
+#pageRoot[data-page="dashboard"] .business-chart--radial .business-radial-day[aria-pressed="true"] .business-radial-segment--expenses.is-active { fill:#ef6078; stroke:#fff9ef; stroke-width:2.4; filter:brightness(1.08) drop-shadow(0 0 4px rgba(239,96,120,.68)); }
+html[data-theme="dark"] .business-radial-segment:not(.is-active) { fill:#333d76; }
+html[data-theme="dark"] .business-radial-segment--revenue.is-active { fill:#ff9a3c; }
+html[data-theme="dark"] .business-radial-segment--received.is-active { fill:#2fe0b0; }
+html[data-theme="dark"] .business-radial-segment--expenses.is-active { fill:#ff5d7a; }
+html[data-theme="clay"] .business-radial-segment { stroke:#fff6e8; }
+html[data-theme="clay"] .business-radial-segment:not(.is-active) { fill:#f0e2cb; }
+html[data-theme="clay"] .business-radial-segment--revenue.is-active { fill:#e88943; }
+html[data-theme="clay"] .business-radial-segment--received.is-active { fill:#5d9680; }
+html[data-theme="clay"] .business-radial-segment--expenses.is-active { fill:#d95c70; }
 .business-activity-lines { position:absolute; z-index:2; top:0; left:0; width:100%; height:155px; overflow:visible; pointer-events:none; }
 .business-activity-lines path { fill:none; stroke:var(--activity-line); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; opacity:.76; filter:drop-shadow(0 1px 2px color-mix(in srgb,var(--activity-line) 35%,transparent)); stroke-dasharray:420; stroke-dashoffset:420; animation:businessLineDraw .9s cubic-bezier(.22,1,.36,1) forwards; animation-delay:var(--activity-delay); }
 .business-day { border:0; background:none; padding:0; color:var(--ink-soft); font:inherit; min-width:0; cursor:pointer; }
