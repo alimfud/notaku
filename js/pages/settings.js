@@ -14,7 +14,8 @@ import * as db from '../db.js';
 import { formatAuditDetails, getAuditLogs, recordAudit } from '../services/auditLogService.js';
 import { registerBiometric, biometricAvailable } from '../services/appLockService.js';
 import {
-  DEFAULT_WHATSAPP_SHARE_TEMPLATE,
+  DEFAULT_WHATSAPP_SHARE_MAIN_TEMPLATE,
+  DEFAULT_WHATSAPP_SHARE_PRODUCT_TEMPLATE,
   DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE,
   DEFAULT_WHATSAPP_REMINDER_PICKUP_TEMPLATE,
   DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE,
@@ -233,7 +234,8 @@ async function renderWhatsapp(root) {
   setPageTitle('Format WhatsApp');
   setTopbarActions([]);
   const settings = await getSettings();
-  const shareTemplate = settings.whatsappTextTemplate?.trim() || DEFAULT_WHATSAPP_SHARE_TEMPLATE;
+  const shareTemplate = settings.whatsappShareTemplate || DEFAULT_WHATSAPP_SHARE_MAIN_TEMPLATE;
+  const shareProductTemplate = settings.whatsappShareProductTemplate || DEFAULT_WHATSAPP_SHARE_PRODUCT_TEMPLATE;
   const reminderBothTemplate = settings.whatsappReminderBothTemplate || DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE;
   const reminderPickupTemplate = settings.whatsappReminderPickupTemplate || DEFAULT_WHATSAPP_REMINDER_PICKUP_TEMPLATE;
   const reminderPaymentTemplate = settings.whatsappReminderPaymentTemplate || DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE;
@@ -242,9 +244,10 @@ async function renderWhatsapp(root) {
       <div class="settings-page-intro"><h2>Format WhatsApp</h2><p>Sesuaikan pesan yang dikirim kepada pelanggan. Format bawaan sudah diisikan dan dapat diubah kapan saja.</p></div>
       <section class="settings-whatsapp-card">
         <div class="settings-whatsapp-heading"><div><b>Bagikan nota sebagai teks</b><small>Digunakan dari tombol Bagikan Sebagai Teks pada detail nota.</small></div><button type="button" class="btn small ghost" id="resetWhatsappShare">Kembalikan default</button></div>
-        <textarea id="fWhatsappTemplate" rows="27" spellcheck="false">${escapeHtml(shareTemplate)}</textarea>
-        <div class="row-meta">Semua tulisan tetap dapat diedit. Blok {{#produk}}…{{/produk}} diulang untuk setiap produk. Blok {{#toko}}, {{#catatan_produk}}, {{#diskon}}, {{#ongkir}}, {{#biaya_lain}}, dan {{#catatan}} hanya tampil ketika datanya tersedia.</div>
-        <div class="row-meta">Data produk: {{nomor}}, {{nama_produk}}, {{jumlah}}, {{satuan}}, {{harga}}, {{subtotal}}, {{catatan_produk}}. Data nota: {{invoice}}, {{tanggal}}, {{pelanggan}}, {{toko}}, {{total}}, {{dibayar}}, {{label_sisa}}, {{sisa}}, {{diskon}}, {{ongkir}}, {{label_biaya_lain}}, {{biaya_lain}}, {{catatan}}, {{footer}}.</div>
+        <textarea id="fWhatsappTemplate" rows="22" spellcheck="false">${escapeHtml(shareTemplate)}</textarea>
+        <div class="row-meta">Gunakan {{daftar_produk}} untuk menempatkan daftar produk. Baris toko, diskon, ongkir, biaya lain, dan catatan otomatis tidak ditampilkan ketika datanya kosong.</div>
+        <div class="row-meta">Data nota: {{invoice}}, {{tanggal}}, {{pelanggan}}, {{toko}}, {{daftar_produk}}, {{total}}, {{dibayar}}, {{label_sisa}}, {{sisa}}, {{diskon}}, {{ongkir}}, {{label_biaya_lain}}, {{biaya_lain}}, {{catatan}}, dan {{footer}}.</div>
+        <div class="settings-whatsapp-subformat"><b>Format setiap produk</b><small>Format ini diulang otomatis untuk seluruh produk dalam nota.</small><textarea id="fWhatsappProductTemplate" rows="4" spellcheck="false">${escapeHtml(shareProductTemplate)}</textarea><div class="row-meta">Data produk: {{nomor}}, {{nama_produk}}, {{jumlah}}, {{satuan}}, {{harga}}, {{subtotal}}, dan {{catatan_produk}}.</div></div>
       </section>
       <section class="settings-whatsapp-card">
         <div class="settings-whatsapp-heading"><div><b>Pengingat jadwal + pembayaran</b><small>Dipakai ketika nota memiliki jadwal pengambilan dan masih memiliki sisa pembayaran.</small></div><button type="button" class="btn small ghost" id="resetWhatsappReminderBoth">Kembalikan default</button></div>
@@ -262,23 +265,29 @@ async function renderWhatsapp(root) {
       <button class="btn" id="saveWhatsappTemplates">Simpan Format WhatsApp</button>
     </div>`;
   const shareInput = root.querySelector('#fWhatsappTemplate');
+  const shareProductInput = root.querySelector('#fWhatsappProductTemplate');
   const reminderBothInput = root.querySelector('#fWhatsappReminderBoth');
   const reminderPickupInput = root.querySelector('#fWhatsappReminderPickup');
   const reminderPaymentInput = root.querySelector('#fWhatsappReminderPayment');
-  root.querySelector('#resetWhatsappShare').onclick = () => { shareInput.value = DEFAULT_WHATSAPP_SHARE_TEMPLATE; };
+  root.querySelector('#resetWhatsappShare').onclick = () => {
+    shareInput.value = DEFAULT_WHATSAPP_SHARE_MAIN_TEMPLATE;
+    shareProductInput.value = DEFAULT_WHATSAPP_SHARE_PRODUCT_TEMPLATE;
+  };
   root.querySelector('#resetWhatsappReminderBoth').onclick = () => { reminderBothInput.value = DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE; };
   root.querySelector('#resetWhatsappReminderPickup').onclick = () => { reminderPickupInput.value = DEFAULT_WHATSAPP_REMINDER_PICKUP_TEMPLATE; };
   root.querySelector('#resetWhatsappReminderPayment').onclick = () => { reminderPaymentInput.value = DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE; };
   root.querySelector('#saveWhatsappTemplates').onclick = async () => {
-    const whatsappTextTemplate = shareInput.value.trim() || DEFAULT_WHATSAPP_SHARE_TEMPLATE;
+    const whatsappShareTemplate = shareInput.value.trim() || DEFAULT_WHATSAPP_SHARE_MAIN_TEMPLATE;
+    const whatsappShareProductTemplate = shareProductInput.value.trim() || DEFAULT_WHATSAPP_SHARE_PRODUCT_TEMPLATE;
     const whatsappReminderBothTemplate = reminderBothInput.value.trim() || DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE;
     const whatsappReminderPickupTemplate = reminderPickupInput.value.trim() || DEFAULT_WHATSAPP_REMINDER_PICKUP_TEMPLATE;
     const whatsappReminderPaymentTemplate = reminderPaymentInput.value.trim() || DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE;
-    shareInput.value = whatsappTextTemplate;
+    shareInput.value = whatsappShareTemplate;
+    shareProductInput.value = whatsappShareProductTemplate;
     reminderBothInput.value = whatsappReminderBothTemplate;
     reminderPickupInput.value = whatsappReminderPickupTemplate;
     reminderPaymentInput.value = whatsappReminderPaymentTemplate;
-    await saveSettings({ whatsappTextTemplate, whatsappReminderBothTemplate, whatsappReminderPickupTemplate, whatsappReminderPaymentTemplate });
+    await saveSettings({ whatsappShareTemplate, whatsappShareProductTemplate, whatsappReminderBothTemplate, whatsappReminderPickupTemplate, whatsappReminderPaymentTemplate });
     toast('Format WhatsApp disimpan');
   };
 }

@@ -27,6 +27,50 @@ function footerText(footerNote) {
   }).join('\n');
 }
 
+function withoutEmptyOptionalLines(template, values, optionalKeys) {
+  return String(template || '').split('\n').filter((line) => {
+    const keys = [...line.matchAll(/\{\{\s*([a-z_]+)\s*\}\}/gi)].map((match) => match[1].toLowerCase());
+    return !keys.some((key) => optionalKeys.has(key) && !values[key]);
+  }).join('\n');
+}
+
+function simpleShareText(data, template, productTemplate) {
+  const products = data.lines.map((line, index) => {
+    const productValues = {
+      nomor: index + 1,
+      nama_produk: line.name || '',
+      jumlah: line.qty,
+      satuan: line.unit || '',
+      harga: rupiah(line.price),
+      subtotal: rupiah(line.subtotal),
+      catatan_produk: line.note || '',
+    };
+    return renderWhatsAppTemplate(
+      withoutEmptyOptionalLines(productTemplate, productValues, new Set(['catatan_produk'])),
+      productValues,
+    );
+  }).join('\n');
+  const values = {
+    invoice: data.invoiceNumber || '',
+    tanggal: data.dateLabel || '',
+    pelanggan: data.customerName || '',
+    toko: data.storeName || '',
+    daftar_produk: products,
+    total: rupiah(data.total),
+    dibayar: rupiah(data.paid),
+    label_sisa: data.remaining > 0 ? 'Sisa' : 'Kembali',
+    sisa: rupiah(Math.abs(data.remaining)),
+    diskon: data.discount > 0 ? rupiah(data.discount) : '',
+    ongkir: data.shipping > 0 ? rupiah(data.shipping) : '',
+    biaya_lain: data.other > 0 ? rupiah(data.other) : '',
+    label_biaya_lain: data.otherLabel || 'Lain-lain',
+    catatan: data.note || '',
+    footer: footerText(data.footerNote),
+  };
+  const optional = new Set(['toko', 'diskon', 'ongkir', 'biaya_lain', 'catatan']);
+  return renderWhatsAppTemplate(withoutEmptyOptionalLines(template, values, optional), values);
+}
+
 function customShareText(data, template) {
   const products = data.lines.map((line, index) => ({
     nomor: index + 1,
@@ -65,6 +109,8 @@ function customShareText(data, template) {
 
 export function buildShareText(data) {
   const template = String(data.whatsappTextTemplate || '').trim();
+  const productTemplate = String(data.whatsappProductTemplate || '').trim();
+  if (template && productTemplate) return simpleShareText(data, template, productTemplate);
   if (template) return customShareText(data, template);
   const separator = '────────────';
   const lines = [

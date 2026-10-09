@@ -1,4 +1,4 @@
 {
-  "version": "1.32.42",
-  "notes": "Format pengingat WhatsApp disederhanakan menjadi tiga pesan lengkap; hanya data dinamis yang memakai tanda rumus."
+  "version": "1.32.43",
+  "notes": "Format Bagikan Nota disederhanakan; teks utama dan format tiap produk kini dapat diedit tanpa kode kondisi."
 }

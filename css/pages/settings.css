@@ -74,6 +74,9 @@
 [data-page="settings"] .settings-whatsapp-heading small{font-size:11px;line-height:1.4;color:var(--muted);}
 [data-page="settings"] .settings-whatsapp-heading .btn{flex:none;margin:0;}
 [data-page="settings"] .settings-whatsapp-card textarea{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:1.5;resize:vertical;}
+[data-page="settings"] .settings-whatsapp-subformat{display:grid;gap:6px;margin-top:4px;padding-top:12px;border-top:1px solid var(--outline);}
+[data-page="settings"] .settings-whatsapp-subformat b{font-size:13px;color:var(--ink);}
+[data-page="settings"] .settings-whatsapp-subformat small{font-size:11px;color:var(--muted);}
 [data-page="settings"] .settings-privacy{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;}
 [data-page="settings"] .settings-label{font-size:14px;font-weight:600;}
 [data-page="settings"] .settings-phone-select{width:auto;}

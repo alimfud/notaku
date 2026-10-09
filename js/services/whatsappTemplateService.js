@@ -37,7 +37,7 @@ const REMINDER_CONFIRMATION_TEMPLATE = `{{#jadwal_dan_pembayaran}}Mohon konfirma
 const REMINDER_QUOTED_CONFIRMATION_TEMPLATE = REMINDER_CONFIRMATION_TEMPLATE.replace(/\}\}(?=Mohon)/g, '}}> ');
 const PRAYER_EMOJI = String.fromCodePoint(0x1F64F);
 
-export const DEFAULT_WHATSAPP_SHARE_TEMPLATE = `*NOTA PESANAN*
+export const LEGACY_DETAILED_WHATSAPP_SHARE_TEMPLATE = `*NOTA PESANAN*
 
 {{invoice}} || {{tanggal}}
 Pelanggan: *{{pelanggan}}*
@@ -60,6 +60,47 @@ Dibayar: \`{{dibayar}}\`
 {{/catatan}}────────────
 
 {{footer}}`;
+
+export const DEFAULT_WHATSAPP_SHARE_MAIN_TEMPLATE = `*NOTA PESANAN*
+
+{{invoice}} || {{tanggal}}
+Pelanggan: *{{pelanggan}}*
+Toko: _{{toko}}_
+────────────
+
+*RINCIAN PESANAN*
+{{daftar_produk}}
+Diskon: -{{diskon}}
+Ongkos Kirim: +{{ongkir}}
+{{label_biaya_lain}}: +{{biaya_lain}}
+────────────
+Total: *{{total}}*
+Dibayar: \`{{dibayar}}\`
+{{label_sisa}}: _{{sisa}}_
+Catatan: {{catatan}}
+────────────
+
+{{footer}}`;
+
+export const DEFAULT_WHATSAPP_SHARE_PRODUCT_TEMPLATE = `{{nomor}}. _{{nama_produk}}_
+      {{jumlah}} {{satuan}} × {{harga}} = _{{subtotal}}_
+      {{catatan_produk}}`;
+
+// Alias kompatibilitas untuk pemanggil lama.
+export const DEFAULT_WHATSAPP_SHARE_TEMPLATE = DEFAULT_WHATSAPP_SHARE_MAIN_TEMPLATE;
+
+export function simplifyWhatsAppShareTemplate(template) {
+  let output = String(template || '')
+    .replace(/\{\{#produk\}\}[\s\S]*?\{\{\/produk\}\}/gi, '{{daftar_produk}}')
+    .replace(/\{\{\s*detail\s*\}\}/gi, '{{daftar_produk}}');
+  const conditional = /\{\{#([a-z_]+)\}\}([\s\S]*?)\{\{\/\1\}\}/gi;
+  let previous;
+  do {
+    previous = output;
+    output = output.replace(conditional, '$2');
+  } while (output !== previous);
+  return output.trim();
+}
 
 export const LEGACY_DETAILED_WHATSAPP_REMINDER_TEMPLATE = `Halo *{{pelanggan}}* {{emoji_salam}}
 
