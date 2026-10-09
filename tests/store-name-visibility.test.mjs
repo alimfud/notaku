@@ -37,6 +37,14 @@ test('shared receipt text uses the compact receipt layout', () => {
   assert.match(text, /\n09\/10\/2026$/);
 });
 
+test('shared receipt text accepts a custom template', () => {
+  const data = receiptData('Jajan Hajatan');
+  data.lines = [{ name: 'Bugis', qty: 2, unit: 'pcs', price: 7500, subtotal: 15000 }];
+  data.whatsappTextTemplate = 'Nota {{invoice}}\nPelanggan: {{pelanggan}}\n{{detail}}\nTotal {{total}}';
+  const text = buildShareText(data);
+  assert.equal(text, 'Nota INV-001\nPelanggan: Pelanggan\n1. _Bugis_\n      2 pcs × Rp7.500 = _Rp15.000_\nTotal Rp10.000');
+});
+
 test('Bluetooth receipt omits store-name bytes when disabled', async () => {
   const visible = Buffer.from(await buildReceiptBytes(receiptData('Jajan Hajatan'))).toString('latin1');
   const hidden = Buffer.from(await buildReceiptBytes(receiptData(''))).toString('latin1');

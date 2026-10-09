@@ -1,7 +1,43 @@
 // One DOM capture for image, PDF, and Bluetooth output.
 import { rupiah } from '../format.js';
 
+function itemText(data) {
+  return data.lines.map((l, i) => [
+    `${i + 1}. _${l.name}_`,
+    `      ${l.qty} ${l.unit || ''} × ${rupiah(l.price)} = _${rupiah(l.subtotal)}_`,
+    ...(l.note ? [`      ${l.note}`] : []),
+  ].join('\n')).join('\n');
+}
+
+function footerText(footerNote) {
+  return String(footerNote || '').split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
+    const dateOnly = line.match(/^(\d{2}\/\d{2}\/\d{4})(?:\s+\d{2}:\d{2}:\d{2})?$/);
+    if (dateOnly) return dateOnly[1];
+    if (/^(?:https?:\/\/|www\.)/i.test(line)) return `*** ${line.replace(/^\*+|\*+$/g, '').trim()} ***`;
+    return line;
+  }).join('\n');
+}
+
+function customShareText(data, template) {
+  const detail = itemText(data);
+  const values = {
+    invoice: data.invoiceNumber || '',
+    tanggal: data.dateLabel || '',
+    pelanggan: data.customerName || '',
+    toko: data.storeName || '',
+    detail,
+    total: rupiah(data.total),
+    dibayar: rupiah(data.paid),
+    sisa: rupiah(Math.abs(data.remaining)),
+    catatan: data.note || '',
+    footer: footerText(data.footerNote),
+  };
+  return template.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (match, key) => Object.hasOwn(values, key.toLowerCase()) ? values[key.toLowerCase()] : match).trim();
+}
+
 export function buildShareText(data) {
+  const template = String(data.whatsappTextTemplate || '').trim();
+  if (template) return customShareText(data, template);
   const separator = '────────────';
   const lines = [
     '*NOTA PESANAN*',
@@ -12,11 +48,7 @@ export function buildShareText(data) {
   if (data.storeName) lines.push(`Toko: _${data.storeName}_`);
   lines.push(separator, '', '*RINCIAN PESANAN*');
 
-  data.lines.forEach((l, i) => {
-    lines.push(`${i + 1}. _${l.name}_`);
-    lines.push(`      ${l.qty} ${l.unit || ''} × ${rupiah(l.price)} = _${rupiah(l.subtotal)}_`);
-    if (l.note) lines.push(`      ${l.note}`);
-  });
+  lines.push(itemText(data));
   if (data.discount > 0) lines.push(`Diskon: -${rupiah(data.discount)}`);
   if (data.shipping > 0) lines.push(`Ongkos Kirim: +${rupiah(data.shipping)}`);
   if (data.other > 0) lines.push(`${data.otherLabel || 'Lain-lain'}: +${rupiah(data.other)}`);
@@ -29,13 +61,7 @@ export function buildShareText(data) {
   );
   if (data.note) lines.push(`Catatan: ${data.note}`);
   lines.push(separator, '');
-  const footerLines = String(data.footerNote || '').split('\n').map((line) => line.trim()).filter(Boolean);
-  footerLines.forEach((line) => {
-    const dateOnly = line.match(/^(\d{2}\/\d{2}\/\d{4})(?:\s+\d{2}:\d{2}:\d{2})?$/);
-    if (dateOnly) lines.push(dateOnly[1]);
-    else if (/^(?:https?:\/\/|www\.)/i.test(line)) lines.push(`*** ${line.replace(/^\*+|\*+$/g, '').trim()} ***`);
-    else lines.push(line);
-  });
+  lines.push(footerText(data.footerNote));
   return lines.join('\n');
 }
 

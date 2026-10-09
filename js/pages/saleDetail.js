@@ -301,6 +301,7 @@ function buildReceiptDataForShare(sale, items, settings, paidAmount, remaining) 
     paid: paidAmount,
     remaining,
     footerNote: resolveFooterNote(settings.footerNote),
+    whatsappTextTemplate: settings.whatsappTextTemplate || '',
   };
 }
 

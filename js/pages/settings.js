@@ -253,6 +253,7 @@ async function renderStore(root) {
     <div class="field"><label>Alamat</label><textarea id="fAddress" rows="2">${escapeHtml(s.storeAddress)}</textarea></div>
     <div class="field"><label>Telepon</label><input id="fPhone" value="${escapeHtml(s.storePhone)}"></div>
     <div class="field"><label>Catatan Kaki Struk</label><textarea id="fFooter" rows="3">${escapeHtml(s.footerNote)}</textarea><div class="row-meta"></div></div>
+    <div class="field"><label>Format Pesan WhatsApp (opsional)</label><textarea id="fWhatsappTemplate" rows="8" placeholder="Kosongkan untuk memakai format bawaan">${escapeHtml(s.whatsappTextTemplate || '')}</textarea><div class="row-meta">Kosongkan untuk memakai format rapi bawaan. Placeholder yang tersedia: {{invoice}}, {{tanggal}}, {{pelanggan}}, {{toko}}, {{detail}}, {{total}}, {{dibayar}}, {{sisa}}, {{catatan}}, {{footer}}.</div></div>
     <div class="section-title">Privasi Data Pelanggan</div>
     <label class="settings-privacy">
       <div>
@@ -275,6 +276,7 @@ async function renderStore(root) {
       storeAddress: root.querySelector('#fAddress').value.trim(),
       storePhone: root.querySelector('#fPhone').value.trim(),
       footerNote: root.querySelector('#fFooter').value.trim(),
+      whatsappTextTemplate: root.querySelector('#fWhatsappTemplate').value.trim(),
     });
     toast('Pengaturan toko disimpan');
   };

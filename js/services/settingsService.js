@@ -8,6 +8,8 @@ const DEFAULTS = {
   storeAddress: '',
   storePhone: '',
   footerNote: 'Terima kasih atas kunjungan Anda.',
+  // Kosong berarti memakai format Bagikan Sebagai Teks bawaan.
+  whatsappTextTemplate: '',
   storeLogoData: '',
   storeLogoMaxWidth: 100,
   showStoreNameOnReceipt: true,
