@@ -1,5 +1,6 @@
 // One DOM capture for image, PDF, and Bluetooth output.
 import { rupiah } from '../format.js';
+import { renderWhatsAppTemplate } from './whatsappTemplateService.js';
 
 function itemText(data) {
   return data.lines.map((l, i) => [
@@ -27,12 +28,26 @@ function footerText(footerNote) {
 }
 
 function customShareText(data, template) {
+  const products = data.lines.map((line, index) => ({
+    nomor: index + 1,
+    nama_produk: line.name || '',
+    jumlah: line.qty,
+    satuan: line.unit || '',
+    harga: rupiah(line.price),
+    subtotal: rupiah(line.subtotal),
+    catatan_produk: line.note || '',
+  }));
   const values = {
     invoice: data.invoiceNumber || '',
     tanggal: data.dateLabel || '',
     pelanggan: data.customerName || '',
     toko: data.storeName || '',
     detail: detailText(data),
+    produk: products.length > 0,
+    diskon: data.discount > 0 ? rupiah(data.discount) : '',
+    ongkir: data.shipping > 0 ? rupiah(data.shipping) : '',
+    biaya_lain: data.other > 0 ? rupiah(data.other) : '',
+    label_biaya_lain: data.otherLabel || 'Lain-lain',
     total: rupiah(data.total),
     dibayar: rupiah(data.paid),
     label_sisa: data.remaining > 0 ? 'Sisa' : 'Kembali',
@@ -41,11 +56,11 @@ function customShareText(data, template) {
     footer: footerText(data.footerNote),
   };
   const optional = new Set(['toko', 'catatan']);
-  const prepared = template.split('\n').filter((line) => {
+  const prepared = template.includes('{{#') ? template : template.split('\n').filter((line) => {
     const keys = [...line.matchAll(/\{\{\s*([a-z_]+)\s*\}\}/gi)].map((match) => match[1].toLowerCase());
     return !keys.some((key) => optional.has(key) && !values[key]);
   }).join('\n');
-  return prepared.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (match, key) => Object.hasOwn(values, key.toLowerCase()) ? values[key.toLowerCase()] : match).trim();
+  return renderWhatsAppTemplate(prepared, values, { produk: products });
 }
 
 export function buildShareText(data) {

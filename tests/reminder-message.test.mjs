@@ -2,7 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+import { DEFAULT_WHATSAPP_REMINDER_TEMPLATE } from '../js/services/whatsappTemplateService.js';
 
+const templateSource = (await readFile(new URL('../js/services/whatsappTemplateService.js', import.meta.url), 'utf8'))
+  .replace(/^export /gm, '');
 const source = (await readFile(new URL('../js/services/reminderService.js', import.meta.url), 'utf8'))
   .replace(/^import .*;$/gm, '').replace(/^export /gm, '');
 const context = vm.createContext({
@@ -14,7 +17,7 @@ const context = vm.createContext({
   PROCESS_STATUS_LABEL: { NEW: 'Baru' },
   encodeURIComponent,
 });
-vm.runInContext(source + '\nglobalThis.buildMessage = buildReminderMessage; globalThis.waUrl = reminderWhatsAppUrl;', context);
+vm.runInContext(templateSource + '\n' + source + '\nglobalThis.buildMessage = buildReminderMessage; globalThis.waUrl = reminderWhatsAppUrl;', context);
 
 const sale = {
   customerName: 'NAMA Pelanggan',
@@ -30,6 +33,7 @@ test('pickup and payment reminder follows the WhatsApp paragraph format', () => 
     overduePickup: false,
     hasPaymentReminder: true,
     storeName: 'Jajan Hajatan',
+    reminderTemplate: DEFAULT_WHATSAPP_REMINDER_TEMPLATE,
   });
   assert.equal(message,
     'Halo *NAMA Pelanggan* __NOTAKU_PRAYER_EMOJI__\n\n' +
@@ -39,6 +43,7 @@ test('pickup and payment reminder follows the WhatsApp paragraph format', () => 
     '· Sisa Pembayaran: *Rp1.015.000*\n\n' +
     '> Mohon konfirmasi jadwal pengambilan dan sisa pembayarannya ya, Kak.\n' +
     'Terima kasih.');
+  assert.doesNotMatch(message, /\{\{/);
   const url = context.waUrl({ phone: '6285156654155', message });
   assert.match(url, /^https:\/\/api\.whatsapp\.com\/send\?phone=/);
   assert.match(url, /%F0%9F%99%8F/);
@@ -57,6 +62,7 @@ test('payment-only reminder omits pickup wording', () => {
     overduePickup: false,
     hasPaymentReminder: true,
     storeName: 'Jajan Hajatan',
+    reminderTemplate: DEFAULT_WHATSAPP_REMINDER_TEMPLATE,
   });
   assert.doesNotMatch(message, /dijadwalkan|belum diambil/);
   assert.match(message, /Sisa Pembayaran: \*Rp50\.000\*/);

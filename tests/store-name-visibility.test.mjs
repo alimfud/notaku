@@ -37,6 +37,7 @@ test('shared receipt text uses the compact receipt layout', () => {
   assert.match(text, /Total: \*Rp225\.000\*\nDibayar: `Rp100\.000`\nSisa: _Rp125\.000_/);
   assert.match(text, /\*\*\* www\.jajan\.my\.id \*\*\*/);
   assert.match(text, /\n09\/10\/2026$/);
+  assert.doesNotMatch(text, /\{\{/);
 });
 
 test('shared receipt text accepts a custom template', () => {

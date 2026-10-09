@@ -1,5 +1,6 @@
 import { dateShort, toWhatsAppNumber, rupiah } from '../format.js';
 import { getProcessStatus, PROCESS_STATUS_LABEL } from './saleService.js';
+import { renderWhatsAppTemplate } from './whatsappTemplateService.js';
 
 const PRAYER_EMOJI_TOKEN = '__NOTAKU_PRAYER_EMOJI__';
 const PRAYER_EMOJI_URL_BYTES = '%F0%9F%99%8F';
@@ -69,8 +70,13 @@ export function buildReminderMessage({ sale, remaining, hasPickupReminder, hasPa
     sisa: rupiah(remaining),
     konfirmasi: confirmation,
     emoji_salam: PRAYER_EMOJI_TOKEN,
+    jadwal: hasPickupReminder,
+    pembayaran: hasPaymentReminder,
+    jadwal_dan_pembayaran: hasPickupReminder && hasPaymentReminder,
+    hanya_jadwal: hasPickupReminder && !hasPaymentReminder,
+    hanya_pembayaran: !hasPickupReminder && hasPaymentReminder,
   };
-  return String(reminderTemplate || fallback).replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (match, key) => Object.hasOwn(values, key.toLowerCase()) ? values[key.toLowerCase()] : match).trim();
+  return renderWhatsAppTemplate(reminderTemplate || fallback, values);
 }
 
 export function reminderWhatsAppUrl(item) {

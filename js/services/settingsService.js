@@ -1,7 +1,12 @@
 // settingsService.js — pengaturan toko (satu baris, id = 1).
 
 import * as db from '../db.js';
-import { DEFAULT_WHATSAPP_SHARE_TEMPLATE, DEFAULT_WHATSAPP_REMINDER_TEMPLATE } from './whatsappTemplateService.js';
+import {
+  DEFAULT_WHATSAPP_SHARE_TEMPLATE,
+  DEFAULT_WHATSAPP_REMINDER_TEMPLATE,
+  LEGACY_DEFAULT_WHATSAPP_SHARE_TEMPLATE,
+  LEGACY_DEFAULT_WHATSAPP_REMINDER_TEMPLATE,
+} from './whatsappTemplateService.js';
 
 const DEFAULTS = {
   id: 1,
@@ -79,11 +84,15 @@ export async function getSettings() {
   if (_cache) return _cache;
   const existing = await db.get('settings', 1);
   if (existing) {
+    const savedShareTemplate = existing.whatsappTextTemplate?.trim();
+    const savedReminderTemplate = existing.whatsappReminderTemplate?.trim();
     _cache = {
       ...DEFAULTS,
       ...existing,
-      whatsappTextTemplate: existing.whatsappTextTemplate?.trim() || DEFAULT_WHATSAPP_SHARE_TEMPLATE,
-      whatsappReminderTemplate: existing.whatsappReminderTemplate?.trim() || DEFAULT_WHATSAPP_REMINDER_TEMPLATE,
+      whatsappTextTemplate: !savedShareTemplate || savedShareTemplate === LEGACY_DEFAULT_WHATSAPP_SHARE_TEMPLATE
+        ? DEFAULT_WHATSAPP_SHARE_TEMPLATE : savedShareTemplate,
+      whatsappReminderTemplate: !savedReminderTemplate || savedReminderTemplate === LEGACY_DEFAULT_WHATSAPP_REMINDER_TEMPLATE
+        ? DEFAULT_WHATSAPP_REMINDER_TEMPLATE : savedReminderTemplate,
       autoBackup: { ...DEFAULTS.autoBackup, ...existing.autoBackup },
       security: { ...DEFAULTS.security, ...existing.security },
     };

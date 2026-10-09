@@ -235,13 +235,15 @@ async function renderWhatsapp(root) {
       <div class="settings-page-intro"><h2>Format WhatsApp</h2><p>Sesuaikan pesan yang dikirim kepada pelanggan. Format bawaan sudah diisikan dan dapat diubah kapan saja.</p></div>
       <section class="settings-whatsapp-card">
         <div class="settings-whatsapp-heading"><div><b>Bagikan nota sebagai teks</b><small>Digunakan dari tombol Bagikan Sebagai Teks pada detail nota.</small></div><button type="button" class="btn small ghost" id="resetWhatsappShare">Kembalikan default</button></div>
-        <textarea id="fWhatsappTemplate" rows="18" spellcheck="false">${escapeHtml(shareTemplate)}</textarea>
-        <div class="row-meta">Placeholder: {{invoice}}, {{tanggal}}, {{pelanggan}}, {{toko}}, {{detail}}, {{total}}, {{dibayar}}, {{label_sisa}}, {{sisa}}, {{catatan}}, {{footer}}.</div>
+        <textarea id="fWhatsappTemplate" rows="27" spellcheck="false">${escapeHtml(shareTemplate)}</textarea>
+        <div class="row-meta">Semua tulisan tetap dapat diedit. Blok {{#produk}}…{{/produk}} diulang untuk setiap produk. Blok {{#toko}}, {{#catatan_produk}}, {{#diskon}}, {{#ongkir}}, {{#biaya_lain}}, dan {{#catatan}} hanya tampil ketika datanya tersedia.</div>
+        <div class="row-meta">Data produk: {{nomor}}, {{nama_produk}}, {{jumlah}}, {{satuan}}, {{harga}}, {{subtotal}}, {{catatan_produk}}. Data nota: {{invoice}}, {{tanggal}}, {{pelanggan}}, {{toko}}, {{total}}, {{dibayar}}, {{label_sisa}}, {{sisa}}, {{diskon}}, {{ongkir}}, {{label_biaya_lain}}, {{biaya_lain}}, {{catatan}}, {{footer}}.</div>
       </section>
       <section class="settings-whatsapp-card">
         <div class="settings-whatsapp-heading"><div><b>Pengingat jadwal dan pembayaran</b><small>Digunakan oleh tombol WhatsApp pada Jadwal &amp; Pengingat.</small></div><button type="button" class="btn small ghost" id="resetWhatsappReminder">Kembalikan default</button></div>
-        <textarea id="fWhatsappReminderTemplate" rows="11" spellcheck="false">${escapeHtml(reminderTemplate)}</textarea>
-        <div class="row-meta">Placeholder: {{pelanggan}}, {{toko}}, {{detail}}, {{invoice}}, {{tanggal}}, {{sisa}}, {{konfirmasi}}, {{emoji_salam}}.</div>
+        <textarea id="fWhatsappReminderTemplate" rows="18" spellcheck="false">${escapeHtml(reminderTemplate)}</textarea>
+        <div class="row-meta">Semua kalimat pengingat terlihat dan dapat diedit. Blok {{#jadwal}}, {{#pembayaran}}, {{#jadwal_dan_pembayaran}}, {{#hanya_jadwal}}, dan {{#hanya_pembayaran}} hanya tampil sesuai kondisi nota.</div>
+        <div class="row-meta">Data tersedia: {{pelanggan}}, {{toko}}, {{invoice}}, {{tanggal}}, {{sisa}}, dan {{emoji_salam}}.</div>
       </section>
       <button class="btn" id="saveWhatsappTemplates">Simpan Format WhatsApp</button>
     </div>`;
