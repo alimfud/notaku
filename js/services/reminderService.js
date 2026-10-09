@@ -11,7 +11,7 @@ function dayKey(offset = 0) {
   return `${y}-${m}-${d}`;
 }
 
-export function getReminderItems(summaries) {
+export function getReminderItems(summaries, { storeName = 'Toko Saya' } = {}) {
   const today = dayKey();
   const nextWeek = dayKey(7);
   const items = [];
@@ -30,10 +30,7 @@ export function getReminderItems(summaries) {
     // untuk kondisi khusus agar informasi tidak berulang.
     const pickupLabel = overduePickup ? 'Pengambilan terlewat' : '';
     const paymentLabel = `Sisa ${rupiah(remaining)}`;
-    const messageParts = [`Halo ${sale.customerName}, terkait nota ${sale.invoiceNumber} di NotaKu.`];
-    if (hasPickupReminder) messageParts.push(overduePickup ? 'Pesanan belum diambil.' : `Pesanan dijadwalkan diambil ${dateShort(sale.saleDate)}.`);
-    if (hasPaymentReminder) messageParts.push(`Sisa pembayaran ${rupiah(remaining)}.`);
-    messageParts.push('Mohon konfirmasi ya. Terima kasih.');
+    const message = buildReminderMessage({ sale, remaining, hasPickupReminder, overduePickup, hasPaymentReminder, storeName });
     items.push({
       type: hasPaymentReminder && !hasPickupReminder ? 'payment' : 'pickup',
       priority: overduePickup || summary.displayStatus === 'UNPAID' ? 0 : 1,
@@ -44,10 +41,23 @@ export function getReminderItems(summaries) {
       processLabel: PROCESS_STATUS_LABEL[getProcessStatus(sale)],
       displayStatus: summary.displayStatus,
       label: [hasPickupReminder ? pickupLabel : '', hasPaymentReminder ? paymentLabel : ''].filter(Boolean).join(' · '),
-      message: messageParts.join(' '),
+      message,
     });
   }
   return items.sort((a, b) => a.priority - b.priority || (a.sale.saleDate + a.sale.saleTime).localeCompare(b.sale.saleDate + b.sale.saleTime));
+}
+
+export function buildReminderMessage({ sale, remaining, hasPickupReminder, overduePickup, hasPaymentReminder, storeName = 'Toko Saya' }) {
+  const detailParts = [];
+  if (hasPickupReminder) {
+    const pickupText = overduePickup
+      ? 'Pesanan belum diambil.'
+      : `Pesanan dijadwalkan diambil ${dateShort(sale.saleDate)}.`;
+    detailParts.push(`*${pickupText}*`);
+  }
+  if (hasPaymentReminder) detailParts.push(`*Sisa pembayaran* \`${rupiah(remaining)}\`.`);
+  detailParts.push('*Mohon konfirmasi ya.*');
+  return `*Halo ${sale.customerName},*\n\n*Terkait nota ${sale.invoiceNumber} di <${storeName}>.*\n\n${detailParts.join(' ')}\n*Terima kasih.*`;
 }
 
 export function reminderWhatsAppUrl(item) {

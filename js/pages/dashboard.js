@@ -43,7 +43,7 @@ export async function render(root) {
   const orderPeriodLabel = `${dateShort(activity.start)} – ${dateShort(activity.end)} · 7 hari sebelum & sesudah`;
   const pending = summaries.filter(({ sale }) => !sale.completed);
   const pickupThisWeek = pending.filter(({ sale }) => sale.saleDate >= start && sale.saleDate <= end);
-  const reminders = getReminderItems(summaries).slice(0, 6);
+  const reminders = getReminderItems(summaries, { storeName: settings.storeName }).slice(0, 6);
   const pickupCountText = pickupThisWeek.length ? `Ada ${pickupThisWeek.length}` : 'Tidak ada';
   const unpaidValue = rupiah(report.totalReceivables);
   const hour = new Date().getHours();

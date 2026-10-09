@@ -1,0 +1,53 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import vm from 'node:vm';
+
+const source = (await readFile(new URL('../js/services/reminderService.js', import.meta.url), 'utf8'))
+  .replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+const context = vm.createContext({
+  Date,
+  dateShort: () => '10 Okt 2026',
+  rupiah: (value) => 'Rp' + Math.round(value).toLocaleString('id-ID'),
+  toWhatsAppNumber: (value) => value,
+  getProcessStatus: () => 'NEW',
+  PROCESS_STATUS_LABEL: { NEW: 'Baru' },
+  encodeURIComponent,
+});
+vm.runInContext(source + '\nglobalThis.buildMessage = buildReminderMessage; globalThis.waUrl = reminderWhatsAppUrl;', context);
+
+const sale = {
+  customerName: 'NAMA Pelanggan',
+  invoiceNumber: 'INV-260901',
+  saleDate: '2026-10-10',
+};
+
+test('pickup and payment reminder follows the WhatsApp paragraph format', () => {
+  const message = context.buildMessage({
+    sale,
+    remaining: 1015000,
+    hasPickupReminder: true,
+    overduePickup: false,
+    hasPaymentReminder: true,
+    storeName: 'Jajan Hajatan',
+  });
+  assert.equal(message,
+    '*Halo NAMA Pelanggan,*\n\n' +
+    '*Terkait nota INV-260901 di <Jajan Hajatan>.*\n\n' +
+    '*Pesanan dijadwalkan diambil 10 Okt 2026.* *Sisa pembayaran* `Rp1.015.000`. *Mohon konfirmasi ya.*\n' +
+    '*Terima kasih.*');
+  assert.equal(decodeURIComponent(context.waUrl({ phone: '6285156654155', message }).split('text=')[1]), message);
+});
+
+test('payment-only reminder omits pickup wording', () => {
+  const message = context.buildMessage({
+    sale,
+    remaining: 50000,
+    hasPickupReminder: false,
+    overduePickup: false,
+    hasPaymentReminder: true,
+    storeName: 'Jajan Hajatan',
+  });
+  assert.doesNotMatch(message, /dijadwalkan|belum diambil/);
+  assert.match(message, /Sisa pembayaran\* `Rp50\.000`/);
+});
