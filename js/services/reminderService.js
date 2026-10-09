@@ -48,15 +48,15 @@ export function getReminderItems(summaries, { storeName = 'Toko Saya' } = {}) {
 }
 
 export function buildReminderMessage({ sale, remaining, hasPickupReminder, hasPaymentReminder, storeName = 'Toko Saya' }) {
-  const details = [`*· No. Nota: ${sale.invoiceNumber}*`];
-  if (hasPickupReminder) details.push(`*· Jadwal Pengambilan: ${dateShort(sale.saleDate)}*`);
-  if (hasPaymentReminder) details.push(`*· Sisa Pembayaran: ${rupiah(remaining)}*`);
+  const details = [`· No. Nota: *${sale.invoiceNumber}*`];
+  if (hasPickupReminder) details.push(`· Jadwal Pengambilan: *${dateShort(sale.saleDate)}*`);
+  if (hasPaymentReminder) details.push(`· Sisa Pembayaran: *${rupiah(remaining)}*`);
   const confirmation = hasPickupReminder && hasPaymentReminder
     ? 'Mohon konfirmasi jadwal pengambilan dan sisa pembayarannya ya, Kak.'
     : hasPickupReminder
       ? 'Mohon konfirmasi jadwal pengambilannya ya, Kak.'
       : 'Mohon konfirmasi sisa pembayarannya ya, Kak.';
-  return `Halo *${sale.customerName}* 🙏\n\nKami ingin mengingatkan kembali mengenai pesanan Kak di *${storeName}*:\n${details.join('\n')}\n\n> ${confirmation}\nTerima kasih.`;
+  return `Halo *${sale.customerName}* \u{1F64F}\n\nKami ingin mengingatkan kembali mengenai pesanan Kak di *${storeName}*:\n${details.join('\n')}\n\n> ${confirmation}\nTerima kasih.`;
 }
 
 export function reminderWhatsAppUrl(item) {
