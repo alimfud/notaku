@@ -57,7 +57,7 @@ export function buildReminderMessage({ sale, remaining, hasPickupReminder, overd
   }
   if (hasPaymentReminder) detailParts.push(`*Sisa pembayaran* \`${rupiah(remaining)}\`.`);
   detailParts.push('*Mohon konfirmasi ya.*');
-  return `*Halo ${sale.customerName},*\n\n*Terkait nota ${sale.invoiceNumber} di <${storeName}>.*\n\n${detailParts.join(' ')}\n*Terima kasih.*`;
+  return `*Halo ${sale.customerName},*\n\n*Terkait nota ${sale.invoiceNumber} di ${storeName}.*\n\n${detailParts.join(' ')}\n*Terima kasih.*`;
 }
 
 export function reminderWhatsAppUrl(item) {
