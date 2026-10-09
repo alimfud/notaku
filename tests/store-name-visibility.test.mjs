@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildShareText } from '../js/services/printerService.js';
 import { buildReceiptBytes } from '../js/services/printing/bluetoothPrinter.js';
+import { DEFAULT_WHATSAPP_SHARE_TEMPLATE } from '../js/services/whatsappTemplateService.js';
 
 function receiptData(storeName) {
   return {
@@ -27,6 +28,7 @@ test('shared receipt text uses the compact receipt layout', () => {
   data.paid = 100000;
   data.remaining = 125000;
   data.footerNote = 'Terimakasih\nwww.jajan.my.id\n09/10/2026 15:55:00';
+  data.whatsappTextTemplate = DEFAULT_WHATSAPP_SHARE_TEMPLATE;
   const text = buildShareText(data);
   assert.match(text, /\*NOTA PESANAN\*/);
   assert.match(text, /INV-001 \|\| 9 Okt 2026/);

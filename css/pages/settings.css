@@ -66,6 +66,14 @@
 [data-page="settings"] .settings-help-contact i{color:var(--muted);font-size:20px;font-style:normal;}
 [data-page="settings"] .settings-help-contact--empty{cursor:default;}
 [data-page="settings"] .settings-logo-remove{margin-top:8px;}
+[data-page="settings"] .settings-whatsapp-page{display:grid;gap:14px;}
+[data-page="settings"] .settings-whatsapp-card{display:grid;gap:10px;padding:14px;border:1px solid var(--outline);border-radius:14px;background:var(--surface);}
+[data-page="settings"] .settings-whatsapp-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+[data-page="settings"] .settings-whatsapp-heading>div{display:grid;gap:3px;}
+[data-page="settings"] .settings-whatsapp-heading b{font-size:14px;color:var(--ink);}
+[data-page="settings"] .settings-whatsapp-heading small{font-size:11px;line-height:1.4;color:var(--muted);}
+[data-page="settings"] .settings-whatsapp-heading .btn{flex:none;margin:0;}
+[data-page="settings"] .settings-whatsapp-card textarea{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:1.5;resize:vertical;}
 [data-page="settings"] .settings-privacy{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;}
 [data-page="settings"] .settings-label{font-size:14px;font-weight:600;}
 [data-page="settings"] .settings-phone-select{width:auto;}

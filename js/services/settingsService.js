@@ -1,6 +1,7 @@
 // settingsService.js — pengaturan toko (satu baris, id = 1).
 
 import * as db from '../db.js';
+import { DEFAULT_WHATSAPP_SHARE_TEMPLATE, DEFAULT_WHATSAPP_REMINDER_TEMPLATE } from './whatsappTemplateService.js';
 
 const DEFAULTS = {
   id: 1,
@@ -8,8 +9,8 @@ const DEFAULTS = {
   storeAddress: '',
   storePhone: '',
   footerNote: 'Terima kasih atas kunjungan Anda.',
-  // Kosong berarti memakai format Bagikan Sebagai Teks bawaan.
-  whatsappTextTemplate: '',
+  whatsappTextTemplate: DEFAULT_WHATSAPP_SHARE_TEMPLATE,
+  whatsappReminderTemplate: DEFAULT_WHATSAPP_REMINDER_TEMPLATE,
   storeLogoData: '',
   storeLogoMaxWidth: 100,
   showStoreNameOnReceipt: true,
@@ -81,6 +82,8 @@ export async function getSettings() {
     _cache = {
       ...DEFAULTS,
       ...existing,
+      whatsappTextTemplate: existing.whatsappTextTemplate?.trim() || DEFAULT_WHATSAPP_SHARE_TEMPLATE,
+      whatsappReminderTemplate: existing.whatsappReminderTemplate?.trim() || DEFAULT_WHATSAPP_REMINDER_TEMPLATE,
       autoBackup: { ...DEFAULTS.autoBackup, ...existing.autoBackup },
       security: { ...DEFAULTS.security, ...existing.security },
     };

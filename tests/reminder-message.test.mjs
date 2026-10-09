@@ -62,3 +62,20 @@ test('payment-only reminder omits pickup wording', () => {
   assert.match(message, /Sisa Pembayaran: \*Rp50\.000\*/);
   assert.match(message, /> Mohon konfirmasi sisa pembayarannya ya, Kak\./);
 });
+
+test('reminder accepts a custom WhatsApp template', () => {
+  const message = context.buildMessage({
+    sale,
+    remaining: 50000,
+    hasPickupReminder: false,
+    hasPaymentReminder: true,
+    storeName: 'Jajan Hajatan',
+    reminderTemplate: 'Halo {{pelanggan}} {{emoji_salam}}\nNota {{invoice}}\n{{detail}}\n{{konfirmasi}}',
+  });
+  assert.equal(message,
+    'Halo NAMA Pelanggan __NOTAKU_PRAYER_EMOJI__\n' +
+    'Nota INV-260901\n' +
+    '· No. Nota: *INV-260901*\n' +
+    '· Sisa Pembayaran: *Rp50.000*\n' +
+    'Mohon konfirmasi sisa pembayarannya ya, Kak.');
+});

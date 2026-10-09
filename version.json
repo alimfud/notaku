@@ -1,4 +1,4 @@
 {
-  "version": "1.32.37",
-  "notes": "Ditambahkan template pesan WhatsApp opsional dan dikembalikan frasa pengingat sesuai format yang disepakati."
+  "version": "1.32.38",
+  "notes": "Format WhatsApp dipisahkan ke menu khusus dengan template bawaan untuk nota dan pengingat yang dapat disesuaikan."
 }

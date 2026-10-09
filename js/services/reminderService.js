@@ -14,7 +14,7 @@ function dayKey(offset = 0) {
   return `${y}-${m}-${d}`;
 }
 
-export function getReminderItems(summaries, { storeName = 'Toko Saya' } = {}) {
+export function getReminderItems(summaries, { storeName = 'Toko Saya', reminderTemplate = '' } = {}) {
   const today = dayKey();
   const nextWeek = dayKey(7);
   const items = [];
@@ -33,7 +33,7 @@ export function getReminderItems(summaries, { storeName = 'Toko Saya' } = {}) {
     // untuk kondisi khusus agar informasi tidak berulang.
     const pickupLabel = overduePickup ? 'Pengambilan terlewat' : '';
     const paymentLabel = `Sisa ${rupiah(remaining)}`;
-    const message = buildReminderMessage({ sale, remaining, hasPickupReminder, overduePickup, hasPaymentReminder, storeName });
+    const message = buildReminderMessage({ sale, remaining, hasPickupReminder, overduePickup, hasPaymentReminder, storeName, reminderTemplate });
     items.push({
       type: hasPaymentReminder && !hasPickupReminder ? 'payment' : 'pickup',
       priority: overduePickup || summary.displayStatus === 'UNPAID' ? 0 : 1,
@@ -50,7 +50,7 @@ export function getReminderItems(summaries, { storeName = 'Toko Saya' } = {}) {
   return items.sort((a, b) => a.priority - b.priority || (a.sale.saleDate + a.sale.saleTime).localeCompare(b.sale.saleDate + b.sale.saleTime));
 }
 
-export function buildReminderMessage({ sale, remaining, hasPickupReminder, hasPaymentReminder, storeName = 'Toko Saya' }) {
+export function buildReminderMessage({ sale, remaining, hasPickupReminder, hasPaymentReminder, storeName = 'Toko Saya', reminderTemplate = '' }) {
   const details = [`· No. Nota: *${sale.invoiceNumber}*`];
   if (hasPickupReminder) details.push(`· Jadwal Pengambilan: *${dateShort(sale.saleDate)}*`);
   if (hasPaymentReminder) details.push(`· Sisa Pembayaran: *${rupiah(remaining)}*`);
@@ -59,7 +59,18 @@ export function buildReminderMessage({ sale, remaining, hasPickupReminder, hasPa
     : hasPickupReminder
       ? 'Mohon konfirmasi jadwal pengambilannya ya, Kak.'
       : 'Mohon konfirmasi sisa pembayarannya ya, Kak.';
-  return `Halo *${sale.customerName}* ${PRAYER_EMOJI_TOKEN}\n\nKami ingin mengingatkan kembali mengenai pesanan Kak di *${storeName}*:\n${details.join('\n')}\n\n> ${confirmation}\nTerima kasih.`;
+  const fallback = `Halo *{{pelanggan}}* {{emoji_salam}}\n\nKami ingin mengingatkan kembali mengenai pesanan Kak di *{{toko}}*:\n{{detail}}\n\n> {{konfirmasi}}\nTerima kasih.`;
+  const values = {
+    pelanggan: sale.customerName || '',
+    toko: storeName || '',
+    detail: details.join('\n'),
+    invoice: sale.invoiceNumber || '',
+    tanggal: dateShort(sale.saleDate),
+    sisa: rupiah(remaining),
+    konfirmasi: confirmation,
+    emoji_salam: PRAYER_EMOJI_TOKEN,
+  };
+  return String(reminderTemplate || fallback).replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (match, key) => Object.hasOwn(values, key.toLowerCase()) ? values[key.toLowerCase()] : match).trim();
 }
 
 export function reminderWhatsAppUrl(item) {

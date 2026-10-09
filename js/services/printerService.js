@@ -9,6 +9,14 @@ function itemText(data) {
   ].join('\n')).join('\n');
 }
 
+function detailText(data) {
+  const lines = [itemText(data)];
+  if (data.discount > 0) lines.push(`Diskon: -${rupiah(data.discount)}`);
+  if (data.shipping > 0) lines.push(`Ongkos Kirim: +${rupiah(data.shipping)}`);
+  if (data.other > 0) lines.push(`${data.otherLabel || 'Lain-lain'}: +${rupiah(data.other)}`);
+  return lines.filter(Boolean).join('\n');
+}
+
 function footerText(footerNote) {
   return String(footerNote || '').split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
     const dateOnly = line.match(/^(\d{2}\/\d{2}\/\d{4})(?:\s+\d{2}:\d{2}:\d{2})?$/);
@@ -19,20 +27,25 @@ function footerText(footerNote) {
 }
 
 function customShareText(data, template) {
-  const detail = itemText(data);
   const values = {
     invoice: data.invoiceNumber || '',
     tanggal: data.dateLabel || '',
     pelanggan: data.customerName || '',
     toko: data.storeName || '',
-    detail,
+    detail: detailText(data),
     total: rupiah(data.total),
     dibayar: rupiah(data.paid),
+    label_sisa: data.remaining > 0 ? 'Sisa' : 'Kembali',
     sisa: rupiah(Math.abs(data.remaining)),
     catatan: data.note || '',
     footer: footerText(data.footerNote),
   };
-  return template.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (match, key) => Object.hasOwn(values, key.toLowerCase()) ? values[key.toLowerCase()] : match).trim();
+  const optional = new Set(['toko', 'catatan']);
+  const prepared = template.split('\n').filter((line) => {
+    const keys = [...line.matchAll(/\{\{\s*([a-z_]+)\s*\}\}/gi)].map((match) => match[1].toLowerCase());
+    return !keys.some((key) => optional.has(key) && !values[key]);
+  }).join('\n');
+  return prepared.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (match, key) => Object.hasOwn(values, key.toLowerCase()) ? values[key.toLowerCase()] : match).trim();
 }
 
 export function buildShareText(data) {

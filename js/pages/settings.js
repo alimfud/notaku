@@ -13,6 +13,7 @@ import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
 import * as db from '../db.js';
 import { formatAuditDetails, getAuditLogs, recordAudit } from '../services/auditLogService.js';
 import { registerBiometric, biometricAvailable } from '../services/appLockService.js';
+import { DEFAULT_WHATSAPP_SHARE_TEMPLATE, DEFAULT_WHATSAPP_REMINDER_TEMPLATE } from '../services/whatsappTemplateService.js';
 
 function setBackupLoading(visible, message = 'Sedang memproses…') {
   const overlay = document.getElementById('loadingOverlay');
@@ -51,6 +52,7 @@ async function runInitialConnectedSync(root, drive) {
 export async function render(root, params) {
   const sub = params[0];
   if (sub === 'store') return renderStore(root);
+  if (sub === 'whatsapp') return renderWhatsapp(root);
   if (sub === 'invoice') return renderInvoice(root);
   if (sub === 'printer') return renderPrinter(root);
   if (sub === 'qris') return renderQris(root);
@@ -81,6 +83,7 @@ function renderHub(root) {
       ${tile('📊', 'Laporan', 'Penjualan, pembayaran & ringkasan usaha', 'reports')}
       <div class="settings-spacer"></div>
       ${tile('🏪', 'Info Toko', 'Nama, alamat, telepon toko', 'settings/store')}
+      ${tile('💬', 'Format WhatsApp', 'Atur format nota dan pengingat pelanggan', 'settings/whatsapp')}
       ${tile('🧾', 'Nomor Nota', 'Prefix, digit, mode reset nomor', 'settings/invoice')}
       ${tile('🖨️', 'Printer', 'Ukuran kertas & printer Bluetooth', 'settings/printer')}
       ${tile('🔳', 'QRIS', 'Tampilkan kode QRIS di struk belum lunas', 'settings/qris')}
@@ -221,6 +224,41 @@ async function renderAudit(root) {
   root.innerHTML = `<div class="settings-simple-page settings-audit-page"><div class="settings-page-intro"><h2>Riwayat Aktivitas</h2><p>Perubahan penting pada data NotaKu.</p></div><div class="settings-audit-list">${logs.length ? logs.map((log) => `<article class="settings-audit-item"><span class="settings-audit-dot" data-action="${escapeHtml(log.action)}"></span><div><b>${escapeHtml(formatAuditDetails(log.details || log.action))}</b><small>${escapeHtml(entityLabels[log.entityType] || 'Data')} · ${new Date(log.createdAt).toLocaleString('id-ID')}</small></div></article>`).join('') : '<div class="settings-empty-card"><span>✓</span><b>Belum ada aktivitas</b><small>Perubahan data akan tercatat di sini.</small></div>'}</div></div>`;
 }
 
+async function renderWhatsapp(root) {
+  setPageTitle('Format WhatsApp');
+  setTopbarActions([]);
+  const settings = await getSettings();
+  const shareTemplate = settings.whatsappTextTemplate?.trim() || DEFAULT_WHATSAPP_SHARE_TEMPLATE;
+  const reminderTemplate = settings.whatsappReminderTemplate?.trim() || DEFAULT_WHATSAPP_REMINDER_TEMPLATE;
+  root.innerHTML = `
+    <div class="settings-simple-page settings-whatsapp-page">
+      <div class="settings-page-intro"><h2>Format WhatsApp</h2><p>Sesuaikan pesan yang dikirim kepada pelanggan. Format bawaan sudah diisikan dan dapat diubah kapan saja.</p></div>
+      <section class="settings-whatsapp-card">
+        <div class="settings-whatsapp-heading"><div><b>Bagikan nota sebagai teks</b><small>Digunakan dari tombol Bagikan Sebagai Teks pada detail nota.</small></div><button type="button" class="btn small ghost" id="resetWhatsappShare">Kembalikan default</button></div>
+        <textarea id="fWhatsappTemplate" rows="18" spellcheck="false">${escapeHtml(shareTemplate)}</textarea>
+        <div class="row-meta">Placeholder: {{invoice}}, {{tanggal}}, {{pelanggan}}, {{toko}}, {{detail}}, {{total}}, {{dibayar}}, {{label_sisa}}, {{sisa}}, {{catatan}}, {{footer}}.</div>
+      </section>
+      <section class="settings-whatsapp-card">
+        <div class="settings-whatsapp-heading"><div><b>Pengingat jadwal dan pembayaran</b><small>Digunakan oleh tombol WhatsApp pada Jadwal &amp; Pengingat.</small></div><button type="button" class="btn small ghost" id="resetWhatsappReminder">Kembalikan default</button></div>
+        <textarea id="fWhatsappReminderTemplate" rows="11" spellcheck="false">${escapeHtml(reminderTemplate)}</textarea>
+        <div class="row-meta">Placeholder: {{pelanggan}}, {{toko}}, {{detail}}, {{invoice}}, {{tanggal}}, {{sisa}}, {{konfirmasi}}, {{emoji_salam}}.</div>
+      </section>
+      <button class="btn" id="saveWhatsappTemplates">Simpan Format WhatsApp</button>
+    </div>`;
+  const shareInput = root.querySelector('#fWhatsappTemplate');
+  const reminderInput = root.querySelector('#fWhatsappReminderTemplate');
+  root.querySelector('#resetWhatsappShare').onclick = () => { shareInput.value = DEFAULT_WHATSAPP_SHARE_TEMPLATE; };
+  root.querySelector('#resetWhatsappReminder').onclick = () => { reminderInput.value = DEFAULT_WHATSAPP_REMINDER_TEMPLATE; };
+  root.querySelector('#saveWhatsappTemplates').onclick = async () => {
+    const whatsappTextTemplate = shareInput.value.trim() || DEFAULT_WHATSAPP_SHARE_TEMPLATE;
+    const whatsappReminderTemplate = reminderInput.value.trim() || DEFAULT_WHATSAPP_REMINDER_TEMPLATE;
+    shareInput.value = whatsappTextTemplate;
+    reminderInput.value = whatsappReminderTemplate;
+    await saveSettings({ whatsappTextTemplate, whatsappReminderTemplate });
+    toast('Format WhatsApp disimpan');
+  };
+}
+
 async function renderStore(root) {
   setPageTitle('Info Toko');
   setTopbarActions([]);
@@ -253,7 +291,6 @@ async function renderStore(root) {
     <div class="field"><label>Alamat</label><textarea id="fAddress" rows="2">${escapeHtml(s.storeAddress)}</textarea></div>
     <div class="field"><label>Telepon</label><input id="fPhone" value="${escapeHtml(s.storePhone)}"></div>
     <div class="field"><label>Catatan Kaki Struk</label><textarea id="fFooter" rows="3">${escapeHtml(s.footerNote)}</textarea><div class="row-meta"></div></div>
-    <div class="field"><label>Format Pesan WhatsApp (opsional)</label><textarea id="fWhatsappTemplate" rows="8" placeholder="Kosongkan untuk memakai format bawaan">${escapeHtml(s.whatsappTextTemplate || '')}</textarea><div class="row-meta">Kosongkan untuk memakai format rapi bawaan. Placeholder yang tersedia: {{invoice}}, {{tanggal}}, {{pelanggan}}, {{toko}}, {{detail}}, {{total}}, {{dibayar}}, {{sisa}}, {{catatan}}, {{footer}}.</div></div>
     <div class="section-title">Privasi Data Pelanggan</div>
     <label class="settings-privacy">
       <div>
@@ -276,7 +313,6 @@ async function renderStore(root) {
       storeAddress: root.querySelector('#fAddress').value.trim(),
       storePhone: root.querySelector('#fPhone').value.trim(),
       footerNote: root.querySelector('#fFooter').value.trim(),
-      whatsappTextTemplate: root.querySelector('#fWhatsappTemplate').value.trim(),
     });
     toast('Pengaturan toko disimpan');
   };
