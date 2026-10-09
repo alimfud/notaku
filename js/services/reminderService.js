@@ -1,6 +1,11 @@
 import { dateShort, toWhatsAppNumber, rupiah } from '../format.js';
 import { getProcessStatus, PROCESS_STATUS_LABEL } from './saleService.js';
-import { renderWhatsAppTemplate } from './whatsappTemplateService.js';
+import {
+  renderWhatsAppTemplate,
+  DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE,
+  DEFAULT_WHATSAPP_REMINDER_PICKUP_TEMPLATE,
+  DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE,
+} from './whatsappTemplateService.js';
 
 const PRAYER_EMOJI_TOKEN = '__NOTAKU_PRAYER_EMOJI__';
 const PRAYER_EMOJI_URL_BYTES = '%F0%9F%99%8F';
@@ -15,7 +20,7 @@ function dayKey(offset = 0) {
   return `${y}-${m}-${d}`;
 }
 
-export function getReminderItems(summaries, { storeName = 'Toko Saya', reminderTemplate = '' } = {}) {
+export function getReminderItems(summaries, { storeName = 'Toko Saya', reminderTemplates = {} } = {}) {
   const today = dayKey();
   const nextWeek = dayKey(7);
   const items = [];
@@ -34,6 +39,9 @@ export function getReminderItems(summaries, { storeName = 'Toko Saya', reminderT
     // untuk kondisi khusus agar informasi tidak berulang.
     const pickupLabel = overduePickup ? 'Pengambilan terlewat' : '';
     const paymentLabel = `Sisa ${rupiah(remaining)}`;
+    const reminderTemplate = hasPickupReminder && hasPaymentReminder
+      ? reminderTemplates.both
+      : hasPickupReminder ? reminderTemplates.pickup : reminderTemplates.payment;
     const message = buildReminderMessage({ sale, remaining, hasPickupReminder, overduePickup, hasPaymentReminder, storeName, reminderTemplate });
     items.push({
       type: hasPaymentReminder && !hasPickupReminder ? 'payment' : 'pickup',
@@ -60,7 +68,9 @@ export function buildReminderMessage({ sale, remaining, hasPickupReminder, hasPa
     : hasPickupReminder
       ? 'Mohon konfirmasi jadwal pengambilannya ya, Kak.'
       : 'Mohon konfirmasi sisa pembayarannya ya, Kak.';
-  const fallback = `Halo *{{pelanggan}}* {{emoji_salam}}\n\nKami ingin mengingatkan kembali mengenai pesanan Kak di *{{toko}}*:\n{{detail}}\n\n> {{konfirmasi}}\nTerima kasih.`;
+  const fallback = hasPickupReminder && hasPaymentReminder
+    ? DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE
+    : hasPickupReminder ? DEFAULT_WHATSAPP_REMINDER_PICKUP_TEMPLATE : DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE;
   const values = {
     pelanggan: sale.customerName || '',
     toko: storeName || '',
@@ -76,7 +86,8 @@ export function buildReminderMessage({ sale, remaining, hasPickupReminder, hasPa
     hanya_jadwal: hasPickupReminder && !hasPaymentReminder,
     hanya_pembayaran: !hasPickupReminder && hasPaymentReminder,
   };
-  return renderWhatsAppTemplate(reminderTemplate || fallback, values);
+  return renderWhatsAppTemplate(reminderTemplate || fallback, values)
+    .replaceAll(String.fromCodePoint(0x1F64F), PRAYER_EMOJI_TOKEN);
 }
 
 export function reminderWhatsAppUrl(item) {

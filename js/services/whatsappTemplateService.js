@@ -35,6 +35,7 @@ const REMINDER_CONFIRMATION_TEMPLATE = `{{#jadwal_dan_pembayaran}}Mohon konfirma
 {{/hanya_pembayaran}}`;
 
 const REMINDER_QUOTED_CONFIRMATION_TEMPLATE = REMINDER_CONFIRMATION_TEMPLATE.replace(/\}\}(?=Mohon)/g, '}}> ');
+const PRAYER_EMOJI = String.fromCodePoint(0x1F64F);
 
 export const DEFAULT_WHATSAPP_SHARE_TEMPLATE = `*NOTA PESANAN*
 
@@ -60,11 +61,42 @@ Dibayar: \`{{dibayar}}\`
 
 {{footer}}`;
 
-export const DEFAULT_WHATSAPP_REMINDER_TEMPLATE = `Halo *{{pelanggan}}* {{emoji_salam}}
+export const LEGACY_DETAILED_WHATSAPP_REMINDER_TEMPLATE = `Halo *{{pelanggan}}* {{emoji_salam}}
 
 Kami ingin mengingatkan kembali mengenai pesanan Kak di *{{toko}}*:
 ${REMINDER_DETAIL_TEMPLATE}
 ${REMINDER_QUOTED_CONFIRMATION_TEMPLATE}Terima kasih.`;
+
+export const DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE = `Halo *{{pelanggan}}* ${PRAYER_EMOJI}
+
+Kami ingin mengingatkan kembali mengenai pesanan di *{{toko}}*:
+· No. Nota: *{{invoice}}*
+· Jadwal Pengambilan: *{{tanggal}}*
+· Sisa Pembayaran: *{{sisa}}*
+
+> Mohon konfirmasi jadwal pengambilan dan sisa pembayarannya ya, Kak.
+Terima kasih.`;
+
+export const DEFAULT_WHATSAPP_REMINDER_PICKUP_TEMPLATE = `Halo *{{pelanggan}}* ${PRAYER_EMOJI}
+
+Kami ingin mengingatkan kembali mengenai pesanan di *{{toko}}*:
+· No. Nota: *{{invoice}}*
+· Jadwal Pengambilan: *{{tanggal}}*
+
+> Mohon konfirmasi jadwal pengambilannya ya, Kak.
+Terima kasih.`;
+
+export const DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE = `Halo *{{pelanggan}}* ${PRAYER_EMOJI}
+
+Kami ingin mengingatkan kembali mengenai pesanan di *{{toko}}*:
+· No. Nota: *{{invoice}}*
+· Sisa Pembayaran: *{{sisa}}*
+
+> Mohon konfirmasi sisa pembayarannya ya, Kak.
+Terima kasih.`;
+
+// Alias kompatibilitas untuk pemanggil lama.
+export const DEFAULT_WHATSAPP_REMINDER_TEMPLATE = DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE;
 
 export function expandWhatsAppReminderTemplate(template) {
   return String(template || '')
@@ -72,6 +104,17 @@ export function expandWhatsAppReminderTemplate(template) {
     .replace(/>[ \t]*\{\{\s*konfirmasi\s*\}\}/gi, REMINDER_QUOTED_CONFIRMATION_TEMPLATE)
     .replace(/\{\{\s*konfirmasi\s*\}\}/gi, REMINDER_CONFIRMATION_TEMPLATE)
     .trim();
+}
+
+export function reminderTemplateForScenario(template, scenario) {
+  const values = {
+    jadwal: scenario !== 'payment',
+    pembayaran: scenario !== 'pickup',
+    jadwal_dan_pembayaran: scenario === 'both',
+    hanya_jadwal: scenario === 'pickup',
+    hanya_pembayaran: scenario === 'payment',
+  };
+  return renderWhatsAppTemplate(expandWhatsAppReminderTemplate(template), values);
 }
 
 export function renderWhatsAppTemplate(template, values = {}, arrays = {}) {

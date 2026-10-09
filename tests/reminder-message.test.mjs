@@ -2,12 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { DEFAULT_WHATSAPP_REMINDER_TEMPLATE, expandWhatsAppReminderTemplate } from '../js/services/whatsappTemplateService.js';
+import {
+  DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE,
+  DEFAULT_WHATSAPP_REMINDER_PICKUP_TEMPLATE,
+  DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE,
+  expandWhatsAppReminderTemplate,
+} from '../js/services/whatsappTemplateService.js';
 
 const templateSource = (await readFile(new URL('../js/services/whatsappTemplateService.js', import.meta.url), 'utf8'))
   .replace(/^export /gm, '');
 const source = (await readFile(new URL('../js/services/reminderService.js', import.meta.url), 'utf8'))
-  .replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+  .replace(/^import[\s\S]*?;\r?\n/gm, '').replace(/^export /gm, '');
 const context = vm.createContext({
   Date,
   dateShort: () => '10 Okt 2026',
@@ -33,11 +38,11 @@ test('pickup and payment reminder follows the WhatsApp paragraph format', () => 
     overduePickup: false,
     hasPaymentReminder: true,
     storeName: 'Jajan Hajatan',
-    reminderTemplate: DEFAULT_WHATSAPP_REMINDER_TEMPLATE,
+    reminderTemplate: DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE,
   });
   assert.equal(message,
     'Halo *NAMA Pelanggan* __NOTAKU_PRAYER_EMOJI__\n\n' +
-    'Kami ingin mengingatkan kembali mengenai pesanan Kak di *Jajan Hajatan*:\n' +
+    'Kami ingin mengingatkan kembali mengenai pesanan di *Jajan Hajatan*:\n' +
     '· No. Nota: *INV-260901*\n' +
     '· Jadwal Pengambilan: *10 Okt 2026*\n' +
     '· Sisa Pembayaran: *Rp1.015.000*\n\n' +
@@ -62,11 +67,25 @@ test('payment-only reminder omits pickup wording', () => {
     overduePickup: false,
     hasPaymentReminder: true,
     storeName: 'Jajan Hajatan',
-    reminderTemplate: DEFAULT_WHATSAPP_REMINDER_TEMPLATE,
+    reminderTemplate: DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE,
   });
   assert.doesNotMatch(message, /dijadwalkan|belum diambil/);
   assert.match(message, /Sisa Pembayaran: \*Rp50\.000\*/);
   assert.match(message, /> Mohon konfirmasi sisa pembayarannya ya, Kak\./);
+});
+
+test('pickup-only reminder uses its simple template', () => {
+  const message = context.buildMessage({
+    sale,
+    remaining: 0,
+    hasPickupReminder: true,
+    hasPaymentReminder: false,
+    storeName: 'Jajan Hajatan',
+    reminderTemplate: DEFAULT_WHATSAPP_REMINDER_PICKUP_TEMPLATE,
+  });
+  assert.match(message, /Jadwal Pengambilan: \*10 Okt 2026\*/);
+  assert.doesNotMatch(message, /Sisa Pembayaran/);
+  assert.match(message, /> Mohon konfirmasi jadwal pengambilannya ya, Kak\./);
 });
 
 test('reminder accepts a custom WhatsApp template', () => {

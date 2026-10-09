@@ -3,10 +3,13 @@
 import * as db from '../db.js';
 import {
   DEFAULT_WHATSAPP_SHARE_TEMPLATE,
-  DEFAULT_WHATSAPP_REMINDER_TEMPLATE,
+  DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE,
+  DEFAULT_WHATSAPP_REMINDER_PICKUP_TEMPLATE,
+  DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE,
   LEGACY_DEFAULT_WHATSAPP_SHARE_TEMPLATE,
   LEGACY_DEFAULT_WHATSAPP_REMINDER_TEMPLATE,
-  expandWhatsAppReminderTemplate,
+  LEGACY_DETAILED_WHATSAPP_REMINDER_TEMPLATE,
+  reminderTemplateForScenario,
 } from './whatsappTemplateService.js';
 
 const DEFAULTS = {
@@ -16,7 +19,9 @@ const DEFAULTS = {
   storePhone: '',
   footerNote: 'Terima kasih atas kunjungan Anda.',
   whatsappTextTemplate: DEFAULT_WHATSAPP_SHARE_TEMPLATE,
-  whatsappReminderTemplate: DEFAULT_WHATSAPP_REMINDER_TEMPLATE,
+  whatsappReminderBothTemplate: DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE,
+  whatsappReminderPickupTemplate: DEFAULT_WHATSAPP_REMINDER_PICKUP_TEMPLATE,
+  whatsappReminderPaymentTemplate: DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE,
   storeLogoData: '',
   storeLogoMaxWidth: 100,
   showStoreNameOnReceipt: true,
@@ -87,15 +92,20 @@ export async function getSettings() {
   if (existing) {
     const savedShareTemplate = existing.whatsappTextTemplate?.trim();
     const savedReminderTemplate = existing.whatsappReminderTemplate?.trim();
+    const oldReminderIsDefault = !savedReminderTemplate
+      || savedReminderTemplate === LEGACY_DEFAULT_WHATSAPP_REMINDER_TEMPLATE
+      || savedReminderTemplate === LEGACY_DETAILED_WHATSAPP_REMINDER_TEMPLATE;
     _cache = {
       ...DEFAULTS,
       ...existing,
       whatsappTextTemplate: !savedShareTemplate || savedShareTemplate === LEGACY_DEFAULT_WHATSAPP_SHARE_TEMPLATE
         ? DEFAULT_WHATSAPP_SHARE_TEMPLATE : savedShareTemplate,
-      whatsappReminderTemplate: expandWhatsAppReminderTemplate(
-        !savedReminderTemplate || savedReminderTemplate === LEGACY_DEFAULT_WHATSAPP_REMINDER_TEMPLATE
-          ? DEFAULT_WHATSAPP_REMINDER_TEMPLATE : savedReminderTemplate,
-      ),
+      whatsappReminderBothTemplate: existing.whatsappReminderBothTemplate?.trim()
+        || (oldReminderIsDefault ? DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE : reminderTemplateForScenario(savedReminderTemplate, 'both')),
+      whatsappReminderPickupTemplate: existing.whatsappReminderPickupTemplate?.trim()
+        || (oldReminderIsDefault ? DEFAULT_WHATSAPP_REMINDER_PICKUP_TEMPLATE : reminderTemplateForScenario(savedReminderTemplate, 'pickup')),
+      whatsappReminderPaymentTemplate: existing.whatsappReminderPaymentTemplate?.trim()
+        || (oldReminderIsDefault ? DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE : reminderTemplateForScenario(savedReminderTemplate, 'payment')),
       autoBackup: { ...DEFAULTS.autoBackup, ...existing.autoBackup },
       security: { ...DEFAULTS.security, ...existing.security },
     };
@@ -109,9 +119,9 @@ export async function getSettings() {
 export async function saveSettings(partial) {
   const current = await getSettings();
   const normalized = { ...partial };
-  if (Object.hasOwn(normalized, 'whatsappReminderTemplate')) {
-    normalized.whatsappReminderTemplate = expandWhatsAppReminderTemplate(normalized.whatsappReminderTemplate) || DEFAULT_WHATSAPP_REMINDER_TEMPLATE;
-  }
+  if (Object.hasOwn(normalized, 'whatsappReminderBothTemplate')) normalized.whatsappReminderBothTemplate = normalized.whatsappReminderBothTemplate?.trim() || DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE;
+  if (Object.hasOwn(normalized, 'whatsappReminderPickupTemplate')) normalized.whatsappReminderPickupTemplate = normalized.whatsappReminderPickupTemplate?.trim() || DEFAULT_WHATSAPP_REMINDER_PICKUP_TEMPLATE;
+  if (Object.hasOwn(normalized, 'whatsappReminderPaymentTemplate')) normalized.whatsappReminderPaymentTemplate = normalized.whatsappReminderPaymentTemplate?.trim() || DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE;
   const updated = { ...current, ...normalized, id: 1 };
   await db.put('settings', updated);
   _cache = updated;

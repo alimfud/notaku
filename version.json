@@ -1,4 +1,4 @@
 {
-  "version": "1.32.40",
-  "notes": "Placeholder gabungan pengingat WhatsApp dibuka otomatis agar seluruh label dan kalimat dapat diedit langsung di form."
+  "version": "1.32.42",
+  "notes": "Format pengingat WhatsApp disederhanakan menjadi tiga pesan lengkap; hanya data dinamis yang memakai tanda rumus."
 }
