@@ -53,11 +53,11 @@ export function buildReminderMessage({ sale, remaining, hasPickupReminder, overd
     const pickupText = overduePickup
       ? 'Pesanan belum diambil.'
       : `Pesanan dijadwalkan diambil ${dateShort(sale.saleDate)}.`;
-    detailParts.push(`*${pickupText}*`);
+    detailParts.push(pickupText);
   }
-  if (hasPaymentReminder) detailParts.push(`*Sisa pembayaran* \`${rupiah(remaining)}\`.`);
-  detailParts.push('*Mohon konfirmasi ya.*');
-  return `*Halo ${sale.customerName},*\n\n*Terkait nota ${sale.invoiceNumber} di ${storeName}.*\n\n${detailParts.join(' ')}\n*Terima kasih.*`;
+  if (hasPaymentReminder) detailParts.push(`Sisa pembayaran \`${rupiah(remaining)}\`.`);
+  detailParts.push('Mohon konfirmasi ya.');
+  return `Halo *${sale.customerName}*,\n\nTerkait nota *${sale.invoiceNumber}* di ${storeName}.\n\n> ${detailParts.join(' ')}\nTerima kasih.`;
 }
 
 export function reminderWhatsAppUrl(item) {

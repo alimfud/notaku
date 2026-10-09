@@ -1,4 +1,4 @@
 {
-  "version": "1.32.26",
-  "notes": "Nama toko pada pesan pengingat WhatsApp ditampilkan tanpa tanda kurung sudut."
+  "version": "1.32.27",
+  "notes": "Pesan pengingat WhatsApp kini memakai penebalan terbatas dan blok kutipan yang lebih rapi."
 }

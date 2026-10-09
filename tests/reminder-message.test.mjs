@@ -32,10 +32,10 @@ test('pickup and payment reminder follows the WhatsApp paragraph format', () => 
     storeName: 'Jajan Hajatan',
   });
   assert.equal(message,
-    '*Halo NAMA Pelanggan,*\n\n' +
-    '*Terkait nota INV-260901 di Jajan Hajatan.*\n\n' +
-    '*Pesanan dijadwalkan diambil 10 Okt 2026.* *Sisa pembayaran* `Rp1.015.000`. *Mohon konfirmasi ya.*\n' +
-    '*Terima kasih.*');
+    'Halo *NAMA Pelanggan*,\n\n' +
+    'Terkait nota *INV-260901* di Jajan Hajatan.\n\n' +
+    '> Pesanan dijadwalkan diambil 10 Okt 2026. Sisa pembayaran `Rp1.015.000`. Mohon konfirmasi ya.\n' +
+    'Terima kasih.');
   assert.equal(decodeURIComponent(context.waUrl({ phone: '6285156654155', message }).split('text=')[1]), message);
 });
 
@@ -49,5 +49,5 @@ test('payment-only reminder omits pickup wording', () => {
     storeName: 'Jajan Hajatan',
   });
   assert.doesNotMatch(message, /dijadwalkan|belum diambil/);
-  assert.match(message, /Sisa pembayaran\* `Rp50\.000`/);
+  assert.match(message, /Sisa pembayaran `Rp50\.000`/);
 });
