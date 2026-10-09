@@ -1,6 +1,9 @@
 import { dateShort, toWhatsAppNumber, rupiah } from '../format.js';
 import { getProcessStatus, PROCESS_STATUS_LABEL } from './saleService.js';
 
+const PRAYER_EMOJI_TOKEN = '__NOTAKU_PRAYER_EMOJI__';
+const PRAYER_EMOJI_URL_BYTES = '%F0%9F%99%8F';
+
 function dayKey(offset = 0) {
   const date = new Date();
   date.setHours(0, 0, 0, 0);
@@ -56,9 +59,14 @@ export function buildReminderMessage({ sale, remaining, hasPickupReminder, hasPa
     : hasPickupReminder
       ? 'Mohon konfirmasi jadwal pengambilannya ya, Kak.'
       : 'Mohon konfirmasi sisa pembayarannya ya, Kak.';
-  return `Halo *${sale.customerName}* \u{1F64F}\n\nKami ingin mengingatkan kembali mengenai pesanan Kak di *${storeName}*:\n${details.join('\n')}\n\n> ${confirmation}\nTerima kasih.`;
+  return `Halo *${sale.customerName}* ${PRAYER_EMOJI_TOKEN}\n\nKami ingin mengingatkan kembali mengenai pesanan Kak di *${storeName}*:\n${details.join('\n')}\n\n> ${confirmation}\nTerima kasih.`;
 }
 
 export function reminderWhatsAppUrl(item) {
-  return item.phone ? `https://wa.me/${item.phone}?text=${encodeURIComponent(item.message)}` : '';
+  if (!item.phone) return '';
+  // Jangan lewatkan emoji astral sebagai karakter mentah melalui HTML/redirect.
+  // Sisipkan byte UTF-8 URL resminya setelah seluruh teks ASCII di-encode.
+  const encodedToken = encodeURIComponent(PRAYER_EMOJI_TOKEN);
+  const encodedMessage = encodeURIComponent(item.message).replace(encodedToken, PRAYER_EMOJI_URL_BYTES);
+  return `https://wa.me/${item.phone}?text=${encodedMessage}`;
 }

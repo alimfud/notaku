@@ -32,7 +32,7 @@ test('pickup and payment reminder follows the WhatsApp paragraph format', () => 
     storeName: 'Jajan Hajatan',
   });
   assert.equal(message,
-    'Halo *NAMA Pelanggan* 🙏\n\n' +
+    'Halo *NAMA Pelanggan* __NOTAKU_PRAYER_EMOJI__\n\n' +
     'Kami ingin mengingatkan kembali mengenai pesanan Kak di *Jajan Hajatan*:\n' +
     '· No. Nota: *INV-260901*\n' +
     '· Jadwal Pengambilan: *10 Okt 2026*\n' +
@@ -41,7 +41,11 @@ test('pickup and payment reminder follows the WhatsApp paragraph format', () => 
     'Terima kasih.');
   const url = context.waUrl({ phone: '6285156654155', message });
   assert.match(url, /%F0%9F%99%8F/);
-  assert.equal(decodeURIComponent(url.split('text=')[1]), message);
+  assert.doesNotMatch(url, /NOTAKU_PRAYER_EMOJI/);
+  assert.equal(
+    decodeURIComponent(url.split('text=')[1]),
+    message.replace('__NOTAKU_PRAYER_EMOJI__', String.fromCodePoint(0x1F64F)),
+  );
 });
 
 test('payment-only reminder omits pickup wording', () => {

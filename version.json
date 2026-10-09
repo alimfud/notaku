@@ -1,4 +1,4 @@
 {
-  "version": "1.32.31",
-  "notes": "Emoji sapaan dan penebalan terbatas pada pesan pengingat WhatsApp diperbaiki."
+  "version": "1.32.32",
+  "notes": "Emoji sapaan WhatsApp dikirim langsung sebagai byte URL UTF-8 agar tidak berubah menjadi karakter pengganti."
 }
