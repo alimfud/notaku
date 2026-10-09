@@ -166,7 +166,7 @@
   #pageRoot[data-page="settings"][data-section="hub"] .settings-hub,
   #pageRoot[data-page="settings"][data-section="printer"] .settings-printer-section,
   #pageRoot[data-page="settings"][data-section="qris"] .settings-content,
-  #pageRoot[data-page="settings"][data-section="store"] .settings-privacy,
+  #pageRoot[data-page="settings"][data-section="store"] :is(.settings-privacy, .settings-store-name-toggle),
   #pageRoot[data-page="settings"]:is([data-section="backup"], [data-section="autobackup"]) .settings-section-bottom,
   :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-form-card,
   :is([data-page="sale-new"], [data-page="sale-edit"]) .sale-suggestions,

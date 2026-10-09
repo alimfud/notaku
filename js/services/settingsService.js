@@ -10,6 +10,8 @@ const DEFAULTS = {
   footerNote: 'Terima kasih atas kunjungan Anda.',
   storeLogoData: '',
   storeLogoMaxWidth: 100,
+  showStoreNameOnReceipt: true,
+  showStoreNameOnBluetooth: true,
   invoicePrefix: 'INV-',
   invoiceDigitCount: 2,
   invoiceNextNumber: 1,

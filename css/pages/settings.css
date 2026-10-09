@@ -444,6 +444,27 @@
   background:var(--surface);
 }
 
+#pageRoot[data-page="settings"][data-section="store"] .settings-store-name-options {
+  display:grid;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+#pageRoot[data-page="settings"][data-section="store"] .settings-store-name-toggle {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 12px;
+  border:1px solid var(--outline);
+  border-radius:11px;
+  background:var(--surface);
+}
+
+#pageRoot[data-page="settings"][data-section="store"] .settings-store-name-toggle > div {
+  min-width:0;
+}
+
 #pageRoot[data-page="settings"][data-section="store"] .settings-label {
   font-size:13px;
 }

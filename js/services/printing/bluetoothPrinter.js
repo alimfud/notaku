@@ -155,9 +155,11 @@ export async function buildReceiptBytes(data, charWidth = 32) {
       b.rasterImage(raster.widthPx, raster.heightPx, raster.bits);
     } catch { /* logo must not stop text printing */ }
   }
-  b.bold(true);
-  centeredLines(b, data.storeName, width);
-  b.bold(false);
+  if (data.storeName) {
+    b.bold(true);
+    centeredLines(b, data.storeName, width);
+    b.bold(false);
+  }
   if (data.storeAddress) centeredLines(b, data.storeAddress, width);
   if (data.storePhone) centeredLines(b, data.storePhone, width);
 

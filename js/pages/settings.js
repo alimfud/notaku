@@ -239,6 +239,17 @@ async function renderStore(root) {
       <button class="settings-logo-remove btn small ghost ${s.storeLogoData ? '' : 'hidden'}" id="removeLogo">Hapus Logo</button>
     </div>
     <div class="field"><label>Nama Toko</label><input id="fName" value="${escapeHtml(s.storeName)}"></div>
+    <div class="section-title">Tampilkan Nama Toko</div>
+    <div class="settings-store-name-options">
+      <label class="settings-store-name-toggle">
+        <div><div class="settings-label">Detail nota &amp; file</div><div class="row-meta">Termasuk gambar, PDF, dan teks yang dibagikan.</div></div>
+        <input class="settings-checkbox" id="showStoreNameOnReceipt" type="checkbox" ${s.showStoreNameOnReceipt !== false ? 'checked' : ''}>
+      </label>
+      <label class="settings-store-name-toggle">
+        <div><div class="settings-label">Printer Bluetooth</div><div class="row-meta">Termasuk preview sebelum dicetak.</div></div>
+        <input class="settings-checkbox" id="showStoreNameOnBluetooth" type="checkbox" ${s.showStoreNameOnBluetooth !== false ? 'checked' : ''}>
+      </label>
+    </div>
     <div class="field"><label>Alamat</label><textarea id="fAddress" rows="2">${escapeHtml(s.storeAddress)}</textarea></div>
     <div class="field"><label>Telepon</label><input id="fPhone" value="${escapeHtml(s.storePhone)}"></div>
     <div class="field"><label>Catatan Kaki Struk</label><textarea id="fFooter" rows="3">${escapeHtml(s.footerNote)}</textarea><div class="row-meta"></div></div>
@@ -259,6 +270,8 @@ async function renderStore(root) {
   root.querySelector('#fSave').onclick = async () => {
     await saveSettings({
       storeName: root.querySelector('#fName').value.trim(),
+      showStoreNameOnReceipt: root.querySelector('#showStoreNameOnReceipt').checked,
+      showStoreNameOnBluetooth: root.querySelector('#showStoreNameOnBluetooth').checked,
       storeAddress: root.querySelector('#fAddress').value.trim(),
       storePhone: root.querySelector('#fPhone').value.trim(),
       footerNote: root.querySelector('#fFooter').value.trim(),

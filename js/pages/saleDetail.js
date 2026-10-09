@@ -91,7 +91,7 @@ async function draw(root, saleId) {
     <div class="sale-detail-receipt-wrap">
       <div class="receipt" id="receiptCapture">
         ${receiptLogoMarkup(settings)}
-        <div class="receipt-shop">${escapeHtml(settings.storeName)}</div>
+        ${settings.showStoreNameOnReceipt !== false ? `<div class="receipt-shop">${escapeHtml(settings.storeName)}</div>` : ''}
         ${settings.storeAddress ? `<div class="receipt-addr">${escapeHtml(settings.storeAddress)}</div>` : ''}
         ${settings.storePhone ? `<div class="receipt-addr">${escapeHtml(settings.storePhone)}</div>` : ''}
         <div class="receipt-meta">
@@ -290,7 +290,7 @@ async function handleDelete(root, saleId) {
 
 function buildReceiptDataForShare(sale, items, settings, paidAmount, remaining) {
   return {
-    storeName: settings.storeName,
+    storeName: settings.showStoreNameOnReceipt !== false ? settings.storeName : '',
     invoiceNumber: sale.invoiceNumber,
     dateLabel: dateShort(sale.saleDate),
     customerName: sale.customerName,
@@ -404,7 +404,7 @@ async function showFileShare(file, waNumber, isPdf) {
 
 function buildBluetoothReceiptData(sale, items, settings, paidAmount, remaining) {
   return {
-    storeName: settings.storeName,
+    storeName: settings.showStoreNameOnBluetooth !== false ? settings.storeName : '',
     storeAddress: settings.storeAddress,
     storePhone: settings.storePhone,
     logoData: receiptLogo(settings),
@@ -478,7 +478,7 @@ async function showBluetoothPreview(data, charWidth) {
   const widthClass = is80mm ? 'bluetooth-native-preview--80' : 'bluetooth-native-preview--58';
   return await openSheet((body, close) => {
     body.innerHTML = `<div class="sheet-title">Preview Bluetooth</div><div class="print-preview-label">Teks tajam • Bluetooth ${is80mm ? '80mm' : '58mm'}</div><div class="print-preview-wrap"><div class="bluetooth-native-preview ${widthClass}">
-      <div class="bluetooth-native-center"><img src="${escapeHtml(data.logoData)}" class="receipt-logo logo-width-${data.logoMaxWidth}" alt="Logo"><b>${escapeHtml(data.storeName)}</b>${data.storeAddress ? `<span>${escapeHtml(data.storeAddress)}</span>` : ''}${data.storePhone ? `<span>${escapeHtml(data.storePhone)}</span>` : ''}</div>
+      <div class="bluetooth-native-center"><img src="${escapeHtml(data.logoData)}" class="receipt-logo logo-width-${data.logoMaxWidth}" alt="Logo">${data.storeName ? `<b>${escapeHtml(data.storeName)}</b>` : ''}${data.storeAddress ? `<span>${escapeHtml(data.storeAddress)}</span>` : ''}${data.storePhone ? `<span>${escapeHtml(data.storePhone)}</span>` : ''}</div>
       <div class="bluetooth-native-divider"></div>
       <div class="bluetooth-native-columns"><span>${escapeHtml(data.dateLabel)}</span><span>${escapeHtml(data.timeLabel)}</span><span>${escapeHtml(data.invoiceNumber)}</span></div>
       <div class="bluetooth-native-divider"></div>

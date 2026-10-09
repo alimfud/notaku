@@ -2,7 +2,7 @@
 import { rupiah } from '../format.js';
 
 export function buildShareText(data) {
-  let text = `${data.storeName}\n${data.invoiceNumber} - ${data.dateLabel}\nKepada: ${data.customerName}\n\n`;
+  let text = `${data.storeName ? `${data.storeName}\n` : ''}${data.invoiceNumber} - ${data.dateLabel}\nKepada: ${data.customerName}\n\n`;
   data.lines.forEach((l, i) => {
     text += `${i + 1}. ${l.name}\n${l.qty} ${l.unit || ''} x @ ${rupiah(l.price)},- = ${rupiah(l.subtotal)}\n`;
     if (l.note) text += `${l.note}\n`;
