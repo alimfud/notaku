@@ -172,3 +172,19 @@ test('initial connection merges both devices and uploads the combined result wit
   assert.equal(uploads, 1);
   assert.match(settings.autoBackup.lastSyncStatus, /digabung otomatis/);
 });
+
+test('device sync ID is stable, local, and display-friendly', () => {
+  const storage = new Map();
+  const context = vm.createContext({
+    Date, Math, Uint8Array,
+    localStorage: {
+      getItem: (key) => storage.get(key) || null,
+      setItem: (key, value) => storage.set(key, value),
+    },
+  });
+  vm.runInContext(source + '\nglobalThis.deviceId = getDeviceSyncId;', context);
+  const first = context.deviceId();
+  assert.match(first, /^NK-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$/);
+  assert.equal(context.deviceId(), first);
+  assert.equal(storage.get('notaku-device-sync-id'), first);
+});

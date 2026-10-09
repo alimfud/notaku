@@ -675,6 +675,7 @@ async function renderAutoBackup(root) {
             ? `<span class="settings-drive-status-dot" aria-hidden="true"></span><span><b>${cfg.lastSyncAt ? 'Tersinkron' : 'Terhubung'}</b> · ${escapeHtml(cfg.driveAccountEmail || 'akun Google')}</span>`
             : '<span class="row-meta">Akun Google belum terhubung</span>'}
           ${cfg.lastSyncAt ? `<small>Terakhir sinkron: ${formatSyncDate(cfg.lastSyncAt)}</small>` : '<small>Belum pernah sinkron</small>'}
+          <small>ID perangkat: ${escapeHtml(drive.getDeviceSyncId())}</small>
         </div>
         <button class="settings-sync-now btn" id="btnSyncNow" ${cfg.driveConnected ? '' : 'disabled'}>Sinkron sekarang</button>
         <label class="settings-sync-interval"><span>Interval sinkron</span>
@@ -824,6 +825,7 @@ function renderSyncStatus(root, state) {
   panel.innerHTML = `<span class="settings-drive-status-dot" aria-hidden="true"></span>
     <span><b>${label}</b>${state.driveConnected ? ` · ${escapeHtml(state.driveAccountEmail || 'akun Google')}` : ''}</span>
     <small>Terakhir sinkron: ${state.lastSyncAt ? formatSyncDate(state.lastSyncAt) : 'Belum pernah sinkron'}</small>
+    <small>ID perangkat: ${escapeHtml(state.deviceSyncId || '-')}</small>
     <small>${escapeHtml(message)}</small>`;
   const details = root.querySelector('#syncStatus');
   if (details) details.textContent = '';

@@ -46,6 +46,31 @@ let _tokenClient = null;
 let _accessToken = null;
 let _tokenExpiryMs = 0;
 let _gisLoadPromise = null;
+let _fallbackDeviceSyncId = '';
+
+const DEVICE_SYNC_ID_KEY = 'notaku-device-sync-id';
+
+function createDeviceSyncId() {
+  const bytes = new Uint8Array(6);
+  if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
+  else for (let index = 0; index < bytes.length; index++) bytes[index] = Math.floor(Math.random() * 256);
+  const value = [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
+  return `NK-${value.slice(0, 4)}-${value.slice(4, 8)}-${value.slice(8, 12)}`;
+}
+
+/** ID lokal untuk membedakan perangkat pada layar pengaturan sinkronisasi. */
+export function getDeviceSyncId() {
+  try {
+    const existing = localStorage.getItem(DEVICE_SYNC_ID_KEY);
+    if (existing) return existing;
+    const created = createDeviceSyncId();
+    localStorage.setItem(DEVICE_SYNC_ID_KEY, created);
+    return created;
+  } catch {
+    if (!_fallbackDeviceSyncId) _fallbackDeviceSyncId = createDeviceSyncId();
+    return _fallbackDeviceSyncId;
+  }
+}
 
 function driveFetch(input, options = {}) {
   const controller = new AbortController();
@@ -361,7 +386,7 @@ export async function getSyncDisplayState() {
   let sessionError = '';
   try { await restoreGoogleAccess(); } catch (error) { sessionError = error.message; }
   const { autoBackup: cfg } = await getSettings();
-  return { ...cfg, ...(sessionError ? { lastSyncProblem: true, lastSyncStatus: sessionError } : {}), syncing: _syncRunning, needsAuthorization: !sessionError && cfg.driveConnected && !hasValidToken(), offline: navigator.onLine === false };
+  return { ...cfg, ...(sessionError ? { lastSyncProblem: true, lastSyncStatus: sessionError } : {}), deviceSyncId: getDeviceSyncId(), syncing: _syncRunning, needsAuthorization: !sessionError && cfg.driveConnected && !hasValidToken(), offline: navigator.onLine === false };
 }
 
 async function publishSyncStatus() {

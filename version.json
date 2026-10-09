@@ -1,4 +1,4 @@
 {
-  "version": "1.32.21",
-  "notes": "Sinkronisasi antarperangkat kini menggabungkan perubahan otomatis tanpa memilih sumber data."
+  "version": "1.32.22",
+  "notes": "ID perangkat kini ditampilkan pada panel sinkronisasi Google Drive."
 }
