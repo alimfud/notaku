@@ -47,17 +47,16 @@ export function getReminderItems(summaries, { storeName = 'Toko Saya' } = {}) {
   return items.sort((a, b) => a.priority - b.priority || (a.sale.saleDate + a.sale.saleTime).localeCompare(b.sale.saleDate + b.sale.saleTime));
 }
 
-export function buildReminderMessage({ sale, remaining, hasPickupReminder, overduePickup, hasPaymentReminder, storeName = 'Toko Saya' }) {
-  const detailParts = [];
-  if (hasPickupReminder) {
-    const pickupText = overduePickup
-      ? 'Pesanan belum diambil.'
-      : `Pesanan dijadwalkan diambil ${dateShort(sale.saleDate)}.`;
-    detailParts.push(pickupText);
-  }
-  if (hasPaymentReminder) detailParts.push(`Sisa pembayaran \`${rupiah(remaining)}\`.`);
-  detailParts.push('');
-  return `Halo *${sale.customerName}*,\n\nSekedar mengingatkan, Terkait nota *${sale.invoiceNumber}* di ${storeName}.\n> ${detailParts.join(' ')}\nMohon konfirmasi ya. Terima kasih.`;
+export function buildReminderMessage({ sale, remaining, hasPickupReminder, hasPaymentReminder, storeName = 'Toko Saya' }) {
+  const details = [`*· No. Nota: ${sale.invoiceNumber}*`];
+  if (hasPickupReminder) details.push(`*· Jadwal Pengambilan: ${dateShort(sale.saleDate)}*`);
+  if (hasPaymentReminder) details.push(`*· Sisa Pembayaran: ${rupiah(remaining)}*`);
+  const confirmation = hasPickupReminder && hasPaymentReminder
+    ? 'Mohon konfirmasi jadwal pengambilan dan sisa pembayarannya ya, Kak.'
+    : hasPickupReminder
+      ? 'Mohon konfirmasi jadwal pengambilannya ya, Kak.'
+      : 'Mohon konfirmasi sisa pembayarannya ya, Kak.';
+  return `Halo *${sale.customerName}* 🙏\n\nKami ingin mengingatkan kembali mengenai pesanan Kak di *${storeName}*:\n${details.join('\n')}\n\n> ${confirmation}\nTerima kasih.`;
 }
 
 export function reminderWhatsAppUrl(item) {

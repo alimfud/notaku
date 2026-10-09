@@ -1,4 +1,4 @@
 {
-  "version": "1.32.28",
-  "notes": "Jarak antara informasi toko dan isi pengingat WhatsApp diringkas."
+  "version": "1.32.30",
+  "notes": "Tanggal pada pengingat WhatsApp memakai nama bulan singkat."
 }
