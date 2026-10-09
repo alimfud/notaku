@@ -242,6 +242,7 @@ async function renderWhatsapp(root) {
   root.innerHTML = `
     <div class="settings-simple-page settings-whatsapp-page">
       <div class="settings-page-intro"><h2>Format WhatsApp</h2><p>Sesuaikan pesan yang dikirim kepada pelanggan. Format bawaan sudah diisikan dan dapat diubah kapan saja.</p></div>
+      <button class="btn" id="saveWhatsappTemplatesTop">Simpan Format WhatsApp</button>
       <section class="settings-whatsapp-card">
         <div class="settings-whatsapp-heading"><div><b>Bagikan nota sebagai teks</b><small>Digunakan dari tombol Bagikan Sebagai Teks pada detail nota.</small></div><button type="button" class="btn small ghost" id="resetWhatsappShare">Kembalikan default</button></div>
         <textarea id="fWhatsappTemplate" rows="22" spellcheck="false">${escapeHtml(shareTemplate)}</textarea>
@@ -276,7 +277,7 @@ async function renderWhatsapp(root) {
   root.querySelector('#resetWhatsappReminderBoth').onclick = () => { reminderBothInput.value = DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE; };
   root.querySelector('#resetWhatsappReminderPickup').onclick = () => { reminderPickupInput.value = DEFAULT_WHATSAPP_REMINDER_PICKUP_TEMPLATE; };
   root.querySelector('#resetWhatsappReminderPayment').onclick = () => { reminderPaymentInput.value = DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE; };
-  root.querySelector('#saveWhatsappTemplates').onclick = async () => {
+  const saveWhatsappTemplates = async () => {
     const whatsappShareTemplate = shareInput.value.trim() || DEFAULT_WHATSAPP_SHARE_MAIN_TEMPLATE;
     const whatsappShareProductTemplate = shareProductInput.value.trim() || DEFAULT_WHATSAPP_SHARE_PRODUCT_TEMPLATE;
     const whatsappReminderBothTemplate = reminderBothInput.value.trim() || DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE;
@@ -290,6 +291,8 @@ async function renderWhatsapp(root) {
     await saveSettings({ whatsappShareTemplate, whatsappShareProductTemplate, whatsappReminderBothTemplate, whatsappReminderPickupTemplate, whatsappReminderPaymentTemplate });
     toast('Format WhatsApp disimpan');
   };
+  root.querySelector('#saveWhatsappTemplatesTop').onclick = saveWhatsappTemplates;
+  root.querySelector('#saveWhatsappTemplates').onclick = saveWhatsappTemplates;
 }
 
 async function renderStore(root) {
