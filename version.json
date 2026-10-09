@@ -1,4 +1,4 @@
 {
-  "version": "1.32.22",
-  "notes": "ID perangkat kini ditampilkan pada panel sinkronisasi Google Drive."
+  "version": "1.32.23",
+  "notes": "Tampilan ID perangkat pada panel sinkronisasi dibuat lebih ringkas."
 }

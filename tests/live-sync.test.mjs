@@ -173,7 +173,7 @@ test('initial connection merges both devices and uploads the combined result wit
   assert.match(settings.autoBackup.lastSyncStatus, /digabung otomatis/);
 });
 
-test('device sync ID is stable, local, and display-friendly', () => {
+test('device sync ID is stable and has a short display label', () => {
   const storage = new Map();
   const context = vm.createContext({
     Date, Math, Uint8Array,
@@ -182,9 +182,11 @@ test('device sync ID is stable, local, and display-friendly', () => {
       setItem: (key, value) => storage.set(key, value),
     },
   });
-  vm.runInContext(source + '\nglobalThis.deviceId = getDeviceSyncId;', context);
+  vm.runInContext(source + '\nglobalThis.deviceId = getDeviceSyncId; globalThis.deviceLabel = getDeviceSyncLabel;', context);
   const first = context.deviceId();
   assert.match(first, /^NK-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$/);
   assert.equal(context.deviceId(), first);
   assert.equal(storage.get('notaku-device-sync-id'), first);
+  assert.match(context.deviceLabel(), /^NK-[0-9A-F]{6}$/);
+  assert.equal(context.deviceLabel(), `NK-${first.replace(/^NK-/, '').replace(/-/g, '').slice(0, 6)}`);
 });

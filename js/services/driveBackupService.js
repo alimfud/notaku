@@ -72,6 +72,12 @@ export function getDeviceSyncId() {
   }
 }
 
+/** Label ringkas untuk UI; ID lengkap tetap disimpan lokal. */
+export function getDeviceSyncLabel() {
+  const compact = getDeviceSyncId().replace(/^NK-/, '').replace(/-/g, '').slice(0, 6).toUpperCase();
+  return `NK-${compact}`;
+}
+
 function driveFetch(input, options = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), DRIVE_REQUEST_TIMEOUT_MS);
@@ -386,7 +392,7 @@ export async function getSyncDisplayState() {
   let sessionError = '';
   try { await restoreGoogleAccess(); } catch (error) { sessionError = error.message; }
   const { autoBackup: cfg } = await getSettings();
-  return { ...cfg, ...(sessionError ? { lastSyncProblem: true, lastSyncStatus: sessionError } : {}), deviceSyncId: getDeviceSyncId(), syncing: _syncRunning, needsAuthorization: !sessionError && cfg.driveConnected && !hasValidToken(), offline: navigator.onLine === false };
+  return { ...cfg, ...(sessionError ? { lastSyncProblem: true, lastSyncStatus: sessionError } : {}), deviceSyncId: getDeviceSyncLabel(), syncing: _syncRunning, needsAuthorization: !sessionError && cfg.driveConnected && !hasValidToken(), offline: navigator.onLine === false };
 }
 
 async function publishSyncStatus() {
