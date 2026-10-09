@@ -1,4 +1,4 @@
 {
-  "version": "1.32.20",
-  "notes": "Segmen aktivitas yang dipilih pada grafik dashboard diberi sorotan warna."
+  "version": "1.32.21",
+  "notes": "Sinkronisasi antarperangkat kini menggabungkan perubahan otomatis tanpa memilih sumber data."
 }

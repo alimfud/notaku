@@ -20,6 +20,7 @@ function fixture({ enabled = true, fail = false } = {}) {
   }
   const context = vm.createContext({
     Date: Clock, GOOGLE_CLIENT_ID: 'configured', navigator: { onLine: true },
+    AbortController, setTimeout, clearTimeout,
     persistentAccess: async () => null,
     getSettings: async () => settings,
     saveSettings: async (partial) => { settings = { ...settings, ...partial }; },
@@ -83,4 +84,91 @@ test('paused automatic sync is silent but Sync now still works', async () => {
   f.release();
   await f.context.sync({ force: true });
   assert.equal(f.events.at(-1).lastSyncAt, '2026-10-05T14:30:00.000Z');
+});
+
+test('merge keeps additions from every device across related stores', () => {
+  const context = vm.createContext({ Date, console });
+  vm.runInContext(source + '\nglobalThis.mergeData = mergeSyncData;', context);
+  const local = {
+    products: [{ id: 'p-local', name: 'Lokal', updatedAt: '2026-10-05T10:00:00Z' }],
+    customers: [],
+    sales: [{ id: 's-local', updatedAt: '2026-10-05T10:00:00Z' }],
+    saleItems: [{ id: 'i-local', saleId: 's-local', productName: 'Lokal' }],
+    payments: [{ id: 'pay-local', saleId: 's-local', amount: 10, createdAt: '2026-10-05T10:00:00Z' }],
+    expenses: [], settings: [], auditLogs: [],
+  };
+  const cloud = {
+    products: [{ id: 'p-cloud', name: 'Cloud', updatedAt: '2026-10-05T11:00:00Z' }],
+    customers: [{ id: 'c-cloud', name: 'Pelanggan Cloud', updatedAt: '2026-10-05T11:00:00Z' }],
+    sales: [{ id: 's-cloud', updatedAt: '2026-10-05T11:00:00Z' }],
+    saleItems: [{ id: 'i-cloud', saleId: 's-cloud', productName: 'Cloud' }],
+    payments: [{ id: 'pay-cloud', saleId: 's-cloud', amount: 20, createdAt: '2026-10-05T11:00:00Z' }],
+    expenses: [{ id: 'e-cloud', title: 'Ongkir', updatedAt: '2026-10-05T11:00:00Z' }],
+    settings: [], auditLogs: [],
+  };
+
+  const merged = context.mergeData(local, cloud);
+  assert.deepEqual([...merged.products].map((row) => row.id), ['p-cloud', 'p-local']);
+  assert.deepEqual([...merged.sales].map((row) => row.id), ['s-cloud', 's-local']);
+  assert.deepEqual([...merged.saleItems].map((row) => row.id), ['i-cloud', 'i-local']);
+  assert.deepEqual([...merged.payments].map((row) => row.id), ['pay-cloud', 'pay-local']);
+  assert.equal(merged.customers[0].id, 'c-cloud');
+  assert.equal(merged.expenses[0].id, 'e-cloud');
+});
+
+test('newest edit wins for the same sale and its replacement item set', () => {
+  const context = vm.createContext({ Date, console });
+  vm.runInContext(source + '\nglobalThis.mergeData = mergeSyncData;', context);
+  const base = { products: [], customers: [], payments: [], expenses: [], settings: [], auditLogs: [] };
+  const local = {
+    ...base,
+    sales: [{ id: 'sale-1', note: 'lama', updatedAt: '2026-10-05T10:00:00Z' }],
+    saleItems: [{ id: 'old-item', saleId: 'sale-1', productName: 'Item lama' }],
+  };
+  const cloud = {
+    ...base,
+    sales: [{ id: 'sale-1', note: 'baru', updatedAt: '2026-10-05T12:00:00Z' }],
+    saleItems: [{ id: 'new-item', saleId: 'sale-1', productName: 'Item baru' }],
+  };
+
+  const merged = context.mergeData(local, cloud);
+  assert.equal(merged.sales[0].note, 'baru');
+  assert.deepEqual([...merged.saleItems].map((row) => row.id), ['new-item']);
+});
+
+test('initial connection merges both devices and uploads the combined result without a choice', async () => {
+  let localData = {
+    products: [{ id: 'local-product', updatedAt: '2026-10-05T10:00:00Z' }],
+    customers: [], sales: [], saleItems: [], payments: [], expenses: [], settings: [], auditLogs: [],
+  };
+  const cloudData = {
+    products: [{ id: 'cloud-product', updatedAt: '2026-10-05T11:00:00Z' }],
+    customers: [], sales: [], saleItems: [], payments: [], expenses: [], settings: [], auditLogs: [],
+  };
+  let settings = { autoBackup: { driveConnected: true }, security: {} };
+  let uploads = 0;
+  const restoreFromFile = async (file) => { localData = JSON.parse(await file.text()).data; };
+  const context = vm.createContext({
+    Date, GOOGLE_CLIENT_ID: 'configured', navigator: { onLine: true }, AbortController, setTimeout, clearTimeout,
+    Blob, FormData, restoreFromFile,
+    persistentAccess: async () => null,
+    getSettings: async () => settings,
+    saveSettings: async (partial) => { settings = { ...settings, ...partial }; },
+    db: { dumpAll: async () => localData },
+    createBackupBlob: async () => new Blob([JSON.stringify({ app: 'notaku', data: localData })], { type: 'application/json' }),
+    window: { dispatchEvent() {} }, CustomEvent: class {}, console: { error() {} },
+    fetch: async (url) => {
+      if (url.includes('/upload/')) { uploads++; return { ok: true, json: async () => ({ id: 'sync' }) }; }
+      if (url.includes('alt=media')) return { ok: true, json: async () => ({ app: 'notaku', data: cloudData }) };
+      return { ok: true, json: async () => ({ files: [{ id: 'sync' }] }) };
+    },
+  });
+  const runnable = source.replace("  const { restoreFromFile } = await import('./backupService.js');\n", '');
+  vm.runInContext(runnable + '\nglobalThis.initialize = initializeConnectedAccount; _accessToken = "valid"; _tokenExpiryMs = Date.now() + 3600000;', context);
+
+  const result = await context.initialize();
+  assert.equal(result.action, 'merge');
+  assert.deepEqual(localData.products.map((row) => row.id), ['cloud-product', 'local-product']);
+  assert.equal(uploads, 1);
+  assert.match(settings.autoBackup.lastSyncStatus, /digabung otomatis/);
 });

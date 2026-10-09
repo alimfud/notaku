@@ -17,7 +17,7 @@ Invoice/transaksi, pembayaran, produk, pelanggan, pengeluaran, laporan, QRIS, ba
 Semua data permanen berada di IndexedDB `notaku-db`: `products`, `customers`, `sales`, `saleItems`, `payments`, `expenses`, dan `settings`. Jangan akses IndexedDB langsung dari halaman; gunakan `js/db.js` atau service terkait. Migrasi store wajib menaikkan `DB_VERSION`.
 
 ## Sync dan backup
-`backupService` selalu dump/restore seluruh store. Google Drive memakai backup arsip terjadwal dan satu file sinkron antarperangkat; auto-sync memeriksa pada interval pilihan (default lima menit) saat app terbuka, mengirim/menarik perubahan satu sisi, dan menahan konflik dua sisi. Setelah restore, cache settings harus di-invalidasi. Jangan mengubah format payload tanpa tetap menerima backup lama.
+`backupService` selalu dump/restore seluruh store. Google Drive memakai backup arsip terjadwal dan satu file sinkron antarperangkat; auto-sync memeriksa pada interval pilihan (default lima menit) saat app terbuka dan menggabungkan perubahan semua perangkat berdasarkan ID. Konflik pada ID yang sama memakai `updatedAt` terbaru; `saleItems` mengikuti versi induk `sales`. Setelah restore, cache settings harus di-invalidasi. Jangan mengubah format payload tanpa tetap menerima backup lama.
 
 ## Offline dan cache
 `sw.js` melakukan precache app shell; data tetap tersedia dari IndexedDB offline. Jika menambah modul yang dipakai saat offline, masukkan ke `CORE_ASSETS` dan naikkan `CACHE_VERSION` bersama `version.json`/`js/version.js`.
@@ -32,4 +32,4 @@ Jangan rewrite bagian yang berfungsi. Pertahankan ES modules tanpa dependency ba
 Jalankan dari web server XAMPP pada folder ini, misalnya `http://localhost/notaku/`. Uji pembuatan/edit/hapus data, refresh aplikasi, backup lalu restore, mode offline setelah app shell termuat, dan cetak di 58/80mm bila perangkat tersedia. Pemeriksaan sintaks dapat memakai `node --check <file>`.
 
 ## Jangan diubah sembarangan
-Jangan menghapus/mengosongkan store, menaikkan versi database tanpa migrasi, membuat restore parsial, atau menghilangkan fallback cache offline. Jangan mengganti sinkronisasi last-write-wins menjadi asumsi merge otomatis. Jangan mengandalkan spasi untuk layout printer.
+Jangan menghapus/mengosongkan store, menaikkan versi database tanpa migrasi, membuat restore parsial, atau menghilangkan fallback cache offline. Pertahankan merge otomatis sinkronisasi dan kompatibilitas payload lama. Jangan mengandalkan spasi untuk layout printer.

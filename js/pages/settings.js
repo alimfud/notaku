@@ -22,26 +22,6 @@ function setBackupLoading(visible, message = 'Sedang memproses…') {
   overlay.classList.toggle('hidden', !visible);
 }
 
-function chooseInitialSyncDirection() {
-  return new Promise((resolve) => {
-    const backdrop = document.createElement('div');
-    backdrop.className = 'dialog-backdrop';
-    backdrop.innerHTML = `<div class="dialog initial-sync-choice-dialog">
-      <div class="dialog-title">Pilih sumber data</div>
-      <div class="dialog-message">Data di perangkat dan Google Drive sama-sama berisi perubahan. Pilih data yang ingin dipakai sebagai sumber utama.</div>
-      <div class="dialog-actions initial-sync-choice-actions">
-        <button type="button" data-choice="later" class="cancel">Nanti</button>
-        <button type="button" data-choice="push" class="confirm">Gunakan perangkat</button>
-        <button type="button" data-choice="pull" class="confirm">Gunakan Google Drive</button>
-      </div>
-    </div>`;
-    document.body.appendChild(backdrop);
-    const close = (choice = null) => { backdrop.remove(); resolve(choice); };
-    backdrop.querySelectorAll('[data-choice]').forEach((button) => button.onclick = () => close(button.dataset.choice === 'later' ? null : button.dataset.choice));
-    backdrop.onclick = (event) => { if (event.target === backdrop) close(); };
-  });
-}
-
 function setInitialSyncPending(value) {
   try {
     if (value) sessionStorage.setItem('notaku-initial-sync-pending', '1');
@@ -58,26 +38,8 @@ async function runInitialConnectedSync(root, drive) {
   setBackupLoading(true, 'Memeriksa data perangkat dan Google Drive…');
   try {
     const result = await drive.initializeConnectedAccount();
-    if (result.action === 'conflict') {
-      setBackupLoading(false);
-      const choice = await chooseInitialSyncDirection();
-      if (choice === 'push') {
-        setBackupLoading(true, 'Mengirim data perangkat ke Google Drive…');
-        await drive.pushToCloud();
-      } else if (choice === 'pull') {
-        setBackupLoading(true, 'Mengambil data dari Google Drive…');
-        await drive.pullFromCloud();
-      } else {
-        toast('Akun terhubung, tetapi sinkronisasi awal belum dipilih.');
-        await renderAutoBackup(root);
-        return;
-      }
-      setBackupLoading(false);
-      toast(choice === 'push' ? 'Data perangkat dikirim ke Google Drive.' : 'Data dari Google Drive ditarik ke perangkat.');
-    } else {
-      setBackupLoading(false);
-      toast(result.message || 'Sinkronisasi awal selesai.');
-    }
+    setBackupLoading(false);
+    toast(result.message || 'Sinkronisasi awal selesai.');
     await renderAutoBackup(root);
   } catch (error) {
     setBackupLoading(false);
@@ -707,7 +669,7 @@ async function renderAutoBackup(root) {
           </div>
           <button class="settings-button btn small secondary" id="btnDriveConnect">${cfg.driveConnected ? 'Putuskan' : 'Hubungkan'}</button>
         </div>
-        <div class="backup-info-text autobackup-info-text" data-autobackup-info-panel="drive" hidden>Gunakan akun Google yang sama di semua perangkat. Akun ini dipakai untuk backup dan sinkronisasi selama akses Google masih aktif.</div>
+        <div class="backup-info-text autobackup-info-text" data-autobackup-info-panel="drive" hidden>Gunakan akun Google yang sama di semua perangkat. Tambahan dari setiap perangkat akan digabung otomatis tanpa memilih salah satu sumber data.</div>
         <div class="settings-sync-account" id="syncAccountStatus" role="status" aria-live="polite" aria-atomic="true">
           ${cfg.driveConnected
             ? `<span class="settings-drive-status-dot" aria-hidden="true"></span><span><b>${cfg.lastSyncAt ? 'Tersinkron' : 'Terhubung'}</b> · ${escapeHtml(cfg.driveAccountEmail || 'akun Google')}</span>`

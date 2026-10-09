@@ -190,6 +190,114 @@ function fingerprint(data) {
   return (hash >>> 0).toString(16);
 }
 
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function recordTimestamp(row) {
+  for (const key of ['updatedAt', 'deletedAt', 'createdAt']) {
+    const value = Date.parse(row?.[key] || '');
+    if (Number.isFinite(value)) return value;
+  }
+  return 0;
+}
+
+function preferredRecord(localRow, cloudRow) {
+  if (!localRow) return { row: cloudRow, source: 'cloud' };
+  if (!cloudRow) return { row: localRow, source: 'local' };
+  const localValue = canonicalJson(localRow);
+  const cloudValue = canonicalJson(cloudRow);
+  if (localValue === cloudValue) return { row: localRow, source: 'both' };
+  const localTime = recordTimestamp(localRow);
+  const cloudTime = recordTimestamp(cloudRow);
+  if (localTime !== cloudTime) return localTime > cloudTime
+    ? { row: localRow, source: 'local' }
+    : { row: cloudRow, source: 'cloud' };
+  // Data lama tidak selalu memiliki updatedAt. Pilihan leksikal membuat semua
+  // perangkat tetap menghasilkan pemenang yang sama tanpa dialog/manual.
+  return localValue > cloudValue
+    ? { row: localRow, source: 'local' }
+    : { row: cloudRow, source: 'cloud' };
+}
+
+function mergeRows(localRows = [], cloudRows = []) {
+  const localById = new Map(localRows.map((row) => [row.id, row]));
+  const cloudById = new Map(cloudRows.map((row) => [row.id, row]));
+  const ids = [...new Set([...localById.keys(), ...cloudById.keys()])]
+    .sort((a, b) => String(a).localeCompare(String(b)));
+  const sources = new Map();
+  const rows = ids.map((id) => {
+    const selected = preferredRecord(localById.get(id), cloudById.get(id));
+    sources.set(id, selected.source);
+    return selected.row;
+  });
+  return { rows, sources };
+}
+
+function mergeSettings(localRows = [], cloudRows = []) {
+  const stripLocalState = (row) => {
+    const copy = { ...(row || {}) };
+    delete copy.autoBackup;
+    delete copy.security;
+    return copy;
+  };
+  const local = localRows.find((row) => row.id === 1) || localRows[0];
+  const cloud = cloudRows.find((row) => row.id === 1) || cloudRows[0];
+  if (!local) return cloud ? [cloud] : [];
+  if (!cloud) return [local];
+  const selected = preferredRecord(stripLocalState(local), stripLocalState(cloud));
+  return [{ ...(selected.source === 'cloud' ? cloud : local) }];
+}
+
+function mergeSaleItems(localRows = [], cloudRows = [], saleSources) {
+  const group = (rows) => {
+    const grouped = new Map();
+    for (const row of rows) {
+      if (!grouped.has(row.saleId)) grouped.set(row.saleId, []);
+      grouped.get(row.saleId).push(row);
+    }
+    return grouped;
+  };
+  const localBySale = group(localRows);
+  const cloudBySale = group(cloudRows);
+  const saleIds = [...new Set([...localBySale.keys(), ...cloudBySale.keys()])]
+    .sort((a, b) => String(a).localeCompare(String(b)));
+  return saleIds.flatMap((saleId) => {
+    const source = saleSources.get(saleId);
+    // Mengedit nota mengganti semua saleItems sekaligus dan memperbarui
+    // updatedAt nota. Karena itu item harus mengikuti sisi nota yang menang,
+    // bukan di-union dengan item lama yang sudah diganti.
+    if (source === 'local') return localBySale.get(saleId) || [];
+    if (source === 'cloud') return cloudBySale.get(saleId) || [];
+    return mergeRows(localBySale.get(saleId) || [], cloudBySale.get(saleId) || []).rows;
+  }).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+}
+
+/**
+ * Gabungkan dump dua perangkat. ID berbeda selalu dipertahankan; ID yang sama
+ * memakai record terbaru. Fungsi ini murni agar kebijakan merge dapat diuji.
+ */
+export function mergeSyncData(localData = {}, cloudData = {}) {
+  const merged = {};
+  const sales = mergeRows(localData.sales || [], cloudData.sales || []);
+  const stores = new Set([...Object.keys(localData), ...Object.keys(cloudData)]);
+  for (const store of stores) {
+    if (store === 'sales') merged.sales = sales.rows;
+    else if (store === 'saleItems') merged.saleItems = mergeSaleItems(localData.saleItems || [], cloudData.saleItems || [], sales.sources);
+    else if (store === 'settings') merged.settings = mergeSettings(localData.settings || [], cloudData.settings || []);
+    else merged[store] = mergeRows(localData[store] || [], cloudData[store] || []).rows;
+  }
+  // Backup sangat lama mungkin belum memiliki salah satu store inti.
+  for (const store of ['products', 'customers', 'sales', 'saleItems', 'payments', 'expenses', 'settings', 'auditLogs']) {
+    if (!Array.isArray(merged[store])) merged[store] = [];
+  }
+  return merged;
+}
+
 async function localFingerprint() {
   return fingerprint(await db.dumpAll());
 }
@@ -271,7 +379,7 @@ export function checkAutomaticSync({ force = false, promptIfNeeded = false } = {
     }
     const settings = await getSettings();
     const cfg = settings.autoBackup;
-    if (!cfg?.driveConnected || !cfg.lastSyncAt || !isConfigured()) return;
+    if (!cfg?.driveConnected || !cfg.lastSyncAt || !isConfigured() || (!force && cfg.autoSyncEnabled === false)) return;
     const interval = Math.max(1, Number(cfg.autoSyncIntervalMinutes) || 5) * 60000;
     if (!force && Date.now() - _lastAutoSyncCheckAt < interval) return;
     _lastAutoSyncCheckAt = Date.now();
@@ -279,10 +387,9 @@ export function checkAutomaticSync({ force = false, promptIfNeeded = false } = {
       const prompt = restoreError
         ? { pendingCheck: true, reason: restoreError.message || 'Akses Google Drive perlu diperiksa kembali.' }
         : await checkSyncNeeded();
-      if (prompt.needsSync || prompt.pendingCheck) {
-        // Menutup popup berarti pengguna memilih melanjutkan sementara.
-        // Jangan tampilkan popup yang sama pada setiap refresh/visibilitychange;
-        // marker berubah otomatis ketika data lokal/cloud benar-benar berubah.
+      if (prompt.pendingCheck) {
+        // Popup hanya diperlukan jika pemeriksaan belum bisa dilakukan (offline
+        // atau izin Google habis). Perbedaan data sendiri langsung di-merge.
         if (!wasSyncPromptShown(prompt, cfg)) {
           await rememberSyncPrompt(prompt, cfg);
           window.dispatchEvent(new CustomEvent('notaku-sync-required', { detail: prompt }));
@@ -362,14 +469,10 @@ async function runAutomaticSync() {
       await saveSyncState({ fingerprint: localHash, status: 'Data sudah sama.' });
       return;
     }
-    if (!baseline) {
-      await saveSyncState({ status: 'Pilih Push atau Tarik sekali untuk memulai sinkron otomatis.' });
-      return;
-    }
     const localChanged = localHash !== baseline;
     const cloudChanged = cloudHash !== baseline;
-    if (localChanged && cloudChanged && localHash !== cloudHash) {
-      await saveSyncState({ status: 'Ada perubahan di kedua sisi. Push atau Tarik secara manual untuk menghindari data tertimpa.' });
+    if (!baseline || (localChanged && cloudChanged && localHash !== cloudHash)) {
+      await mergeCloudPayload(payload);
     } else if (localChanged && localHash !== cloudHash) {
       await pushToCloud();
       await saveSyncState({ fingerprint: localHash, status: 'Perubahan perangkat ini dikirim ke cloud.' });
@@ -395,14 +498,24 @@ async function applyCloudPayload(payload) {
   await saveSettings({ autoBackup: localSettings.autoBackup, security: localSettings.security });
 }
 
-function hasSyncRecords(data) {
-  return Object.entries(data || {}).some(([store, rows]) => store !== 'settings' && Array.isArray(rows) && rows.length > 0);
+async function mergeCloudPayload(payload) {
+  const localData = await db.dumpAll();
+  const mergedData = mergeSyncData(localData, payload.data);
+  const localHash = fingerprint(localData);
+  const mergedHash = fingerprint(mergedData);
+  if (localHash !== mergedHash) {
+    await applyCloudPayload({ ...payload, data: mergedData });
+    const latest = await getSettings();
+    await saveSettings({ autoBackup: { ...latest.autoBackup, lastSyncPullAt: new Date().toISOString() } });
+  }
+  await pushToCloud();
+  const finalHash = await localFingerprint();
+  await saveSyncState({ fingerprint: finalHash, status: 'Perubahan dari semua perangkat digabung otomatis.' });
 }
 
 /**
  * Menyiapkan sinkronisasi pertama setelah akun Google berhasil dihubungkan.
- * Jika hanya satu sisi berisi data, arah sinkronisasi dipilih otomatis.
- * Jika kedua sisi berisi data berbeda, UI harus meminta pilihan pengguna.
+ * Semua data lokal dan cloud digabung otomatis tanpa meminta pilihan sumber.
  */
 export async function initializeConnectedAccount() {
   const token = await ensureToken({ interactive: false });
@@ -422,21 +535,8 @@ export async function initializeConnectedAccount() {
     return { action: 'same', message: 'Data perangkat dan Google Drive sudah sama.' };
   }
 
-  const localHasData = hasSyncRecords(localData);
-  const cloudHasData = hasSyncRecords(payload.data);
-  if (!localHasData && cloudHasData) {
-    await applyCloudPayload(payload);
-    const latest = await getSettings();
-    await saveSettings({ autoBackup: { ...latest.autoBackup, lastSyncPullAt: new Date().toISOString() } });
-    await saveSyncState({ fingerprint: cloudHash, status: 'Data dari Google Drive ditarik ke perangkat.' });
-    return { action: 'pull', message: 'Data dari Google Drive ditarik ke perangkat.' };
-  }
-  if (localHasData && !cloudHasData) {
-    await pushToCloud();
-    return { action: 'push', message: 'Data perangkat dikirim ke Google Drive.' };
-  }
-
-  return { action: 'conflict', localHash, cloudHash, message: 'Data perangkat dan Google Drive sama-sama berisi data berbeda.' };
+  await mergeCloudPayload(payload);
+  return { action: 'merge', message: 'Data perangkat dan Google Drive berhasil digabung otomatis.' };
 }
 
 /**
@@ -662,19 +762,11 @@ async function checkSchedule() {
 // antar perangkat: perangkat mana pun bisa mendorong (push) data lokalnya ke
 // file itu, atau menarik (pull) isi file itu untuk menimpa data lokalnya.
 //
-// ============================== BATASAN JUJUR ==============================
-// Ini BUKAN sinkronisasi realtime/otomatis dua-arah dengan penggabungan
-// perubahan (merge) seperti Google Docs. Yang tersedia: "last write wins" —
-// siapa pun yang terakhir menekan tombol PUSH, itulah yang akan dibaca
-// perangkat lain saat mereka PULL. Kalau dua HP mengedit data BERBEDA di
-// waktu yang sama lalu keduanya push, yang push BELAKANGAN akan menimpa
-// push yang lebih dulu (perubahan yang lebih dulu akan hilang tertimpa).
-//
 // Sinkron otomatis memeriksa fingerprint data pada interval pilihan ketika app
-// terbuka. Jika perubahan hanya ada di satu sisi, sisi lain diperbarui. Jika
-// kedua sisi berubah sejak sinkron terakhir, tidak ada yang ditimpa; pengguna
-// perlu memilih Push atau Pull secara manual. Pemeriksaan pertama untuk file
-// yang sudah ada juga perlu pilihan manual sebagai patokan awal.
+// terbuka. Tambahan dengan ID berbeda dipertahankan dari semua perangkat. Jika
+// record yang sama berubah di dua sisi, record dengan updatedAt terbaru dipakai
+// (data lama tanpa timestamp diselesaikan secara deterministik). Hasil gabungan
+// ditulis kembali ke perangkat dan file sinkron tanpa pilihan Push/Pull.
 // Halaman yang ditutup tidak bisa menjalankan sinkronisasi. Sesi Google juga
 // perlu masih aktif; setelah token habis pengguna perlu menghubungkan ulang.
 // ============================================================================
