@@ -24,6 +24,18 @@ Kami ingin mengingatkan kembali mengenai pesanan Kak di *{{toko}}*:
 > {{konfirmasi}}
 Terima kasih.`;
 
+const REMINDER_DETAIL_TEMPLATE = `· No. Nota: *{{invoice}}*
+{{#jadwal}}· Jadwal Pengambilan: *{{tanggal}}*
+{{/jadwal}}{{#pembayaran}}· Sisa Pembayaran: *{{sisa}}*
+{{/pembayaran}}`;
+
+const REMINDER_CONFIRMATION_TEMPLATE = `{{#jadwal_dan_pembayaran}}Mohon konfirmasi jadwal pengambilan dan sisa pembayarannya ya, Kak.
+{{/jadwal_dan_pembayaran}}{{#hanya_jadwal}}Mohon konfirmasi jadwal pengambilannya ya, Kak.
+{{/hanya_jadwal}}{{#hanya_pembayaran}}Mohon konfirmasi sisa pembayarannya ya, Kak.
+{{/hanya_pembayaran}}`;
+
+const REMINDER_QUOTED_CONFIRMATION_TEMPLATE = REMINDER_CONFIRMATION_TEMPLATE.replace(/\}\}(?=Mohon)/g, '}}> ');
+
 export const DEFAULT_WHATSAPP_SHARE_TEMPLATE = `*NOTA PESANAN*
 
 {{invoice}} || {{tanggal}}
@@ -51,14 +63,16 @@ Dibayar: \`{{dibayar}}\`
 export const DEFAULT_WHATSAPP_REMINDER_TEMPLATE = `Halo *{{pelanggan}}* {{emoji_salam}}
 
 Kami ingin mengingatkan kembali mengenai pesanan Kak di *{{toko}}*:
-· No. Nota: *{{invoice}}*
-{{#jadwal}}· Jadwal Pengambilan: *{{tanggal}}*
-{{/jadwal}}{{#pembayaran}}· Sisa Pembayaran: *{{sisa}}*
-{{/pembayaran}}
-{{#jadwal_dan_pembayaran}}> Mohon konfirmasi jadwal pengambilan dan sisa pembayarannya ya, Kak.
-{{/jadwal_dan_pembayaran}}{{#hanya_jadwal}}> Mohon konfirmasi jadwal pengambilannya ya, Kak.
-{{/hanya_jadwal}}{{#hanya_pembayaran}}> Mohon konfirmasi sisa pembayarannya ya, Kak.
-{{/hanya_pembayaran}}Terima kasih.`;
+${REMINDER_DETAIL_TEMPLATE}
+${REMINDER_QUOTED_CONFIRMATION_TEMPLATE}Terima kasih.`;
+
+export function expandWhatsAppReminderTemplate(template) {
+  return String(template || '')
+    .replace(/\{\{\s*detail\s*\}\}/gi, REMINDER_DETAIL_TEMPLATE)
+    .replace(/>[ \t]*\{\{\s*konfirmasi\s*\}\}/gi, REMINDER_QUOTED_CONFIRMATION_TEMPLATE)
+    .replace(/\{\{\s*konfirmasi\s*\}\}/gi, REMINDER_CONFIRMATION_TEMPLATE)
+    .trim();
+}
 
 export function renderWhatsAppTemplate(template, values = {}, arrays = {}) {
   let output = String(template || '');

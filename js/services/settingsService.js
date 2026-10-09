@@ -6,6 +6,7 @@ import {
   DEFAULT_WHATSAPP_REMINDER_TEMPLATE,
   LEGACY_DEFAULT_WHATSAPP_SHARE_TEMPLATE,
   LEGACY_DEFAULT_WHATSAPP_REMINDER_TEMPLATE,
+  expandWhatsAppReminderTemplate,
 } from './whatsappTemplateService.js';
 
 const DEFAULTS = {
@@ -91,8 +92,10 @@ export async function getSettings() {
       ...existing,
       whatsappTextTemplate: !savedShareTemplate || savedShareTemplate === LEGACY_DEFAULT_WHATSAPP_SHARE_TEMPLATE
         ? DEFAULT_WHATSAPP_SHARE_TEMPLATE : savedShareTemplate,
-      whatsappReminderTemplate: !savedReminderTemplate || savedReminderTemplate === LEGACY_DEFAULT_WHATSAPP_REMINDER_TEMPLATE
-        ? DEFAULT_WHATSAPP_REMINDER_TEMPLATE : savedReminderTemplate,
+      whatsappReminderTemplate: expandWhatsAppReminderTemplate(
+        !savedReminderTemplate || savedReminderTemplate === LEGACY_DEFAULT_WHATSAPP_REMINDER_TEMPLATE
+          ? DEFAULT_WHATSAPP_REMINDER_TEMPLATE : savedReminderTemplate,
+      ),
       autoBackup: { ...DEFAULTS.autoBackup, ...existing.autoBackup },
       security: { ...DEFAULTS.security, ...existing.security },
     };
@@ -105,7 +108,11 @@ export async function getSettings() {
 
 export async function saveSettings(partial) {
   const current = await getSettings();
-  const updated = { ...current, ...partial, id: 1 };
+  const normalized = { ...partial };
+  if (Object.hasOwn(normalized, 'whatsappReminderTemplate')) {
+    normalized.whatsappReminderTemplate = expandWhatsAppReminderTemplate(normalized.whatsappReminderTemplate) || DEFAULT_WHATSAPP_REMINDER_TEMPLATE;
+  }
+  const updated = { ...current, ...normalized, id: 1 };
   await db.put('settings', updated);
   _cache = updated;
   return updated;

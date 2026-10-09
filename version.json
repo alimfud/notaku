@@ -1,4 +1,4 @@
 {
-  "version": "1.32.39",
-  "notes": "Template WhatsApp dibuat lebih detail sehingga susunan produk, biaya, dan seluruh kalimat pengingat dapat diedit langsung."
+  "version": "1.32.40",
+  "notes": "Placeholder gabungan pengingat WhatsApp dibuka otomatis agar seluruh label dan kalimat dapat diedit langsung di form."
 }

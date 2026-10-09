@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { DEFAULT_WHATSAPP_REMINDER_TEMPLATE } from '../js/services/whatsappTemplateService.js';
+import { DEFAULT_WHATSAPP_REMINDER_TEMPLATE, expandWhatsAppReminderTemplate } from '../js/services/whatsappTemplateService.js';
 
 const templateSource = (await readFile(new URL('../js/services/whatsappTemplateService.js', import.meta.url), 'utf8'))
   .replace(/^export /gm, '');
@@ -84,4 +84,15 @@ test('reminder accepts a custom WhatsApp template', () => {
     '· No. Nota: *INV-260901*\n' +
     '· Sisa Pembayaran: *Rp50.000*\n' +
     'Mohon konfirmasi sisa pembayarannya ya, Kak.');
+});
+
+test('legacy hidden reminder placeholders are expanded for the editor', () => {
+  const expanded = expandWhatsAppReminderTemplate('Info:\n{{detail}}\n\n> {{konfirmasi}}');
+  assert.match(expanded, /· No\. Nota: \*\{\{invoice\}\}\*/);
+  assert.match(expanded, /· Jadwal Pengambilan:/);
+  assert.match(expanded, /· Sisa Pembayaran:/);
+  assert.match(expanded, /> Mohon konfirmasi jadwal pengambilan dan sisa pembayarannya ya, Kak\./);
+  assert.match(expanded, /> Mohon konfirmasi jadwal pengambilannya ya, Kak\./);
+  assert.match(expanded, /> Mohon konfirmasi sisa pembayarannya ya, Kak\./);
+  assert.doesNotMatch(expanded, /\{\{(?:detail|konfirmasi)\}\}/);
 });

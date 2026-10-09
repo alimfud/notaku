@@ -13,7 +13,7 @@ import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
 import * as db from '../db.js';
 import { formatAuditDetails, getAuditLogs, recordAudit } from '../services/auditLogService.js';
 import { registerBiometric, biometricAvailable } from '../services/appLockService.js';
-import { DEFAULT_WHATSAPP_SHARE_TEMPLATE, DEFAULT_WHATSAPP_REMINDER_TEMPLATE } from '../services/whatsappTemplateService.js';
+import { DEFAULT_WHATSAPP_SHARE_TEMPLATE, DEFAULT_WHATSAPP_REMINDER_TEMPLATE, expandWhatsAppReminderTemplate } from '../services/whatsappTemplateService.js';
 
 function setBackupLoading(visible, message = 'Sedang memproses…') {
   const overlay = document.getElementById('loadingOverlay');
@@ -229,7 +229,7 @@ async function renderWhatsapp(root) {
   setTopbarActions([]);
   const settings = await getSettings();
   const shareTemplate = settings.whatsappTextTemplate?.trim() || DEFAULT_WHATSAPP_SHARE_TEMPLATE;
-  const reminderTemplate = settings.whatsappReminderTemplate?.trim() || DEFAULT_WHATSAPP_REMINDER_TEMPLATE;
+  const reminderTemplate = expandWhatsAppReminderTemplate(settings.whatsappReminderTemplate) || DEFAULT_WHATSAPP_REMINDER_TEMPLATE;
   root.innerHTML = `
     <div class="settings-simple-page settings-whatsapp-page">
       <div class="settings-page-intro"><h2>Format WhatsApp</h2><p>Sesuaikan pesan yang dikirim kepada pelanggan. Format bawaan sudah diisikan dan dapat diubah kapan saja.</p></div>
@@ -253,7 +253,7 @@ async function renderWhatsapp(root) {
   root.querySelector('#resetWhatsappReminder').onclick = () => { reminderInput.value = DEFAULT_WHATSAPP_REMINDER_TEMPLATE; };
   root.querySelector('#saveWhatsappTemplates').onclick = async () => {
     const whatsappTextTemplate = shareInput.value.trim() || DEFAULT_WHATSAPP_SHARE_TEMPLATE;
-    const whatsappReminderTemplate = reminderInput.value.trim() || DEFAULT_WHATSAPP_REMINDER_TEMPLATE;
+    const whatsappReminderTemplate = expandWhatsAppReminderTemplate(reminderInput.value) || DEFAULT_WHATSAPP_REMINDER_TEMPLATE;
     shareInput.value = whatsappTextTemplate;
     reminderInput.value = whatsappReminderTemplate;
     await saveSettings({ whatsappTextTemplate, whatsappReminderTemplate });
