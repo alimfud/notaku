@@ -16,8 +16,21 @@ function receiptData(storeName) {
 }
 
 test('shared receipt text omits the store-name line when disabled', () => {
-  assert.match(buildShareText(receiptData('Jajan Hajatan')), /^Jajan Hajatan\nINV-001/);
-  assert.match(buildShareText(receiptData('')), /^INV-001/);
+  assert.match(buildShareText(receiptData('Jajan Hajatan')), /Toko: _Jajan Hajatan_/);
+  assert.doesNotMatch(buildShareText(receiptData('')), /Toko:/);
+});
+
+test('shared receipt text uses the compact receipt layout', () => {
+  const data = receiptData('');
+  data.lines = [{ name: 'Bugis', qty: 30, unit: 'pcs', price: 7500, subtotal: 225000 }];
+  data.total = 225000;
+  data.paid = 100000;
+  data.remaining = 125000;
+  const text = buildShareText(data);
+  assert.match(text, /📋 _NOTA PESANAN_/u);
+  assert.match(text, /_INV-001_ \| 9 Okt 2026/);
+  assert.match(text, /1\. _Bugis_\n   30 pcs × Rp7\.500 = _Rp225\.000_/);
+  assert.match(text, /_Total:_ Rp225\.000\n_Dibayar:_ Rp100\.000\n_Sisa:_ Rp125\.000/);
 });
 
 test('Bluetooth receipt omits store-name bytes when disabled', async () => {

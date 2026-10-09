@@ -1,4 +1,4 @@
 {
-  "version": "1.32.33",
-  "notes": "Tautan pengingat memakai endpoint WhatsApp langsung untuk menghindari halaman perantara yang merusak emoji."
+  "version": "1.32.34",
+  "notes": "Format Bagikan Sebagai Teks dirapikan dengan bagian nota, rincian, total, dan footer yang lebih mudah dibaca."
 }

@@ -2,18 +2,35 @@
 import { rupiah } from '../format.js';
 
 export function buildShareText(data) {
-  let text = `${data.storeName ? `${data.storeName}\n` : ''}${data.invoiceNumber} - ${data.dateLabel}\nKepada: ${data.customerName}\n\n`;
+  const clipboard = String.fromCodePoint(0x1F4CB);
+  const separator = '────────────';
+  const lines = [
+    `${clipboard} _NOTA PESANAN_`,
+    '',
+    `_${data.invoiceNumber}_ | ${data.dateLabel}`,
+    `Pelanggan: _${data.customerName}_`,
+  ];
+  if (data.storeName) lines.push(`Toko: _${data.storeName}_`);
+  lines.push('', separator, '_RINCIAN PESANAN_', '');
+
   data.lines.forEach((l, i) => {
-    text += `${i + 1}. ${l.name}\n${l.qty} ${l.unit || ''} x @ ${rupiah(l.price)},- = ${rupiah(l.subtotal)}\n`;
-    if (l.note) text += `${l.note}\n`;
+    lines.push(`${i + 1}. _${l.name}_`);
+    lines.push(`   ${l.qty} ${l.unit || ''} × ${rupiah(l.price)} = _${rupiah(l.subtotal)}_`);
+    if (l.note) lines.push(`   ${l.note}`);
   });
-  if (data.discount > 0) text += `Diskon: -${rupiah(data.discount)}\n`;
-  if (data.shipping > 0) text += `Ongkos Kirim: +${rupiah(data.shipping)}\n`;
-  if (data.other > 0) text += `${data.otherLabel || 'Lain-lain'}: +${rupiah(data.other)}\n`;
-  text += `\nTOTAL: ${rupiah(data.total)}\nBAYAR: ${rupiah(data.paid)}\n`;
-  text += `${data.remaining > 0 ? 'SISA' : 'KEMBALI'}: ${rupiah(Math.abs(data.remaining))}\n`;
-  if (data.note) text += `Catatan: ${data.note}\n`;
-  return text + `\n${data.footerNote}`;
+  if (data.discount > 0) lines.push(`_${'Diskon'}:_ -${rupiah(data.discount)}`);
+  if (data.shipping > 0) lines.push(`_Ongkos Kirim:_ +${rupiah(data.shipping)}`);
+  if (data.other > 0) lines.push(`_${data.otherLabel || 'Lain-lain'}:_ +${rupiah(data.other)}`);
+
+  lines.push(
+    '', separator, '',
+    `_Total:_ ${rupiah(data.total)}`,
+    `_Dibayar:_ ${rupiah(data.paid)}`,
+    `_${data.remaining > 0 ? 'Sisa' : 'Kembali'}:_ ${rupiah(Math.abs(data.remaining))}`,
+  );
+  if (data.note) lines.push(`Catatan: ${data.note}`);
+  lines.push('', separator, '', data.footerNote);
+  return lines.join('\n');
 }
 
 export async function shareAsText(data) {

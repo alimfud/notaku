@@ -1,6 +1,6 @@
 {
   "name": "notaku",
-  "version": "1.32.33",
+  "version": "1.32.34",
   "private": true,
   "type": "module",
   "description": "NotaKu web/PWA application",
