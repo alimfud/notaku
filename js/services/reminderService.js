@@ -59,7 +59,7 @@ export function buildReminderMessage({ sale, remaining, hasPickupReminder, hasPa
     : hasPickupReminder
       ? 'Mohon konfirmasi jadwal pengambilannya ya, Kak.'
       : 'Mohon konfirmasi sisa pembayarannya ya, Kak.';
-  return `Halo *${sale.customerName}* ${PRAYER_EMOJI_TOKEN}\n\nKami ingin mengingatkan kembali mengenai pesanan Kak di *${storeName}*:\n${details.join('\n')}\n\n> ${confirmation}\nTerima kasih.`;
+  return `Halo *${sale.customerName}* ${PRAYER_EMOJI_TOKEN}\n\nKami ingin mengingatkan kembali mengenai pesananNya di *${storeName}*:\n${details.join('\n')}\n\n> ${confirmation}\nTerima kasih.`;
 }
 
 export function reminderWhatsAppUrl(item) {
