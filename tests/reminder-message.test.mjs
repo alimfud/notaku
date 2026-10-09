@@ -33,7 +33,7 @@ test('pickup and payment reminder follows the WhatsApp paragraph format', () => 
   });
   assert.equal(message,
     'Halo *NAMA Pelanggan*,\n\n' +
-    'Terkait nota *INV-260901* di Jajan Hajatan.\n\n' +
+    'Terkait nota *INV-260901* di Jajan Hajatan.\n' +
     '> Pesanan dijadwalkan diambil 10 Okt 2026. Sisa pembayaran `Rp1.015.000`. Mohon konfirmasi ya.\n' +
     'Terima kasih.');
   assert.equal(decodeURIComponent(context.waUrl({ phone: '6285156654155', message }).split('text=')[1]), message);
