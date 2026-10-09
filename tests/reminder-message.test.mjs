@@ -40,6 +40,7 @@ test('pickup and payment reminder follows the WhatsApp paragraph format', () => 
     '> Mohon konfirmasi jadwal pengambilan dan sisa pembayarannya ya, Kak.\n' +
     'Terima kasih.');
   const url = context.waUrl({ phone: '6285156654155', message });
+  assert.match(url, /^https:\/\/api\.whatsapp\.com\/send\?phone=/);
   assert.match(url, /%F0%9F%99%8F/);
   assert.doesNotMatch(url, /NOTAKU_PRAYER_EMOJI/);
   assert.equal(

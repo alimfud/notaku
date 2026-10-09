@@ -1,4 +1,4 @@
 {
-  "version": "1.32.32",
-  "notes": "Emoji sapaan WhatsApp dikirim langsung sebagai byte URL UTF-8 agar tidak berubah menjadi karakter pengganti."
+  "version": "1.32.33",
+  "notes": "Tautan pengingat memakai endpoint WhatsApp langsung untuk menghindari halaman perantara yang merusak emoji."
 }

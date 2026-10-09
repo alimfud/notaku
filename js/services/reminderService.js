@@ -68,5 +68,7 @@ export function reminderWhatsAppUrl(item) {
   // Sisipkan byte UTF-8 URL resminya setelah seluruh teks ASCII di-encode.
   const encodedToken = encodeURIComponent(PRAYER_EMOJI_TOKEN);
   const encodedMessage = encodeURIComponent(item.message).replace(encodedToken, PRAYER_EMOJI_URL_BYTES);
-  return `https://wa.me/${item.phone}?text=${encodedMessage}`;
+  // Endpoint API langsung menghindari halaman perantara wa.me yang pada
+  // beberapa browser desktop merender emoji sebagai karakter pengganti.
+  return `https://api.whatsapp.com/send?phone=${item.phone}&text=${encodedMessage}`;
 }
