@@ -2,34 +2,40 @@
 import { rupiah } from '../format.js';
 
 export function buildShareText(data) {
-  const clipboard = String.fromCodePoint(0x1F4CB);
   const separator = '────────────';
   const lines = [
-    `${clipboard} _NOTA PESANAN_`,
+    '*NOTA PESANAN*',
     '',
-    `_${data.invoiceNumber}_ | ${data.dateLabel}`,
-    `Pelanggan: _${data.customerName}_`,
+    `${data.invoiceNumber} || ${data.dateLabel}`,
+    `Pelanggan: *${data.customerName}*`,
   ];
   if (data.storeName) lines.push(`Toko: _${data.storeName}_`);
-  lines.push('', separator, '_RINCIAN PESANAN_', '');
+  lines.push(separator, '', '*RINCIAN PESANAN*');
 
   data.lines.forEach((l, i) => {
     lines.push(`${i + 1}. _${l.name}_`);
-    lines.push(`   ${l.qty} ${l.unit || ''} × ${rupiah(l.price)} = _${rupiah(l.subtotal)}_`);
-    if (l.note) lines.push(`   ${l.note}`);
+    lines.push(`      ${l.qty} ${l.unit || ''} × ${rupiah(l.price)} = _${rupiah(l.subtotal)}_`);
+    if (l.note) lines.push(`      ${l.note}`);
   });
-  if (data.discount > 0) lines.push(`_${'Diskon'}:_ -${rupiah(data.discount)}`);
-  if (data.shipping > 0) lines.push(`_Ongkos Kirim:_ +${rupiah(data.shipping)}`);
-  if (data.other > 0) lines.push(`_${data.otherLabel || 'Lain-lain'}:_ +${rupiah(data.other)}`);
+  if (data.discount > 0) lines.push(`Diskon: -${rupiah(data.discount)}`);
+  if (data.shipping > 0) lines.push(`Ongkos Kirim: +${rupiah(data.shipping)}`);
+  if (data.other > 0) lines.push(`${data.otherLabel || 'Lain-lain'}: +${rupiah(data.other)}`);
 
   lines.push(
-    '', separator, '',
-    `_Total:_ ${rupiah(data.total)}`,
-    `_Dibayar:_ ${rupiah(data.paid)}`,
-    `_${data.remaining > 0 ? 'Sisa' : 'Kembali'}:_ ${rupiah(Math.abs(data.remaining))}`,
+    separator,
+    `Total: *${rupiah(data.total)}*`,
+    `Dibayar: \`${rupiah(data.paid)}\``,
+    `${data.remaining > 0 ? 'Sisa' : 'Kembali'}: _${rupiah(Math.abs(data.remaining))}_`,
   );
   if (data.note) lines.push(`Catatan: ${data.note}`);
-  lines.push('', separator, '', data.footerNote);
+  lines.push(separator, '');
+  const footerLines = String(data.footerNote || '').split('\n').map((line) => line.trim()).filter(Boolean);
+  footerLines.forEach((line) => {
+    const dateOnly = line.match(/^(\d{2}\/\d{2}\/\d{4})(?:\s+\d{2}:\d{2}:\d{2})?$/);
+    if (dateOnly) lines.push(dateOnly[1]);
+    else if (/^(?:https?:\/\/|www\.)/i.test(line)) lines.push(`*** ${line.replace(/^\*+|\*+$/g, '').trim()} ***`);
+    else lines.push(line);
+  });
   return lines.join('\n');
 }
 

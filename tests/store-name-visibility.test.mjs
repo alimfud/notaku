@@ -26,11 +26,15 @@ test('shared receipt text uses the compact receipt layout', () => {
   data.total = 225000;
   data.paid = 100000;
   data.remaining = 125000;
+  data.footerNote = 'Terimakasih\nwww.jajan.my.id\n09/10/2026 15:55:00';
   const text = buildShareText(data);
-  assert.match(text, /📋 _NOTA PESANAN_/u);
-  assert.match(text, /_INV-001_ \| 9 Okt 2026/);
-  assert.match(text, /1\. _Bugis_\n   30 pcs × Rp7\.500 = _Rp225\.000_/);
-  assert.match(text, /_Total:_ Rp225\.000\n_Dibayar:_ Rp100\.000\n_Sisa:_ Rp125\.000/);
+  assert.match(text, /\*NOTA PESANAN\*/);
+  assert.match(text, /INV-001 \|\| 9 Okt 2026/);
+  assert.match(text, /Pelanggan: \*Pelanggan\*/);
+  assert.match(text, /1\. _Bugis_\n      30 pcs × Rp7\.500 = _Rp225\.000_/);
+  assert.match(text, /Total: \*Rp225\.000\*\nDibayar: `Rp100\.000`\nSisa: _Rp125\.000_/);
+  assert.match(text, /\*\*\* www\.jajan\.my\.id \*\*\*/);
+  assert.match(text, /\n09\/10\/2026$/);
 });
 
 test('Bluetooth receipt omits store-name bytes when disabled', async () => {
