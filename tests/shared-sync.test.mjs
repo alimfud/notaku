@@ -26,6 +26,8 @@ function contextFor({ settings, fetch, pickerKey = '', globals = {} }) {
     globalThis.createSpace = createSharedSyncSpace;
     globalThis.invite = inviteSharedSyncMember;
     globalThis.leaveSpace = leaveSharedSyncSpace;
+    globalThis.listSpaces = listSharedSyncSpaces;
+    globalThis.trashSpace = trashSharedSyncSpace;
     globalThis.pushCloud = pushToCloud;
     globalThis.authorizeFile = authorizeSharedSyncFile;
     _accessToken = "valid";
@@ -70,7 +72,7 @@ test('creating a shared space preserves personal mode as a reversible setting an
       requests.push({ url, options });
       if (url.includes('upload/drive')) return { ok: true, json: async () => ({ id: '1SharedFileAbCd', name: 'NotaKu Sync - Toko Pusat.json' }) };
       if (url.includes('/permissions')) return { ok: true, json: async () => ({ id: 'permission-1' }) };
-      return { ok: true, json: async () => ({ id: '1SharedFileAbCd', name: 'NotaKu Sync - Toko Pusat.json', capabilities: { canEdit: true, canShare: true } }) };
+      return { ok: true, json: async () => ({ id: '1SharedFileAbCd', name: 'NotaKu Sync - Toko Pusat.json', ownedByMe: true, capabilities: { canEdit: true, canShare: true } }) };
     },
   });
 
@@ -112,7 +114,20 @@ test('failed join identifies the exact Google account that still needs permissio
     settings: { autoBackup: { driveConnected: true, driveAccountEmail: 'anggota@example.com', syncMode: 'shared', sharedSyncFileId: '1SharedFileAbCd' } },
     fetch: async () => ({ ok: false, status: 404 }),
   });
-  await assert.rejects(() => f.context.findFile('token'), /anggota@example\.com.*Undang \+ Salin/s);
+  await assert.rejects(() => f.context.findFile('token'), /anggota@example\.com.*“Undang”/s);
+});
+
+test('members cannot invite another account even when their Drive permission allows sharing', async () => {
+  let permissionRequests = 0;
+  const f = contextFor({
+    settings: { autoBackup: { driveConnected: true, syncMode: 'shared', sharedSyncFileId: '1MemberRoomAbCd', sharedSyncOwner: false } },
+    fetch: async (url) => {
+      if (url.includes('/permissions')) permissionRequests++;
+      return { ok: true, json: async () => ({ id: '1MemberRoomAbCd', name: 'NotaKu Sync - Cabang.json', ownedByMe: false, capabilities: { canEdit: true, canShare: true } }) };
+    },
+  });
+  await assert.rejects(() => f.context.invite('teman@example.com'), /Hanya pemilik ruang/);
+  assert.equal(permissionRequests, 0);
 });
 
 test('Picker authorizes only the file encoded in the shared room code', async () => {
@@ -144,4 +159,34 @@ test('Picker authorizes only the file encoded in the shared room code', async ()
     globals: { google: { picker }, gapi: { load() {} }, location: { origin: 'https://nota.example' } },
   });
   assert.equal(await f.context.authorizeFile(`NK1.${fileId}`), fileId);
+});
+
+test('room manager only trashes owner rooms and returns active sync to personal mode', async () => {
+  const requests = [];
+  let settings = { autoBackup: { driveConnected: true, syncMode: 'shared', sharedSyncFileId: '1OwnedRoomAbCd', sharedSyncName: 'Lama' } };
+  const f = contextFor({
+    settings,
+    fetch: async (url, options = {}) => {
+      requests.push({ url, options });
+      if (options.method === 'PATCH') return { ok: true, json: async () => ({ id: '1OwnedRoomAbCd', trashed: true }) };
+      return { ok: true, json: async () => ({ files: [
+        { id: '1OwnedRoomAbCd', name: 'NotaKu Sync - Lama.json', modifiedTime: '2026-10-10T07:00:00.000Z', ownedByMe: true, capabilities: { canTrash: true } },
+        { id: '1MemberRoomXyz', name: 'NotaKu Sync - Cabang.json', ownedByMe: false, capabilities: { canTrash: false } },
+      ] }) };
+    },
+  });
+
+  const spaces = await f.context.listSpaces();
+  assert.equal(spaces[0].displayName, 'Lama');
+  assert.equal(spaces[0].active, true);
+  assert.equal(spaces[1].canTrash, false);
+
+  const removed = await f.context.trashSpace('1OwnedRoomAbCd');
+  assert.equal(removed.wasActive, true);
+  assert.equal(f.settings.autoBackup.syncMode, 'personal');
+  const patchRequest = requests.find((request) => request.options.method === 'PATCH');
+  assert.deepEqual(JSON.parse(patchRequest.options.body), { trashed: true });
+  await assert.rejects(() => f.context.trashSpace('1MemberRoomXyz'), /dimiliki akun lain/);
+  assert.equal(requests.filter((request) => request.options.method === 'PATCH').length, 1);
+  assert.equal(requests.some((request) => request.options.method === 'DELETE'), false);
 });

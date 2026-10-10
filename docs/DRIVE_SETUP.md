@@ -75,8 +75,9 @@ serta API seperti langkah di atas.
 2. Pada perangkat pemilik, hubungkan Google Drive lalu buka **Ruang Sinkron
    Bersama → Buat ruang baru**.
 3. Masukkan email Google yang tampil pada perangkat kedua, lalu tekan
-   **Undang + Salin**. Google Drive akan memberikan izin Editor hanya pada
-   file ruang tersebut dan NotaKu menyalin kode ruang secara otomatis.
+   **Undang**. Google Drive akan memberikan izin Editor hanya pada file ruang
+   tersebut dan NotaKu menyalin kode ruang secara otomatis. Tombol Undang dan
+   Salin lagi hanya tersedia pada akun pemilik ruang.
 4. Kirimkan kode ruang berawalan `NK1.` kepada anggota melalui jalur pribadi.
 5. Pada perangkat kedua, hubungkan akun Google yang diundang lalu pilih
    **Gabung dengan kode**. Google Picker akan terbuka; pilih file bernama
@@ -84,6 +85,17 @@ serta API seperti langkah di atas.
    akan digabung otomatis.
 6. Untuk menghentikan uji coba, pilih **Kembali ke sinkron personal**. File
    bersama tidak dihapus dan data lokal tetap berada di perangkat.
+
+### Menghapus ruang lama
+
+Pilih **Kelola ruang tersimpan** pada bagian Ruang Sinkron Bersama. Akun yang
+menjadi pemilik ruang dapat memilih **Pindahkan ke Sampah**. File tidak langsung
+hilang permanen dan masih dapat dipulihkan lewat Sampah Google Drive. Jika ruang
+yang dihapus sedang aktif, NotaKu otomatis kembali ke mode sinkron personal.
+
+Anggota tidak dapat menghapus file milik akun lain. Pada akun anggota, NotaKu
+akan menampilkan **Hapus lewat akun pemilik**; buka NotaKu memakai akun pemilik
+ruang untuk memindahkannya ke Sampah.
 
 Kode ruang bukan kata sandi dan tidak dapat melewati izin Google Drive. Jangan
 mengubah file bersama menjadi akses publik; undang setiap anggota melalui

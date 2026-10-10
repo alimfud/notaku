@@ -864,7 +864,7 @@ export function parseSharedSyncCode(value) {
 async function getSharedSyncFile(token, fileId) {
   const id = normalizeSharedFileId(fileId);
   if (!id) throw new Error('Kode ruang sinkron tidak valid.');
-  const fields = 'id,name,modifiedTime,capabilities(canEdit,canShare)';
+  const fields = 'id,name,modifiedTime,ownedByMe,capabilities(canEdit,canShare)';
   const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?fields=${encodeURIComponent(fields)}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -879,7 +879,7 @@ async function getSharedSyncFile(token, fileId) {
       } catch { /* Respons 403/404 tidak selalu berisi JSON. */ }
       const error = new Error(reason === 'appNotAuthorizedToFile'
         ? `Izin Editor untuk ${account} sudah ada, tetapi NotaKu belum diizinkan membuka file ini. Pilih file ruang melalui Google Picker satu kali.`
-        : `Akun ${account} belum dapat membuka ruang ini. Pastikan pemilik sudah menekan “Undang + Salin”, lalu pilih file ruang melalui Google Picker.`);
+        : `Akun ${account} belum dapat membuka ruang ini. Pastikan pemilik sudah menekan “Undang”, lalu pilih file ruang melalui Google Picker.`);
       error.code = 'shared_file_access_required';
       throw error;
     }
@@ -997,7 +997,8 @@ export async function inviteSharedSyncMember(email) {
   if (cfg.syncMode !== 'shared' || !cfg.sharedSyncFileId) throw new Error('Buat atau gabung ruang sinkron terlebih dahulu.');
   const token = await ensureToken();
   const file = await getSharedSyncFile(token, cfg.sharedSyncFileId);
-  if (file.capabilities?.canShare === false) throw new Error('Akun ini tidak memiliki izin untuk mengundang anggota.');
+  if (file.ownedByMe !== true) throw new Error('Hanya pemilik ruang yang dapat mengundang anggota.');
+  if (file.capabilities?.canShare === false) throw new Error('Akun pemilik ini tidak memiliki izin untuk mengundang anggota.');
   const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}/permissions?sendNotificationEmail=true&fields=id`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -1027,7 +1028,7 @@ export async function joinSharedSyncSpace(code) {
   const name = sharedSpaceNameFromFile(file);
   await saveSettings({ autoBackup: {
     ...previous,
-    syncMode: 'shared', sharedSyncFileId: file.id, sharedSyncName: name, sharedSyncOwner: false,
+    syncMode: 'shared', sharedSyncFileId: file.id, sharedSyncName: name, sharedSyncOwner: file.ownedByMe === true,
     lastSyncAt: '', lastSyncPushAt: '', lastSyncPullAt: '', lastSyncFingerprint: '',
     lastSyncProblem: false, lastSyncStatus: '', lastSyncPromptKey: '',
   } });
@@ -1049,6 +1050,46 @@ export async function leaveSharedSyncSpace() {
     lastSyncAt: '', lastSyncPushAt: '', lastSyncPullAt: '', lastSyncFingerprint: '',
     lastSyncProblem: false, lastSyncStatus: 'Mode sinkron personal aktif.', lastSyncPromptKey: '',
   } });
+}
+
+/** Daftar ruang yang dibuat/dibuka oleh NotaKu dan masih tersedia di Drive. */
+export async function listSharedSyncSpaces() {
+  const token = await ensureToken();
+  const q = encodeURIComponent("appProperties has { key='notakuSyncSpace' and value='1' } and trashed=false");
+  const fields = encodeURIComponent('files(id,name,createdTime,modifiedTime,ownedByMe,capabilities(canTrash))');
+  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=createdTime desc&pageSize=100&fields=${fields}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Gagal membaca daftar ruang sinkron: ' + await readGoogleError(res));
+  const data = await res.json();
+  const settings = await getSettings();
+  return (data.files || []).map((file) => ({
+    ...file,
+    displayName: sharedSpaceNameFromFile(file),
+    active: settings.autoBackup?.syncMode === 'shared' && settings.autoBackup.sharedSyncFileId === file.id,
+    canTrash: file.ownedByMe === true || file.capabilities?.canTrash === true,
+  }));
+}
+
+/** Pindahkan ruang milik pengguna ke Sampah Drive agar masih bisa dipulihkan. */
+export async function trashSharedSyncSpace(fileId) {
+  const id = normalizeSharedFileId(fileId);
+  if (!id) throw new Error('ID ruang sinkron tidak valid.');
+  const spaces = await listSharedSyncSpaces();
+  const target = spaces.find((space) => space.id === id);
+  if (!target) throw new Error('Ruang sinkron tidak ditemukan atau sudah dihapus.');
+  if (!target.canTrash) throw new Error('Ruang ini dimiliki akun lain. Minta pemilik ruang menghapusnya.');
+  const token = await ensureToken();
+  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?fields=id,trashed`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ trashed: true }),
+  });
+  if (!res.ok) throw new Error('Gagal memindahkan ruang ke Sampah Drive: ' + await readGoogleError(res));
+  const settings = await getSettings();
+  const wasActive = settings.autoBackup?.syncMode === 'shared' && settings.autoBackup.sharedSyncFileId === id;
+  if (wasActive) await leaveSharedSyncSpace();
+  return { id, name: target.displayName, wasActive };
 }
 
 /** Info status sinkron untuk ditampilkan di UI (tanpa mengunduh isi filenya). */

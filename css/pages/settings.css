@@ -218,6 +218,9 @@
 [data-page="settings"] .settings-shared-space-summary b{display:block;margin:2px 0;font-size:12.5px;overflow-wrap:anywhere;}
 [data-page="settings"] .settings-shared-guide{display:grid;gap:2px;margin:0 0 9px;padding:8px;border-radius:8px;background:var(--surface);color:var(--muted);font-size:9.5px;line-height:1.35;}
 [data-page="settings"] .settings-shared-guide b{color:var(--ink);font-size:10px;}
+[data-page="settings"] .settings-shared-member-role{display:grid;gap:3px;margin:0 0 9px;padding:9px;border-radius:8px;background:var(--surface);}
+[data-page="settings"] .settings-shared-member-role b{color:var(--ink);font-size:10.5px;}
+[data-page="settings"] .settings-shared-member-role span{color:var(--muted);font-size:9.5px;line-height:1.4;}
 [data-page="settings"] .settings-shared-member-hint{margin:9px 0 2px;padding:8px;border-radius:8px;background:var(--surface);color:var(--muted);font-size:10px;line-height:1.4;overflow-wrap:anywhere;}
 [data-page="settings"] .settings-shared-member-hint b{color:var(--ink);}
 [data-page="settings"] .settings-shared-picker-ready,[data-page="settings"] .settings-shared-picker-warning{margin:7px 0 2px;padding:7px 8px;border-radius:8px;font-size:9.5px;line-height:1.4;}
@@ -225,11 +228,31 @@
 [data-page="settings"] .settings-shared-picker-warning{background:color-mix(in srgb,#d9a72b 12%,var(--surface));color:var(--ink-soft);}
 [data-page="settings"] .settings-shared-picker-warning code{overflow-wrap:anywhere;font-size:9px;}
 [data-page="settings"] .settings-shared-field{display:block;margin-top:8px;color:var(--muted);font-size:10px;font-weight:700;}
-[data-page="settings"] .settings-shared-field > div{display:flex;gap:6px;margin-top:4px;}
+[data-page="settings"] .settings-shared-field > div{display:flex;align-items:stretch;gap:6px;margin-top:4px;}
 [data-page="settings"] .settings-shared-field input{box-sizing:border-box;min-width:0;width:100%;min-height:36px;padding:7px 8px;border:1px solid var(--outline);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:11px;}
 [data-page="settings"] .settings-shared-field input[readonly]{color:var(--muted);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;}
-[data-page="settings"] .settings-shared-field .settings-button{min-width:72px;white-space:nowrap;}
-[data-page="settings"] .settings-shared-leave{display:block;margin:10px 0 0 auto;padding:4px;border:0;background:transparent;color:var(--muted);font:600 10.5px/1.3 var(--font);text-decoration:underline;cursor:pointer;}
+[data-page="settings"] .settings-shared-field .settings-button{display:inline-flex;min-width:72px;min-height:36px;align-items:center;justify-content:center;margin:0;padding:6px 10px;line-height:1.2;white-space:nowrap;}
+[data-page="settings"] .settings-shared-secondary-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;}
+[data-page="settings"] .settings-shared-secondary-actions button,[data-page="settings"] .settings-shared-manage{padding:4px;border:0;background:transparent;color:var(--muted);font:600 10.5px/1.3 var(--font);text-decoration:underline;cursor:pointer;}
+[data-page="settings"] .settings-shared-manage{display:block;margin:9px 0 0 auto;}
+[data-page="settings"] .settings-shared-secondary-actions button:disabled,[data-page="settings"] .settings-shared-manage:disabled{opacity:.5;cursor:not-allowed;}
+[data-page="settings"].settings-shared-manager{padding:2px 16px 20px;}
+[data-page="settings"] .settings-shared-manager-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:0 2px 12px;}
+[data-page="settings"] .settings-shared-manager-header .sheet-title{padding:0;font-size:18px;}
+[data-page="settings"] .settings-shared-manager-header p{margin:4px 0 0;color:var(--muted);font-size:11px;line-height:1.4;}
+[data-page="settings"] .settings-shared-manager-close{display:grid;width:32px;height:32px;flex:0 0 32px;place-items:center;border:1px solid var(--outline);border-radius:50%;background:var(--surface-dim);color:var(--ink);font-size:20px;line-height:1;cursor:pointer;}
+[data-page="settings"] .settings-shared-manager-loading,[data-page="settings"] .settings-shared-manager-empty{padding:18px 12px;border:1px dashed var(--outline);border-radius:10px;color:var(--muted);font-size:12px;text-align:center;}
+[data-page="settings"] .settings-shared-space-list{display:grid;gap:8px;}
+[data-page="settings"] .settings-shared-space-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid var(--outline);border-radius:10px;background:var(--surface);}
+[data-page="settings"] .settings-shared-space-item.is-active{border-color:color-mix(in srgb,var(--primary) 42%,var(--outline));background:color-mix(in srgb,var(--primary) 5%,var(--surface));}
+[data-page="settings"] .settings-shared-space-item-info{min-width:0;}
+[data-page="settings"] .settings-shared-space-item-info > div{display:flex;align-items:center;gap:6px;}
+[data-page="settings"] .settings-shared-space-item-info b{font-size:12px;overflow-wrap:anywhere;}
+[data-page="settings"] .settings-shared-space-item-info small{display:block;margin-top:3px;color:var(--muted);font-size:9.5px;line-height:1.35;}
+[data-page="settings"] .settings-shared-active-badge{padding:2px 5px;border-radius:999px;background:var(--primary);color:#fff;font-size:7px;font-weight:800;letter-spacing:.06em;}
+[data-page="settings"] .settings-shared-trash{flex:0 0 auto;padding:7px 8px;border:1px solid color-mix(in srgb,var(--danger) 30%,var(--outline));border-radius:8px;background:color-mix(in srgb,var(--danger) 7%,var(--surface));color:var(--danger);font:700 9.5px/1.25 var(--font);cursor:pointer;}
+[data-page="settings"] .settings-shared-trash:disabled{opacity:.55;cursor:wait;}
+[data-page="settings"] .settings-shared-owner-note{max-width:92px;flex:0 0 auto;color:var(--muted);font-size:9px;line-height:1.3;text-align:right;}
 [data-page="settings"] .settings-sync-account[data-state="syncing"] .settings-drive-status-dot{background:#d9a72b;box-shadow:0 0 0 3px color-mix(in srgb,#d9a72b 18%,transparent);}
 [data-page="settings"] .settings-sync-account[data-state="pending"] .settings-drive-status-dot{background:#d9a72b;box-shadow:none;}
 [data-page="settings"] .settings-sync-account[data-state="disconnected"] .settings-drive-status-dot,

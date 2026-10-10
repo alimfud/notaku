@@ -1,4 +1,4 @@
 {
-  "version": "1.33.2",
-  "notes": "Google Picker ditambahkan agar akun anggota dapat mengotorisasi file Ruang Sinkron Bersama setelah menerima undangan."
+  "version": "1.33.4",
+  "notes": "Kontrol undangan dan salin kode Ruang Sinkron Bersama kini khusus pemilik, dengan tata letak tombol yang lebih rapi."
 }

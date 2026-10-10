@@ -5,7 +5,7 @@ import { OWNER_NAME, OWNER_WHATSAPP } from '../config.js';
 import { createBackupBlob, downloadBackup, restoreFromFile, getBackupSummary, compareBackupFile } from '../services/backupService.js';
 import { importLegacyFile } from '../services/legacyImportService.js';
 import { escapeHtml, toWhatsAppNumber } from '../format.js';
-import { confirmDialog, alertDialog } from '../ui/dialog.js';
+import { confirmDialog, alertDialog, openSheet } from '../ui/dialog.js';
 import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, checkForUpdate } from '../app.js';
 import { APP_VERSION } from '../version.js';
@@ -678,6 +678,67 @@ async function renderBackup(root) {
 
 let removeSyncStatusListener = null;
 
+async function openSharedSpacesManager(root, drive) {
+  const result = await openSheet(async (body, close) => {
+    body.classList.add('settings-shared-manager');
+    body.innerHTML = `
+      <div class="settings-shared-manager-header">
+        <div><div class="sheet-title">Kelola Ruang Sinkron</div><p>Ruang milik sendiri dapat dipindahkan ke Sampah Google Drive.</p></div>
+        <button type="button" class="settings-shared-manager-close" aria-label="Tutup">×</button>
+      </div>
+      <div class="settings-shared-manager-loading">Memuat daftar ruang…</div>`;
+    body.querySelector('.settings-shared-manager-close').onclick = () => close();
+
+    try {
+      const spaces = await drive.listSharedSyncSpaces();
+      const list = document.createElement('div');
+      list.className = 'settings-shared-space-list';
+      if (!spaces.length) {
+        list.innerHTML = '<div class="settings-shared-manager-empty">Belum ada ruang sinkron yang tersimpan pada akun Google ini.</div>';
+      } else {
+        list.innerHTML = spaces.map((space) => `
+          <div class="settings-shared-space-item${space.active ? ' is-active' : ''}">
+            <div class="settings-shared-space-item-info">
+              <div><b>${escapeHtml(space.displayName || 'Ruang bersama')}</b>${space.active ? '<span class="settings-shared-active-badge">AKTIF</span>' : ''}</div>
+              <small>${space.canTrash ? 'Milik akun ini' : 'Milik akun lain'}${space.modifiedTime ? ` · Diperbarui ${escapeHtml(new Date(space.modifiedTime).toLocaleString('id-ID'))}` : ''}</small>
+            </div>
+            ${space.canTrash
+              ? `<button type="button" class="settings-shared-trash" data-trash-space="${escapeHtml(space.id)}" data-space-name="${escapeHtml(space.displayName || 'Ruang bersama')}">Pindahkan ke Sampah</button>`
+              : '<span class="settings-shared-owner-note">Hapus lewat akun pemilik</span>'}
+          </div>`).join('');
+      }
+      body.querySelector('.settings-shared-manager-loading').replaceWith(list);
+
+      body.querySelectorAll('[data-trash-space]').forEach((button) => {
+        button.onclick = async () => {
+          const roomName = button.dataset.spaceName || 'Ruang bersama';
+          const confirmed = await confirmDialog({
+            title: 'Pindahkan ruang ke Sampah?',
+            message: `Ruang “${escapeHtml(roomName)}” akan dipindahkan ke Sampah Google Drive. Anggota lain tidak dapat menyinkronkan ruang ini lagi. Data lokal pada perangkat tidak dihapus dan file masih dapat dipulihkan dari Sampah Drive.`,
+            confirmLabel: 'Pindahkan ke Sampah',
+            dangerous: true,
+          });
+          if (!confirmed) return;
+          button.disabled = true;
+          button.textContent = 'Memindahkan…';
+          try {
+            const removed = await drive.trashSharedSyncSpace(button.dataset.trashSpace);
+            toast(`Ruang “${removed.name}” dipindahkan ke Sampah`);
+            close({ removed: true });
+          } catch (error) {
+            button.disabled = false;
+            button.textContent = 'Pindahkan ke Sampah';
+            await alertDialog({ title: 'Ruang Belum Dihapus', message: error.message || 'Ruang belum berhasil dipindahkan ke Sampah.' });
+          }
+        };
+      });
+    } catch (error) {
+      body.querySelector('.settings-shared-manager-loading').innerHTML = `<div class="settings-shared-manager-empty">${escapeHtml(error.message || 'Daftar ruang belum berhasil dimuat.')}</div>`;
+    }
+  });
+  if (result?.removed) await renderAutoBackup(root);
+}
+
 async function renderAutoBackup(root) {
   removeSyncStatusListener?.();
   setPageTitle('Atur Backup Otomatis');
@@ -716,6 +777,15 @@ async function renderAutoBackup(root) {
   const sharedSyncActive = cfg.syncMode === 'shared' && cfg.sharedSyncFileId;
   const sharedSyncCode = sharedSyncActive ? drive.createSharedSyncCode(cfg.sharedSyncFileId) : '';
   const sharedSyncPickerReady = drive.isSharedSyncPickerConfigured();
+  const sharedSyncOwnerControls = cfg.sharedSyncOwner ? `
+      <div class="settings-shared-guide"><b>Cara mengundang:</b><span>1. Masukkan email Google yang terlihat di perangkat anggota.</span><span>2. Tekan “Undang”.</span><span>3. Kode ruang otomatis disalin untuk dikirim kepada anggota.</span></div>
+      <label class="settings-shared-field"><span>Email Google anggota</span>
+        <div><input id="sharedMemberEmail" type="email" autocomplete="email" maxlength="254" placeholder="nama@gmail.com"><button type="button" class="settings-button btn small secondary" id="btnInviteSharedMember">Undang</button></div>
+      </label>
+      <label class="settings-shared-field"><span>Kode ruang</span>
+        <div><input id="sharedSyncCodeDisplay" value="${escapeHtml(sharedSyncCode)}" readonly><button type="button" class="settings-button btn small secondary" id="btnCopySharedCode">Salin lagi</button></div>
+      </label>` : `
+      <div class="settings-shared-member-role"><b>Terhubung sebagai anggota</b><span>Hanya pemilik ruang yang dapat mengundang anggota baru atau menyalin kode ruang.</span></div>`;
   const sharedSyncControls = sharedSyncActive ? `
     <div class="settings-shared-sync" data-active="true">
       <div class="settings-shared-sync-title"><span>Ruang Sinkron Bersama</span><span class="settings-experimental-badge">UJI COBA</span></div>
@@ -723,14 +793,8 @@ async function renderAutoBackup(root) {
         <small>Ruang aktif</small><b>${escapeHtml(cfg.sharedSyncName || 'Ruang bersama')}</b>
         <span>Data lokal perangkat ini disinkronkan dengan anggota ruang.</span>
       </div>
-      <div class="settings-shared-guide"><b>Cara mengundang:</b><span>1. Masukkan email Google yang terlihat di perangkat anggota.</span><span>2. Tekan “Undang + Salin”.</span><span>3. Kirim kode yang sudah disalin kepada anggota.</span></div>
-      <label class="settings-shared-field"><span>Email Google anggota</span>
-        <div><input id="sharedMemberEmail" type="email" autocomplete="email" maxlength="254" placeholder="nama@gmail.com"><button type="button" class="settings-button btn small secondary" id="btnInviteSharedMember">Undang + Salin</button></div>
-      </label>
-      <label class="settings-shared-field"><span>Kode ruang</span>
-        <div><input id="sharedSyncCodeDisplay" value="${escapeHtml(sharedSyncCode)}" readonly><button type="button" class="settings-button btn small secondary" id="btnCopySharedCode">Salin lagi</button></div>
-      </label>
-      <button type="button" class="settings-shared-leave" id="btnLeaveSharedSpace">Kembali ke sinkron personal</button>
+      ${sharedSyncOwnerControls}
+      <div class="settings-shared-secondary-actions"><button type="button" id="btnManageSharedSpaces">Kelola ruang tersimpan</button><button type="button" id="btnLeaveSharedSpace">Kembali ke sinkron personal</button></div>
     </div>` : `
     <div class="settings-shared-sync">
       <div class="settings-shared-sync-title"><span>Ruang Sinkron Bersama</span><span class="settings-experimental-badge">UJI COBA</span></div>
@@ -743,6 +807,7 @@ async function renderAutoBackup(root) {
       <label class="settings-shared-field"><span>Tempel kode dari pemilik</span>
         <div><input id="sharedJoinCode" autocomplete="off" placeholder="NK1.xxxxx"><button type="button" class="settings-button btn small secondary" id="btnJoinSharedSpace" ${cfg.driveConnected ? '' : 'disabled'}>Gabung</button></div>
       </label>
+      <button type="button" class="settings-shared-manage" id="btnManageSharedSpaces" ${cfg.driveConnected ? '' : 'disabled'}>Kelola ruang tersimpan</button>
     </div>`;
 
   root.innerHTML = `
@@ -974,6 +1039,10 @@ async function renderAutoBackup(root) {
       setBackupLoading(false);
       await alertDialog({ title: 'Undangan Gagal', message: error.message || 'Email belum berhasil diundang.' });
     } finally { setBackupLoading(false); }
+  });
+
+  root.querySelector('#btnManageSharedSpaces')?.addEventListener('click', async () => {
+    await openSharedSpacesManager(root, drive);
   });
 
   root.querySelector('#btnLeaveSharedSpace')?.addEventListener('click', async () => {
