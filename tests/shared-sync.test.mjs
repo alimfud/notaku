@@ -104,3 +104,11 @@ test('shared upload refuses to overwrite a newer Drive revision', async () => {
   await assert.rejects(() => f.context.pushCloud({ expectedEtag: 'revision-old' }), /berubah dari perangkat lain/);
   assert.equal(uploads, 0);
 });
+
+test('failed join identifies the exact Google account that still needs permission', async () => {
+  const f = contextFor({
+    settings: { autoBackup: { driveConnected: true, driveAccountEmail: 'anggota@example.com', syncMode: 'shared', sharedSyncFileId: '1SharedFileAbCd' } },
+    fetch: async () => ({ ok: false, status: 404 }),
+  });
+  await assert.rejects(() => f.context.findFile('token'), /anggota@example\.com.*Undang \+ Salin/s);
+});

@@ -54,10 +54,10 @@ menjadi default dan tetap memakai `notaku-sync.json` milik akun masing-masing.
    OAuth consent screen masih dalam mode Testing.
 2. Pada perangkat pemilik, hubungkan Google Drive lalu buka **Ruang Sinkron
    Bersama → Buat ruang baru**.
-3. Masukkan email Google perangkat kedua pada bagian **Undang email lain**.
-   Google Drive akan memberikan izin Editor hanya pada file ruang tersebut.
-4. Salin kode ruang berawalan `NK1.` dan kirimkan kepada anggota melalui jalur
-   pribadi.
+3. Masukkan email Google yang tampil pada perangkat kedua, lalu tekan
+   **Undang + Salin**. Google Drive akan memberikan izin Editor hanya pada
+   file ruang tersebut dan NotaKu menyalin kode ruang secara otomatis.
+4. Kirimkan kode ruang berawalan `NK1.` kepada anggota melalui jalur pribadi.
 5. Pada perangkat kedua, hubungkan akun Google yang diundang lalu pilih
    **Gabung dengan kode**. Data lokal dan data ruang akan digabung otomatis.
 6. Untuk menghentikan uji coba, pilih **Kembali ke sinkron personal**. File

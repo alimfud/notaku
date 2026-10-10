@@ -722,21 +722,23 @@ async function renderAutoBackup(root) {
         <small>Ruang aktif</small><b>${escapeHtml(cfg.sharedSyncName || 'Ruang bersama')}</b>
         <span>Data lokal perangkat ini disinkronkan dengan anggota ruang.</span>
       </div>
-      <label class="settings-shared-field"><span>Kode ruang</span>
-        <div><input id="sharedSyncCodeDisplay" value="${escapeHtml(sharedSyncCode)}" readonly><button type="button" class="settings-button btn small secondary" id="btnCopySharedCode">Salin</button></div>
+      <div class="settings-shared-guide"><b>Cara mengundang:</b><span>1. Masukkan email Google yang terlihat di perangkat anggota.</span><span>2. Tekan “Undang + Salin”.</span><span>3. Kirim kode yang sudah disalin kepada anggota.</span></div>
+      <label class="settings-shared-field"><span>Email Google anggota</span>
+        <div><input id="sharedMemberEmail" type="email" autocomplete="email" maxlength="254" placeholder="nama@gmail.com"><button type="button" class="settings-button btn small secondary" id="btnInviteSharedMember">Undang + Salin</button></div>
       </label>
-      <label class="settings-shared-field"><span>Undang email lain</span>
-        <div><input id="sharedMemberEmail" type="email" autocomplete="email" maxlength="254" placeholder="staf@gmail.com"><button type="button" class="settings-button btn small secondary" id="btnInviteSharedMember">Undang</button></div>
+      <label class="settings-shared-field"><span>Kode ruang</span>
+        <div><input id="sharedSyncCodeDisplay" value="${escapeHtml(sharedSyncCode)}" readonly><button type="button" class="settings-button btn small secondary" id="btnCopySharedCode">Salin lagi</button></div>
       </label>
       <button type="button" class="settings-shared-leave" id="btnLeaveSharedSpace">Kembali ke sinkron personal</button>
     </div>` : `
     <div class="settings-shared-sync">
       <div class="settings-shared-sync-title"><span>Ruang Sinkron Bersama</span><span class="settings-experimental-badge">UJI COBA</span></div>
-      <p>Akun Google berbeda dapat memakai satu file sinkron. Mode personal tetap menjadi pilihan utama.</p>
+      <p>Akun Google berbeda dapat memakai satu file sinkron. Pemilik membuat ruang dan mengundang email anggota; anggota lalu menempel kode ruang.</p>
       <label class="settings-shared-field"><span>Buat ruang baru</span>
         <div><input id="sharedSpaceName" maxlength="60" placeholder="Contoh: Toko Pusat"><button type="button" class="settings-button btn small secondary" id="btnCreateSharedSpace" ${cfg.driveConnected ? '' : 'disabled'}>Buat</button></div>
       </label>
-      <label class="settings-shared-field"><span>Gabung dengan kode</span>
+      <div class="settings-shared-member-hint">Akun yang harus diundang pemilik: <b>${escapeHtml(cfg.driveAccountEmail || 'hubungkan Google Drive dahulu')}</b></div>
+      <label class="settings-shared-field"><span>Tempel kode dari pemilik</span>
         <div><input id="sharedJoinCode" autocomplete="off" placeholder="NK1.xxxxx"><button type="button" class="settings-button btn small secondary" id="btnJoinSharedSpace" ${cfg.driveConnected ? '' : 'disabled'}>Gabung</button></div>
       </label>
     </div>`;
@@ -949,9 +951,19 @@ async function renderAutoBackup(root) {
     if (!email) { toast('Masukkan email anggota'); return; }
     setBackupLoading(true, 'Mengirim undangan ruang sinkron…');
     try {
-      await drive.inviteSharedSyncMember(email);
+      const result = await drive.inviteSharedSyncMember(email);
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(result.code);
+        copied = true;
+      } catch { /* Kode tetap terlihat dan dapat disalin manual. */ }
       emailInput.value = '';
-      toast(`Undangan dikirim ke ${email}`);
+      setBackupLoading(false);
+      await alertDialog({
+        title: 'Undangan Siap',
+        message: `${email} sudah diberi akses Editor.\n\n${copied ? 'Kode ruang sudah disalin. Kirim atau tempelkan kode itu di perangkat anggota.' : `Salin kode ruang berikut lalu kirim ke anggota:\n${result.code}`}`,
+        okLabel: 'Mengerti',
+      });
     } catch (error) {
       setBackupLoading(false);
       await alertDialog({ title: 'Undangan Gagal', message: error.message || 'Email belum berhasil diundang.' });

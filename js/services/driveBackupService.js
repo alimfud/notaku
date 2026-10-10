@@ -838,7 +838,9 @@ async function getSharedSyncFile(token, fileId) {
   });
   if (!res.ok) {
     if (res.status === 403 || res.status === 404) {
-      throw new Error('Ruang sinkron belum dibagikan ke akun Google ini, atau kode ruang tidak benar.');
+      const settings = await getSettings();
+      const account = settings.autoBackup?.driveAccountEmail || 'akun Google yang sedang terhubung';
+      throw new Error(`Akun ${account} belum mendapat izin ke ruang ini.\n\nDi perangkat pemilik, masukkan email tersebut lalu tekan “Undang + Salin”. Setelah itu gunakan kembali kode ruang yang sama.`);
     }
     throw new Error('Gagal membuka ruang sinkron: ' + await readGoogleError(res));
   }
