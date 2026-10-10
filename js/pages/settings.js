@@ -241,8 +241,7 @@ async function renderWhatsapp(root) {
   const reminderPaymentTemplate = settings.whatsappReminderPaymentTemplate || DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE;
   root.innerHTML = `
     <div class="settings-simple-page settings-whatsapp-page">
-      <div class="settings-page-intro"><h2>Format WhatsApp</h2><p>Sesuaikan pesan yang dikirim kepada pelanggan. Format bawaan sudah diisikan dan dapat diubah kapan saja.</p></div>
-      <button class="btn" id="saveWhatsappTemplatesTop">Simpan Format WhatsApp</button>
+      <div class="settings-page-intro settings-whatsapp-intro"><div><h2>Format WhatsApp</h2><p>Sesuaikan pesan yang dikirim kepada pelanggan. Format bawaan sudah diisikan dan dapat diubah kapan saja.</p></div><button type="button" class="settings-whatsapp-save-icon" id="saveWhatsappTemplatesTop" aria-label="Simpan Format WhatsApp" title="Simpan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l2 2v16H5zM8 3v6h8V3M8 21v-7h8v7"/></svg></button></div>
       <section class="settings-whatsapp-card">
         <div class="settings-whatsapp-heading"><div><b>Bagikan nota sebagai teks</b><small>Digunakan dari tombol Bagikan Sebagai Teks pada detail nota.</small></div><button type="button" class="btn small ghost" id="resetWhatsappShare">Kembalikan default</button></div>
         <textarea id="fWhatsappTemplate" rows="22" spellcheck="false">${escapeHtml(shareTemplate)}</textarea>

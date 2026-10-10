@@ -67,6 +67,12 @@
 [data-page="settings"] .settings-help-contact--empty{cursor:default;}
 [data-page="settings"] .settings-logo-remove{margin-top:8px;}
 [data-page="settings"] .settings-whatsapp-page{display:grid;gap:14px;}
+[data-page="settings"] .settings-whatsapp-intro{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+[data-page="settings"] .settings-whatsapp-intro>div{min-width:0;flex:1;}
+[data-page="settings"] .settings-whatsapp-save-icon{display:grid;width:40px;height:40px;flex:none;place-items:center;padding:0;border:0;border-radius:12px;background:var(--primary);color:#fff;box-shadow:0 4px 10px color-mix(in srgb,var(--primary) 28%,transparent);cursor:pointer;}
+[data-page="settings"] .settings-whatsapp-save-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+[data-page="settings"] .settings-whatsapp-save-icon:active{transform:translateY(1px);box-shadow:0 2px 6px color-mix(in srgb,var(--primary) 22%,transparent);}
+[data-page="settings"] .settings-whatsapp-save-icon:focus-visible{outline:2px solid var(--primary);outline-offset:3px;}
 [data-page="settings"] .settings-whatsapp-card{display:grid;gap:10px;padding:14px;border:1px solid var(--outline);border-radius:14px;background:var(--surface);}
 [data-page="settings"] .settings-whatsapp-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
 [data-page="settings"] .settings-whatsapp-heading>div{display:grid;gap:3px;}
