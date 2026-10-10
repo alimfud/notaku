@@ -39,7 +39,9 @@ function contextFor({ settings, fetch, pickerKey = '', globals = {} }) {
 test('shared sync codes accept codes and Drive links but reject arbitrary text', () => {
   const f = contextFor({ settings: { autoBackup: {} }, fetch: async () => ({ ok: true }) });
   const id = '1AbCdEfGhIjKlMnOpQrStUv';
-  assert.equal(f.context.codeFor(id), `NK1.${id}`);
+  assert.match(f.context.codeFor(id), /^[0-9A-HJKMNP-TV-Z]{8}$/);
+  assert.equal(f.context.codeFor(id).length, 8);
+  assert.equal(f.context.parseCode(f.context.codeFor(id)), '');
   assert.equal(f.context.parseCode(`NK1.${id}`), id);
   assert.equal(f.context.parseCode(`https://drive.google.com/file/d/${id}/view`), id);
   assert.equal(f.context.parseCode('bukan-kode'), '');
@@ -77,7 +79,8 @@ test('creating a shared space preserves personal mode as a reversible setting an
   });
 
   const created = await f.context.createSpace('Toko Pusat');
-  assert.equal(created.code, 'NK1.1SharedFileAbCd');
+  assert.equal(created.code, f.context.codeFor('1SharedFileAbCd'));
+  assert.equal(created.code.length, 8);
   assert.equal(f.settings.autoBackup.syncMode, 'shared');
   assert.equal(f.settings.autoBackup.sharedSyncOwner, true);
 
@@ -130,8 +133,9 @@ test('members cannot invite another account even when their Drive permission all
   assert.equal(permissionRequests, 0);
 });
 
-test('Picker authorizes only the file encoded in the shared room code', async () => {
+test('Picker matches an eight-character room code to the selected shared file', async () => {
   const fileId = '1SharedFileAbCd';
+  let selectedFileId = fileId;
   let callback;
   class DocsView {
     setIncludeFolders() { return this; }
@@ -147,7 +151,7 @@ test('Picker authorizes only the file encoded in the shared room code', async ()
     setOrigin() { return this; }
     setTitle() { return this; }
     setCallback(value) { callback = value; return this; }
-    build() { return { setVisible() { callback({ action: 'picked', docs: [{ id: fileId }] }); } }; }
+    build() { return { setVisible() { callback({ action: 'picked', docs: [{ id: selectedFileId }] }); } }; }
   }
   const picker = {
     DocsView, PickerBuilder, ViewId: { DOCS: 'docs' }, DocsViewMode: { LIST: 'list' },
@@ -158,7 +162,11 @@ test('Picker authorizes only the file encoded in the shared room code', async ()
     fetch: async () => ({ ok: true }),
     globals: { google: { picker }, gapi: { load() {} }, location: { origin: 'https://nota.example' } },
   });
-  assert.equal(await f.context.authorizeFile(`NK1.${fileId}`), fileId);
+  const shortCode = f.context.codeFor(fileId);
+  assert.equal(shortCode.length, 8);
+  assert.equal(await f.context.authorizeFile(shortCode.toLowerCase()), fileId);
+  selectedFileId = '1DifferentSharedFile';
+  await assert.rejects(() => f.context.authorizeFile(shortCode), /tidak cocok dengan kode ruang/);
 });
 
 test('room manager only trashes owner rooms and returns active sync to personal mode', async () => {

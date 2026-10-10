@@ -1,4 +1,4 @@
 {
-  "version": "1.33.4",
-  "notes": "Kontrol undangan dan salin kode Ruang Sinkron Bersama kini khusus pemilik, dengan tata letak tombol yang lebih rapi."
+  "version": "1.33.5",
+  "notes": "Kode Ruang Sinkron Bersama disederhanakan menjadi 8 karakter, sementara kode lama tetap dapat digunakan."
 }

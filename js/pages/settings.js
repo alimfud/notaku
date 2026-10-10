@@ -805,7 +805,7 @@ async function renderAutoBackup(root) {
       <div class="settings-shared-member-hint">Akun yang harus diundang pemilik: <b>${escapeHtml(cfg.driveAccountEmail || 'hubungkan Google Drive dahulu')}</b></div>
       ${sharedSyncPickerReady ? '<div class="settings-shared-picker-ready">Saat bergabung, pilih file <b>NotaKu Sync</b> yang dibagikan pemilik.</div>' : '<div class="settings-shared-picker-warning">Google Picker belum dikonfigurasi oleh pengelola aplikasi. Isi <code>GOOGLE_PICKER_API_KEY</code> agar akun berbeda dapat memilih file bersama.</div>'}
       <label class="settings-shared-field"><span>Tempel kode dari pemilik</span>
-        <div><input id="sharedJoinCode" autocomplete="off" placeholder="NK1.xxxxx"><button type="button" class="settings-button btn small secondary" id="btnJoinSharedSpace" ${cfg.driveConnected ? '' : 'disabled'}>Gabung</button></div>
+        <div><input id="sharedJoinCode" autocomplete="off" autocapitalize="characters" placeholder="8 karakter"><button type="button" class="settings-button btn small secondary" id="btnJoinSharedSpace" ${cfg.driveConnected ? '' : 'disabled'}>Gabung</button></div>
       </label>
       <button type="button" class="settings-shared-manage" id="btnManageSharedSpaces" ${cfg.driveConnected ? '' : 'disabled'}>Kelola ruang tersimpan</button>
     </div>`;
@@ -990,12 +990,13 @@ async function renderAutoBackup(root) {
     });
     if (!confirmed) return;
     try {
+      let authorizedFileId = '';
       if (drive.isSharedSyncPickerConfigured()) {
         toast('Pilih file NotaKu Sync yang dibagikan pemilik');
-        await drive.authorizeSharedSyncFile(code);
+        authorizedFileId = await drive.authorizeSharedSyncFile(code);
       }
       setBackupLoading(true, 'Membuka dan menggabungkan ruang sinkron…');
-      const result = await drive.joinSharedSyncSpace(code);
+      const result = await drive.joinSharedSyncSpace(code, { authorizedFileId });
       toast(`Berhasil bergabung ke “${result.name}”`);
       await renderAutoBackup(root);
     } catch (error) {

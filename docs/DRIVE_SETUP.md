@@ -78,7 +78,8 @@ serta API seperti langkah di atas.
    **Undang**. Google Drive akan memberikan izin Editor hanya pada file ruang
    tersebut dan NotaKu menyalin kode ruang secara otomatis. Tombol Undang dan
    Salin lagi hanya tersedia pada akun pemilik ruang.
-4. Kirimkan kode ruang berawalan `NK1.` kepada anggota melalui jalur pribadi.
+4. Kirimkan kode ruang 8 karakter kepada anggota melalui jalur pribadi. Kode
+   lama berawalan `NK1.` tetap dapat digunakan.
 5. Pada perangkat kedua, hubungkan akun Google yang diundang lalu pilih
    **Gabung dengan kode**. Google Picker akan terbuka; pilih file bernama
    `NotaKu Sync - NAMA RUANG.json`. Setelah dipilih, data lokal dan data ruang
@@ -97,6 +98,7 @@ Anggota tidak dapat menghapus file milik akun lain. Pada akun anggota, NotaKu
 akan menampilkan **Hapus lewat akun pemilik**; buka NotaKu memakai akun pemilik
 ruang untuk memindahkannya ke Sampah.
 
+Kode pendek dicocokkan dengan file yang dipilih anggota melalui Google Picker.
 Kode ruang bukan kata sandi dan tidak dapat melewati izin Google Drive. Jangan
 mengubah file bersama menjadi akses publik; undang setiap anggota melalui
 alamat emailnya.

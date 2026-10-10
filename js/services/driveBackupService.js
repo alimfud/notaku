@@ -839,6 +839,8 @@ async function checkSchedule() {
 
 const SYNC_FILE_NAME = 'notaku-sync.json';
 const SHARED_SYNC_CODE_PREFIX = 'NK1.';
+const SHARED_SYNC_SHORT_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+const SHARED_SYNC_SHORT_LENGTH = 8;
 
 function normalizeSharedFileId(value) {
   const raw = String(value || '').trim();
@@ -848,13 +850,33 @@ function normalizeSharedFileId(value) {
   return /^[A-Za-z0-9_-]{10,}$/.test(candidate) ? candidate : '';
 }
 
-/** Kode hanya menunjuk file; izin akses tetap diperiksa oleh Google Drive. */
-export function createSharedSyncCode(fileId) {
-  const normalized = normalizeSharedFileId(fileId);
-  if (!normalized) throw new Error('ID ruang sinkron tidak valid.');
-  return SHARED_SYNC_CODE_PREFIX + normalized;
+function normalizeShortSharedCode(value) {
+  const compact = String(value || '').trim().replace(/[\s-]/g, '').toUpperCase();
+  return new RegExp(`^[${SHARED_SYNC_SHORT_ALPHABET}]{${SHARED_SYNC_SHORT_LENGTH}}$`).test(compact) ? compact : '';
 }
 
+function shortSharedCodeForFile(fileId) {
+  const normalized = normalizeSharedFileId(fileId);
+  if (!normalized) throw new Error('ID ruang sinkron tidak valid.');
+  let hash = 14695981039346656037n;
+  for (let index = 0; index < normalized.length; index++) {
+    hash ^= BigInt(normalized.charCodeAt(index));
+    hash = BigInt.asUintN(64, hash * 1099511628211n);
+  }
+  let code = '';
+  for (let index = 0; index < SHARED_SYNC_SHORT_LENGTH; index++) {
+    code = SHARED_SYNC_SHORT_ALPHABET[Number(hash & 31n)] + code;
+    hash >>= 5n;
+  }
+  return code;
+}
+
+/** Kode pendek dicocokkan setelah anggota memilih file; izin tetap diperiksa Drive. */
+export function createSharedSyncCode(fileId) {
+  return shortSharedCodeForFile(fileId);
+}
+
+/** Membaca kode lama/link Drive yang masih memuat ID file secara langsung. */
 export function parseSharedSyncCode(value) {
   const raw = String(value || '').trim();
   if (/^NK1\./i.test(raw) || /^https:\/\/drive\.google\.com\//i.test(raw)) return normalizeSharedFileId(raw);
@@ -895,8 +917,9 @@ async function getSharedSyncFile(token, fileId) {
  * akun anggota. Ini diwajibkan oleh scope drive.file meski ACL Editor sudah ada.
  */
 export async function authorizeSharedSyncFile(code) {
-  const fileId = parseSharedSyncCode(code);
-  if (!fileId) throw new Error('Kode ruang sinkron tidak valid.');
+  const legacyFileId = parseSharedSyncCode(code);
+  const shortCode = normalizeShortSharedCode(code);
+  if (!legacyFileId && !shortCode) throw new Error('Kode ruang sinkron tidak valid.');
   if (!isSharedSyncPickerConfigured()) {
     throw new Error('Google Picker belum dikonfigurasi. Aktifkan Google Picker API, buat API key, lalu isi GOOGLE_PICKER_API_KEY di js/config.js.');
   }
@@ -923,11 +946,16 @@ export async function authorizeSharedSyncFile(code) {
         if (action === pickerApi.Action.PICKED || String(action).toLowerCase() === 'picked') {
           const selected = data?.[pickerApi.Response.DOCUMENTS]?.[0] || data?.docs?.[0];
           const selectedId = selected?.[pickerApi.Document.ID] || selected?.id;
-          if (selectedId !== fileId) {
+          if (!selectedId) {
+            reject(new Error('Google Picker tidak mengembalikan ID file. Pilih ulang file ruang NotaKu.'));
+            return;
+          }
+          const matchesCode = legacyFileId ? selectedId === legacyFileId : shortSharedCodeForFile(selectedId) === shortCode;
+          if (!matchesCode) {
             reject(new Error('File yang dipilih tidak cocok dengan kode ruang. Pilih file NotaKu yang dibagikan oleh pemilik.'));
             return;
           }
-          resolve(fileId);
+          resolve(selectedId);
         } else if (action === pickerApi.Action.CANCEL || String(action).toLowerCase() === 'cancel') {
           reject(new Error('Pemilihan file ruang dibatalkan.'));
         }
@@ -1009,17 +1037,29 @@ export async function inviteSharedSyncMember(email) {
 }
 
 /** Gabungkan data lokal dengan file yang sudah dibagikan ke akun ini. */
-export async function joinSharedSyncSpace(code) {
-  const fileId = parseSharedSyncCode(code);
-  if (!fileId) throw new Error('Kode ruang sinkron tidak valid.');
+export async function joinSharedSyncSpace(code, { authorizedFileId = '' } = {}) {
+  const pickerFileId = normalizeSharedFileId(authorizedFileId);
+  let fileId = parseSharedSyncCode(code);
+  const shortCode = normalizeShortSharedCode(code);
+  if (!fileId && !shortCode) throw new Error('Kode ruang sinkron tidak valid.');
+  if (pickerFileId) {
+    const pickerMatchesCode = fileId ? pickerFileId === fileId : shortSharedCodeForFile(pickerFileId) === shortCode;
+    if (!pickerMatchesCode) throw new Error('File yang dipilih tidak cocok dengan kode ruang.');
+    fileId = pickerFileId;
+  }
   const token = await ensureToken();
   let file;
-  try {
+  if (shortCode && !pickerFileId) {
+    fileId = await authorizeSharedSyncFile(shortCode);
     file = await getSharedSyncFile(token, fileId);
-  } catch (error) {
-    if (error.code !== 'shared_file_access_required') throw error;
-    await authorizeSharedSyncFile(code);
-    file = await getSharedSyncFile(token, fileId);
+  } else {
+    try {
+      file = await getSharedSyncFile(token, fileId);
+    } catch (error) {
+      if (error.code !== 'shared_file_access_required') throw error;
+      fileId = await authorizeSharedSyncFile(code);
+      file = await getSharedSyncFile(token, fileId);
+    }
   }
   if (file.capabilities?.canEdit === false) throw new Error('Ruang ini hanya memberi akses baca. Minta pemilik memberikan akses Editor.');
   const payload = await readSyncFile(token, file);
