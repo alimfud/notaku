@@ -713,6 +713,34 @@ async function renderAutoBackup(root) {
     <div class="settings-time-menu" data-time-menu="${id}">${timeOptions(value)}</div>
   </div>`;
 
+  const sharedSyncActive = cfg.syncMode === 'shared' && cfg.sharedSyncFileId;
+  const sharedSyncCode = sharedSyncActive ? drive.createSharedSyncCode(cfg.sharedSyncFileId) : '';
+  const sharedSyncControls = sharedSyncActive ? `
+    <div class="settings-shared-sync" data-active="true">
+      <div class="settings-shared-sync-title"><span>Ruang Sinkron Bersama</span><span class="settings-experimental-badge">UJI COBA</span></div>
+      <div class="settings-shared-space-summary">
+        <small>Ruang aktif</small><b>${escapeHtml(cfg.sharedSyncName || 'Ruang bersama')}</b>
+        <span>Data lokal perangkat ini disinkronkan dengan anggota ruang.</span>
+      </div>
+      <label class="settings-shared-field"><span>Kode ruang</span>
+        <div><input id="sharedSyncCodeDisplay" value="${escapeHtml(sharedSyncCode)}" readonly><button type="button" class="settings-button btn small secondary" id="btnCopySharedCode">Salin</button></div>
+      </label>
+      <label class="settings-shared-field"><span>Undang email lain</span>
+        <div><input id="sharedMemberEmail" type="email" autocomplete="email" maxlength="254" placeholder="staf@gmail.com"><button type="button" class="settings-button btn small secondary" id="btnInviteSharedMember">Undang</button></div>
+      </label>
+      <button type="button" class="settings-shared-leave" id="btnLeaveSharedSpace">Kembali ke sinkron personal</button>
+    </div>` : `
+    <div class="settings-shared-sync">
+      <div class="settings-shared-sync-title"><span>Ruang Sinkron Bersama</span><span class="settings-experimental-badge">UJI COBA</span></div>
+      <p>Akun Google berbeda dapat memakai satu file sinkron. Mode personal tetap menjadi pilihan utama.</p>
+      <label class="settings-shared-field"><span>Buat ruang baru</span>
+        <div><input id="sharedSpaceName" maxlength="60" placeholder="Contoh: Toko Pusat"><button type="button" class="settings-button btn small secondary" id="btnCreateSharedSpace" ${cfg.driveConnected ? '' : 'disabled'}>Buat</button></div>
+      </label>
+      <label class="settings-shared-field"><span>Gabung dengan kode</span>
+        <div><input id="sharedJoinCode" autocomplete="off" placeholder="NK1.xxxxx"><button type="button" class="settings-button btn small secondary" id="btnJoinSharedSpace" ${cfg.driveConnected ? '' : 'disabled'}>Gabung</button></div>
+      </label>
+    </div>`;
+
   root.innerHTML = `
     <div class="settings-section">
       <label class="settings-backup-toggle">
@@ -754,7 +782,7 @@ async function renderAutoBackup(root) {
           </div>
           <button class="settings-button btn small secondary" id="btnDriveConnect">${cfg.driveConnected ? 'Putuskan' : 'Hubungkan'}</button>
         </div>
-        <div class="backup-info-text autobackup-info-text" data-autobackup-info-panel="drive" hidden>Gunakan akun Google yang sama di semua perangkat. Tambahan dari setiap perangkat akan digabung otomatis tanpa memilih salah satu sumber data.</div>
+        <div class="backup-info-text autobackup-info-text" data-autobackup-info-panel="drive" hidden>Mode personal memakai akun Google yang sama di semua perangkat. Ruang Sinkron Bersama dapat dipakai secara opsional untuk akun berbeda. Tambahan dari setiap perangkat tetap digabung otomatis.</div>
         <div class="settings-sync-account" id="syncAccountStatus" role="status" aria-live="polite" aria-atomic="true">
           ${cfg.driveConnected
             ? `<span class="settings-drive-status-dot" aria-hidden="true"></span><span><b>${cfg.lastSyncAt ? 'Tersinkron' : 'Terhubung'}</b> · ${escapeHtml(cfg.driveAccountEmail || 'akun Google')}</span>`
@@ -762,6 +790,7 @@ async function renderAutoBackup(root) {
           ${cfg.lastSyncAt ? `<small>Terakhir sinkron: ${formatSyncDate(cfg.lastSyncAt)}</small>` : '<small>Belum pernah sinkron</small>'}
           <small>ID perangkat: ${escapeHtml(drive.getDeviceSyncLabel())}</small>
         </div>
+        ${sharedSyncControls}
         <button class="settings-sync-now btn" id="btnSyncNow" ${cfg.driveConnected ? '' : 'disabled'}>Sinkron sekarang</button>
         <label class="settings-sync-interval"><span>Interval sinkron</span>
           <select id="autoSyncInterval">
@@ -868,6 +897,79 @@ async function renderAutoBackup(root) {
     } catch (e) { toast(e.message || 'Gagal menghubungkan akun Google.'); }
   };
 
+  root.querySelector('#btnCreateSharedSpace')?.addEventListener('click', async () => {
+    const name = root.querySelector('#sharedSpaceName').value.trim();
+    if (!name) { toast('Isi nama ruang sinkron terlebih dahulu'); return; }
+    setBackupLoading(true, 'Membuat ruang sinkron bersama…');
+    try {
+      const result = await drive.createSharedSyncSpace(name);
+      toast(`Ruang “${result.name}” berhasil dibuat`);
+      await renderAutoBackup(root);
+    } catch (error) {
+      setBackupLoading(false);
+      await alertDialog({ title: 'Ruang Gagal Dibuat', message: error.message || 'Ruang sinkron belum berhasil dibuat.' });
+    } finally { setBackupLoading(false); }
+  });
+
+  root.querySelector('#btnJoinSharedSpace')?.addEventListener('click', async () => {
+    const code = root.querySelector('#sharedJoinCode').value.trim();
+    if (!code) { toast('Masukkan kode ruang sinkron'); return; }
+    const confirmed = await confirmDialog({
+      title: 'Gabung ruang bersama?',
+      message: 'Data pada perangkat ini dan data ruang bersama akan digabung otomatis. Pastikan pemilik sudah mengundang email Google yang sedang terhubung.',
+      confirmLabel: 'Gabung & Sinkronkan',
+    });
+    if (!confirmed) return;
+    setBackupLoading(true, 'Membuka dan menggabungkan ruang sinkron…');
+    try {
+      const result = await drive.joinSharedSyncSpace(code);
+      toast(`Berhasil bergabung ke “${result.name}”`);
+      await renderAutoBackup(root);
+    } catch (error) {
+      setBackupLoading(false);
+      await alertDialog({ title: 'Tidak Dapat Bergabung', message: error.message || 'Kode atau izin ruang sinkron belum sesuai.' });
+    } finally { setBackupLoading(false); }
+  });
+
+  root.querySelector('#btnCopySharedCode')?.addEventListener('click', async () => {
+    const input = root.querySelector('#sharedSyncCodeDisplay');
+    try {
+      await navigator.clipboard.writeText(input.value);
+      toast('Kode ruang disalin');
+    } catch {
+      input.select();
+      document.execCommand('copy');
+      toast('Kode ruang disalin');
+    }
+  });
+
+  root.querySelector('#btnInviteSharedMember')?.addEventListener('click', async () => {
+    const emailInput = root.querySelector('#sharedMemberEmail');
+    const email = emailInput.value.trim();
+    if (!email) { toast('Masukkan email anggota'); return; }
+    setBackupLoading(true, 'Mengirim undangan ruang sinkron…');
+    try {
+      await drive.inviteSharedSyncMember(email);
+      emailInput.value = '';
+      toast(`Undangan dikirim ke ${email}`);
+    } catch (error) {
+      setBackupLoading(false);
+      await alertDialog({ title: 'Undangan Gagal', message: error.message || 'Email belum berhasil diundang.' });
+    } finally { setBackupLoading(false); }
+  });
+
+  root.querySelector('#btnLeaveSharedSpace')?.addEventListener('click', async () => {
+    const confirmed = await confirmDialog({
+      title: 'Kembali ke sinkron personal?',
+      message: 'File ruang bersama tidak dihapus dan data yang sudah ada di perangkat tetap tersimpan. Sinkron berikutnya akan kembali memakai file personal akun ini.',
+      confirmLabel: 'Kembali ke Personal',
+    });
+    if (!confirmed) return;
+    await drive.leaveSharedSyncSpace();
+    toast('Mode sinkron personal aktif');
+    await renderAutoBackup(root);
+  });
+
   for (const id of ['backupWindowStart', 'backupWindowEnd', 'backupDailyLimit', 'backupKeepCount']) {
     root.querySelector(`#${id}`).onchange = () => saveAutoBackupForm(root);
   }
@@ -909,6 +1011,7 @@ function renderSyncStatus(root, state) {
   panel.dataset.state = phase;
   panel.innerHTML = `<span class="settings-drive-status-dot" aria-hidden="true"></span>
     <span><b>${label}</b>${state.driveConnected ? ` · ${escapeHtml(state.driveAccountEmail || 'akun Google')}` : ''}</span>
+    <small>Mode: ${state.syncMode === 'shared' ? `Ruang bersama · ${escapeHtml(state.sharedSyncName || 'Tanpa nama')}` : 'Personal'}</small>
     <small>Terakhir sinkron: ${state.lastSyncAt ? formatSyncDate(state.lastSyncAt) : 'Belum pernah sinkron'}</small>
     <small>ID perangkat: ${escapeHtml(state.deviceSyncId || '-')}</small>
     <small>${escapeHtml(message)}</small>`;

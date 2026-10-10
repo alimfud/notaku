@@ -1,4 +1,4 @@
 {
-  "version": "1.32.46",
-  "notes": "Informasi rumus Format WhatsApp dirapikan menjadi kotak bantuan dan chip yang mudah dibaca."
+  "version": "1.33.0",
+  "notes": "Ruang Sinkron Bersama eksperimental memungkinkan akun Google berbeda memakai satu file sinkron melalui undangan email."
 }

@@ -45,6 +45,28 @@ sendiri untuk fitur Drive-nya.
    "Hubungkan Akun Google Drive" → pilih akun Google yang tadi didaftarkan
    sebagai Test User di langkah 4.
 
+## Uji coba sinkronisasi beda email
+
+Fitur **Ruang Sinkron Bersama** bersifat opsional. Mode personal lama tetap
+menjadi default dan tetap memakai `notaku-sync.json` milik akun masing-masing.
+
+1. Pastikan kedua alamat Google sudah dimasukkan sebagai **Test users** jika
+   OAuth consent screen masih dalam mode Testing.
+2. Pada perangkat pemilik, hubungkan Google Drive lalu buka **Ruang Sinkron
+   Bersama → Buat ruang baru**.
+3. Masukkan email Google perangkat kedua pada bagian **Undang email lain**.
+   Google Drive akan memberikan izin Editor hanya pada file ruang tersebut.
+4. Salin kode ruang berawalan `NK1.` dan kirimkan kepada anggota melalui jalur
+   pribadi.
+5. Pada perangkat kedua, hubungkan akun Google yang diundang lalu pilih
+   **Gabung dengan kode**. Data lokal dan data ruang akan digabung otomatis.
+6. Untuk menghentikan uji coba, pilih **Kembali ke sinkron personal**. File
+   bersama tidak dihapus dan data lokal tetap berada di perangkat.
+
+Kode ruang bukan kata sandi dan tidak dapat melewati izin Google Drive. Jangan
+mengubah file bersama menjadi akses publik; undang setiap anggota melalui
+alamat emailnya.
+
 ## Kalau muncul peringatan "Google hasn't verified this app"
 
 Ini normal untuk app yang masih mode "Testing" (belum disubmit untuk

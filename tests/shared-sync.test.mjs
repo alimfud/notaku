@@ -1,0 +1,106 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import vm from 'node:vm';
+
+const source = (await readFile(new URL('../js/services/driveBackupService.js', import.meta.url), 'utf8'))
+  .replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+
+function contextFor({ settings, fetch }) {
+  const context = vm.createContext({
+    Date, Math, Uint8Array, Blob, FormData, AbortController, setTimeout, clearTimeout,
+    GOOGLE_CLIENT_ID: 'configured', navigator: { onLine: true },
+    persistentAccess: async () => null,
+    getSettings: async () => settings,
+    saveSettings: async (partial) => { settings = { ...settings, ...partial }; },
+    createBackupBlob: async () => new Blob([JSON.stringify({ app: 'notaku', data: { products: [] } })], { type: 'application/json' }),
+    db: { dumpAll: async () => ({ products: [], settings: [] }) },
+    fetch,
+    window: { dispatchEvent() {} }, CustomEvent: class {}, console: { error() {} },
+  });
+  vm.runInContext(source + `
+    globalThis.codeFor = createSharedSyncCode;
+    globalThis.parseCode = parseSharedSyncCode;
+    globalThis.findFile = findSyncFile;
+    globalThis.createSpace = createSharedSyncSpace;
+    globalThis.invite = inviteSharedSyncMember;
+    globalThis.leaveSpace = leaveSharedSyncSpace;
+    globalThis.pushCloud = pushToCloud;
+    _accessToken = "valid";
+    _tokenExpiryMs = Date.now() + 3600000;
+  `, context);
+  return { context, get settings() { return settings; } };
+}
+
+test('shared sync codes accept codes and Drive links but reject arbitrary text', () => {
+  const f = contextFor({ settings: { autoBackup: {} }, fetch: async () => ({ ok: true }) });
+  const id = '1AbCdEfGhIjKlMnOpQrStUv';
+  assert.equal(f.context.codeFor(id), `NK1.${id}`);
+  assert.equal(f.context.parseCode(`NK1.${id}`), id);
+  assert.equal(f.context.parseCode(`https://drive.google.com/file/d/${id}/view`), id);
+  assert.equal(f.context.parseCode('bukan-kode'), '');
+});
+
+test('personal mode keeps name lookup while shared mode addresses the invited file directly', async () => {
+  const requests = [];
+  const settings = { autoBackup: { syncMode: 'personal' } };
+  const f = contextFor({
+    settings,
+    fetch: async (url) => {
+      requests.push(url);
+      if (url.includes('/files?')) return { ok: true, json: async () => ({ files: [{ id: 'personal-file' }] }) };
+      return { ok: true, json: async () => ({ id: '1SharedFileAbCd', name: 'NotaKu Sync - Cabang.json', capabilities: { canEdit: true } }) };
+    },
+  });
+  assert.equal((await f.context.findFile('token')).id, 'personal-file');
+  settings.autoBackup = { syncMode: 'shared', sharedSyncFileId: '1SharedFileAbCd' };
+  assert.equal((await f.context.findFile('token')).id, '1SharedFileAbCd');
+  assert.match(requests[0], /\/files\?/);
+  assert.match(requests[1], /\/files\/1SharedFileAbCd\?/);
+});
+
+test('creating a shared space preserves personal mode as a reversible setting and invitations grant writer access', async () => {
+  const requests = [];
+  let settings = { autoBackup: { driveConnected: true, syncMode: 'personal', autoSyncEnabled: true } };
+  const f = contextFor({
+    settings,
+    fetch: async (url, options = {}) => {
+      requests.push({ url, options });
+      if (url.includes('upload/drive')) return { ok: true, json: async () => ({ id: '1SharedFileAbCd', name: 'NotaKu Sync - Toko Pusat.json' }) };
+      if (url.includes('/permissions')) return { ok: true, json: async () => ({ id: 'permission-1' }) };
+      return { ok: true, json: async () => ({ id: '1SharedFileAbCd', name: 'NotaKu Sync - Toko Pusat.json', capabilities: { canEdit: true, canShare: true } }) };
+    },
+  });
+
+  const created = await f.context.createSpace('Toko Pusat');
+  assert.equal(created.code, 'NK1.1SharedFileAbCd');
+  assert.equal(f.settings.autoBackup.syncMode, 'shared');
+  assert.equal(f.settings.autoBackup.sharedSyncOwner, true);
+
+  const invited = await f.context.invite('staf@example.com');
+  assert.equal(invited.email, 'staf@example.com');
+  const permission = requests.find((request) => request.url.includes('/permissions'));
+  assert.deepEqual(JSON.parse(permission.options.body), { type: 'user', role: 'writer', emailAddress: 'staf@example.com' });
+
+  await f.context.leaveSpace();
+  assert.equal(f.settings.autoBackup.syncMode, 'personal');
+  assert.equal(f.settings.autoBackup.sharedSyncFileId, '');
+  assert.equal(requests.some((request) => request.options.method === 'DELETE'), false);
+});
+
+test('shared upload refuses to overwrite a newer Drive revision', async () => {
+  let uploads = 0;
+  const f = contextFor({
+    settings: { autoBackup: { driveConnected: true, syncMode: 'shared', sharedSyncFileId: '1SharedFileAbCd' } },
+    fetch: async (url, options = {}) => {
+      if (options.method === 'PATCH') uploads++;
+      return {
+        ok: true,
+        headers: { get: (name) => name.toLowerCase() === 'etag' ? 'revision-new' : '' },
+        json: async () => ({ id: '1SharedFileAbCd', name: 'NotaKu Sync - Toko Pusat.json', capabilities: { canEdit: true } }),
+      };
+    },
+  });
+  await assert.rejects(() => f.context.pushCloud({ expectedEtag: 'revision-old' }), /berubah dari perangkat lain/);
+  assert.equal(uploads, 0);
+});

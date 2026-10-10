@@ -410,7 +410,10 @@ export function checkAutomaticSync({ force = false, promptIfNeeded = false } = {
     }
     const settings = await getSettings();
     const cfg = settings.autoBackup;
-    if (!cfg?.driveConnected || !cfg.lastSyncAt || !isConfigured() || (!force && cfg.autoSyncEnabled === false)) return;
+    // Mode yang baru dipilih belum memiliki baseline. Izinkan tombol
+    // "Sinkron sekarang" menjalankan merge pertama, tetapi jangan memulainya
+    // diam-diam dari timer.
+    if (!cfg?.driveConnected || !isConfigured() || (!cfg.lastSyncAt && !force) || (!force && cfg.autoSyncEnabled === false)) return;
     const interval = Math.max(1, Number(cfg.autoSyncIntervalMinutes) || 5) * 60000;
     if (!force && Date.now() - _lastAutoSyncCheckAt < interval) return;
     _lastAutoSyncCheckAt = Date.now();
@@ -503,9 +506,9 @@ async function runAutomaticSync() {
     const localChanged = localHash !== baseline;
     const cloudChanged = cloudHash !== baseline;
     if (!baseline || (localChanged && cloudChanged && localHash !== cloudHash)) {
-      await mergeCloudPayload(payload);
+      await mergeCloudPayload(payload, file.etag);
     } else if (localChanged && localHash !== cloudHash) {
-      await pushToCloud();
+      await pushToCloud({ expectedEtag: file.etag });
       await saveSyncState({ fingerprint: localHash, status: 'Perubahan perangkat ini dikirim ke cloud.' });
     } else if (cloudChanged && localHash !== cloudHash) {
       await applyCloudPayload(payload);
@@ -529,7 +532,7 @@ async function applyCloudPayload(payload) {
   await saveSettings({ autoBackup: localSettings.autoBackup, security: localSettings.security });
 }
 
-async function mergeCloudPayload(payload) {
+async function mergeCloudPayload(payload, expectedEtag = '') {
   const localData = await db.dumpAll();
   const mergedData = mergeSyncData(localData, payload.data);
   const localHash = fingerprint(localData);
@@ -539,7 +542,7 @@ async function mergeCloudPayload(payload) {
     const latest = await getSettings();
     await saveSettings({ autoBackup: { ...latest.autoBackup, lastSyncPullAt: new Date().toISOString() } });
   }
-  await pushToCloud();
+  await pushToCloud({ expectedEtag });
   const finalHash = await localFingerprint();
   await saveSyncState({ fingerprint: finalHash, status: 'Perubahan dari semua perangkat digabung otomatis.' });
 }
@@ -566,7 +569,7 @@ export async function initializeConnectedAccount() {
     return { action: 'same', message: 'Data perangkat dan Google Drive sudah sama.' };
   }
 
-  await mergeCloudPayload(payload);
+  await mergeCloudPayload(payload, file.etag);
   return { action: 'merge', message: 'Data perangkat dan Google Drive berhasil digabung otomatis.' };
 }
 
@@ -803,8 +806,52 @@ async function checkSchedule() {
 // ============================================================================
 
 const SYNC_FILE_NAME = 'notaku-sync.json';
+const SHARED_SYNC_CODE_PREFIX = 'NK1.';
+
+function normalizeSharedFileId(value) {
+  const raw = String(value || '').trim();
+  const fromUrl = raw.match(/\/d\/([A-Za-z0-9_-]{10,})/)?.[1]
+    || raw.match(/[?&]id=([A-Za-z0-9_-]{10,})/)?.[1];
+  const candidate = fromUrl || raw.replace(/^NK1\./i, '');
+  return /^[A-Za-z0-9_-]{10,}$/.test(candidate) ? candidate : '';
+}
+
+/** Kode hanya menunjuk file; izin akses tetap diperiksa oleh Google Drive. */
+export function createSharedSyncCode(fileId) {
+  const normalized = normalizeSharedFileId(fileId);
+  if (!normalized) throw new Error('ID ruang sinkron tidak valid.');
+  return SHARED_SYNC_CODE_PREFIX + normalized;
+}
+
+export function parseSharedSyncCode(value) {
+  const raw = String(value || '').trim();
+  if (/^NK1\./i.test(raw) || /^https:\/\/drive\.google\.com\//i.test(raw)) return normalizeSharedFileId(raw);
+  return '';
+}
+
+async function getSharedSyncFile(token, fileId) {
+  const id = normalizeSharedFileId(fileId);
+  if (!id) throw new Error('Kode ruang sinkron tidak valid.');
+  const fields = 'id,name,modifiedTime,capabilities(canEdit,canShare)';
+  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?fields=${encodeURIComponent(fields)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    if (res.status === 403 || res.status === 404) {
+      throw new Error('Ruang sinkron belum dibagikan ke akun Google ini, atau kode ruang tidak benar.');
+    }
+    throw new Error('Gagal membuka ruang sinkron: ' + await readGoogleError(res));
+  }
+  const file = await res.json();
+  const etag = res.headers?.get?.('etag') || '';
+  return etag ? { ...file, etag } : file;
+}
 
 async function findSyncFile(token) {
+  const { autoBackup: cfg } = await getSettings();
+  if (cfg?.syncMode === 'shared' && cfg.sharedSyncFileId) {
+    return getSharedSyncFile(token, cfg.sharedSyncFileId);
+  }
   const q = encodeURIComponent(`name='${SYNC_FILE_NAME}' and trashed=false`);
   const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -812,6 +859,99 @@ async function findSyncFile(token) {
   if (!res.ok) throw new Error('Gagal memeriksa file sinkron di Drive: ' + await readGoogleError(res));
   const data = await res.json();
   return data.files?.[0] || null;
+}
+
+function sharedSpaceNameFromFile(file) {
+  return String(file?.name || '').replace(/^NotaKu Sync\s*[—-]\s*/i, '').replace(/\.json$/i, '').trim() || 'Ruang bersama';
+}
+
+/** Buat file terpisah agar file sinkron personal lama tidak berubah. */
+export async function createSharedSyncSpace(name) {
+  const cleanName = String(name || '').trim().replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').slice(0, 60);
+  if (!cleanName) throw new Error('Nama ruang sinkron wajib diisi.');
+  const token = await ensureToken();
+  const blob = await createBackupBlob();
+  const metadata = {
+    name: `NotaKu Sync - ${cleanName}.json`,
+    appProperties: { notakuSyncSpace: '1' },
+  };
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  form.append('file', blob);
+  const res = await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime', {
+    method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form,
+  });
+  if (!res.ok) throw new Error('Gagal membuat ruang sinkron: ' + await readGoogleError(res));
+  const file = await res.json();
+  if (!file.id) throw new Error('Google Drive tidak mengembalikan ID ruang sinkron.');
+  const settings = await getSettings();
+  const localHash = await localFingerprint();
+  const now = new Date().toISOString();
+  await saveSettings({ autoBackup: {
+    ...settings.autoBackup,
+    syncMode: 'shared', sharedSyncFileId: file.id, sharedSyncName: cleanName, sharedSyncOwner: true,
+    lastSyncAt: now, lastSyncPushAt: now, lastSyncFingerprint: localHash,
+    lastSyncProblem: false, lastSyncStatus: `Terhubung ke ruang bersama “${cleanName}”.`, lastSyncPromptKey: '',
+  } });
+  return { id: file.id, name: cleanName, code: createSharedSyncCode(file.id) };
+}
+
+/** Bagikan ruang aktif ke akun Google lain; token masing-masing tetap terpisah. */
+export async function inviteSharedSyncMember(email) {
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail) || cleanEmail.length > 254) {
+    throw new Error('Alamat email undangan tidak valid.');
+  }
+  const settings = await getSettings();
+  const cfg = settings.autoBackup;
+  if (cfg.syncMode !== 'shared' || !cfg.sharedSyncFileId) throw new Error('Buat atau gabung ruang sinkron terlebih dahulu.');
+  const token = await ensureToken();
+  const file = await getSharedSyncFile(token, cfg.sharedSyncFileId);
+  if (file.capabilities?.canShare === false) throw new Error('Akun ini tidak memiliki izin untuk mengundang anggota.');
+  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}/permissions?sendNotificationEmail=true&fields=id`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'user', role: 'writer', emailAddress: cleanEmail }),
+  });
+  if (!res.ok) throw new Error('Gagal mengundang anggota: ' + await readGoogleError(res));
+  return { email: cleanEmail, code: createSharedSyncCode(file.id) };
+}
+
+/** Gabungkan data lokal dengan file yang sudah dibagikan ke akun ini. */
+export async function joinSharedSyncSpace(code) {
+  const fileId = parseSharedSyncCode(code);
+  if (!fileId) throw new Error('Kode ruang sinkron tidak valid.');
+  const token = await ensureToken();
+  const file = await getSharedSyncFile(token, fileId);
+  if (file.capabilities?.canEdit === false) throw new Error('Ruang ini hanya memberi akses baca. Minta pemilik memberikan akses Editor.');
+  const payload = await readSyncFile(token, file);
+  const settings = await getSettings();
+  const previous = settings.autoBackup;
+  const name = sharedSpaceNameFromFile(file);
+  await saveSettings({ autoBackup: {
+    ...previous,
+    syncMode: 'shared', sharedSyncFileId: file.id, sharedSyncName: name, sharedSyncOwner: false,
+    lastSyncAt: '', lastSyncPushAt: '', lastSyncPullAt: '', lastSyncFingerprint: '',
+    lastSyncProblem: false, lastSyncStatus: '', lastSyncPromptKey: '',
+  } });
+  try {
+    await mergeCloudPayload(payload, file.etag);
+  } catch (error) {
+    await saveSettings({ autoBackup: previous });
+    throw error;
+  }
+  return { id: file.id, name, code: createSharedSyncCode(file.id) };
+}
+
+/** Kembali ke file personal tanpa menghapus file bersama atau data lokal. */
+export async function leaveSharedSyncSpace() {
+  const settings = await getSettings();
+  await saveSettings({ autoBackup: {
+    ...settings.autoBackup,
+    syncMode: 'personal', sharedSyncFileId: '', sharedSyncName: '', sharedSyncOwner: false,
+    lastSyncAt: '', lastSyncPushAt: '', lastSyncPullAt: '', lastSyncFingerprint: '',
+    lastSyncProblem: false, lastSyncStatus: 'Mode sinkron personal aktif.', lastSyncPromptKey: '',
+  } });
 }
 
 /** Info status sinkron untuk ditampilkan di UI (tanpa mengunduh isi filenya). */
@@ -837,7 +977,7 @@ export async function getCloudSyncStatus() {
 }
 
 /** Kirim (timpa) data lokal ke file sinkron di Drive. */
-export async function pushToCloud() {
+export async function pushToCloud({ expectedEtag = '' } = {}) {
   const token = await ensureToken();
   const existing = await findSyncFile(token);
   const blob = await createBackupBlob();
@@ -856,7 +996,16 @@ export async function pushToCloud() {
   }
   form.append('file', blob);
 
-  const res = await driveFetch(url, { method, headers: { Authorization: `Bearer ${token}` }, body: form });
+  const headers = { Authorization: `Bearer ${token}` };
+  // File bersama lebih mungkin ditulis hampir bersamaan oleh akun berbeda.
+  // Jika Drive memberikan ETag, cegah perangkat ini menimpa revisi yang baru
+  // masuk setelah pemeriksaan terakhir; putaran sinkron berikutnya akan merge.
+  if (expectedEtag && existing?.etag && existing.etag !== expectedEtag) {
+    throw new Error('Ruang berubah dari perangkat lain saat sinkron. Tekan Sinkron sekarang untuk menggabungkan revisi terbaru.');
+  }
+  if (expectedEtag || existing?.etag) headers['If-Match'] = expectedEtag || existing.etag;
+  const res = await driveFetch(url, { method, headers, body: form });
+  if (res.status === 412) throw new Error('Ruang berubah dari perangkat lain saat sinkron. Tekan Sinkron sekarang untuk menggabungkan revisi terbaru.');
   if (!res.ok) throw new Error('Gagal mengirim data ke Drive: ' + await readGoogleError(res));
 
   const settings = await getSettings();
