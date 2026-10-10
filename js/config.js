@@ -12,6 +12,10 @@
  */
 export const GOOGLE_CLIENT_ID = '329437953527-hloho20c8qv1kt25j09r46vvunc8vrlt.apps.googleusercontent.com';
 
+// API key untuk Google Picker. Dibutuhkan hanya saat akun berbeda pertama
+// kali membuka file Ruang Sinkron Bersama. Lihat docs/DRIVE_SETUP.md.
+export const GOOGLE_PICKER_API_KEY = 'AIzaSyBv4OJ1cTn9x47wlkgc77fAbKejDnoVSac';
+
 // Kontak bantuan pemilik NotaKu (opsional). Isi dengan nomor WhatsApp lokal.
 // Jika kosong, Pusat Bantuan memakai nomor toko dari Info Toko bila tersedia.
 export const OWNER_NAME = 'Developer NotaKu';

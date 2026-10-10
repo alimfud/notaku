@@ -220,6 +220,10 @@
 [data-page="settings"] .settings-shared-guide b{color:var(--ink);font-size:10px;}
 [data-page="settings"] .settings-shared-member-hint{margin:9px 0 2px;padding:8px;border-radius:8px;background:var(--surface);color:var(--muted);font-size:10px;line-height:1.4;overflow-wrap:anywhere;}
 [data-page="settings"] .settings-shared-member-hint b{color:var(--ink);}
+[data-page="settings"] .settings-shared-picker-ready,[data-page="settings"] .settings-shared-picker-warning{margin:7px 0 2px;padding:7px 8px;border-radius:8px;font-size:9.5px;line-height:1.4;}
+[data-page="settings"] .settings-shared-picker-ready{background:color-mix(in srgb,#22c55e 9%,var(--surface));color:var(--muted);}
+[data-page="settings"] .settings-shared-picker-warning{background:color-mix(in srgb,#d9a72b 12%,var(--surface));color:var(--ink-soft);}
+[data-page="settings"] .settings-shared-picker-warning code{overflow-wrap:anywhere;font-size:9px;}
 [data-page="settings"] .settings-shared-field{display:block;margin-top:8px;color:var(--muted);font-size:10px;font-weight:700;}
 [data-page="settings"] .settings-shared-field > div{display:flex;gap:6px;margin-top:4px;}
 [data-page="settings"] .settings-shared-field input{box-sizing:border-box;min-width:0;width:100%;min-height:36px;padding:7px 8px;border:1px solid var(--outline);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:11px;}

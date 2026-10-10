@@ -715,6 +715,7 @@ async function renderAutoBackup(root) {
 
   const sharedSyncActive = cfg.syncMode === 'shared' && cfg.sharedSyncFileId;
   const sharedSyncCode = sharedSyncActive ? drive.createSharedSyncCode(cfg.sharedSyncFileId) : '';
+  const sharedSyncPickerReady = drive.isSharedSyncPickerConfigured();
   const sharedSyncControls = sharedSyncActive ? `
     <div class="settings-shared-sync" data-active="true">
       <div class="settings-shared-sync-title"><span>Ruang Sinkron Bersama</span><span class="settings-experimental-badge">UJI COBA</span></div>
@@ -738,6 +739,7 @@ async function renderAutoBackup(root) {
         <div><input id="sharedSpaceName" maxlength="60" placeholder="Contoh: Toko Pusat"><button type="button" class="settings-button btn small secondary" id="btnCreateSharedSpace" ${cfg.driveConnected ? '' : 'disabled'}>Buat</button></div>
       </label>
       <div class="settings-shared-member-hint">Akun yang harus diundang pemilik: <b>${escapeHtml(cfg.driveAccountEmail || 'hubungkan Google Drive dahulu')}</b></div>
+      ${sharedSyncPickerReady ? '<div class="settings-shared-picker-ready">Saat bergabung, pilih file <b>NotaKu Sync</b> yang dibagikan pemilik.</div>' : '<div class="settings-shared-picker-warning">Google Picker belum dikonfigurasi oleh pengelola aplikasi. Isi <code>GOOGLE_PICKER_API_KEY</code> agar akun berbeda dapat memilih file bersama.</div>'}
       <label class="settings-shared-field"><span>Tempel kode dari pemilik</span>
         <div><input id="sharedJoinCode" autocomplete="off" placeholder="NK1.xxxxx"><button type="button" class="settings-button btn small secondary" id="btnJoinSharedSpace" ${cfg.driveConnected ? '' : 'disabled'}>Gabung</button></div>
       </label>
@@ -922,8 +924,12 @@ async function renderAutoBackup(root) {
       confirmLabel: 'Gabung & Sinkronkan',
     });
     if (!confirmed) return;
-    setBackupLoading(true, 'Membuka dan menggabungkan ruang sinkron…');
     try {
+      if (drive.isSharedSyncPickerConfigured()) {
+        toast('Pilih file NotaKu Sync yang dibagikan pemilik');
+        await drive.authorizeSharedSyncFile(code);
+      }
+      setBackupLoading(true, 'Membuka dan menggabungkan ruang sinkron…');
       const result = await drive.joinSharedSyncSpace(code);
       toast(`Berhasil bergabung ke “${result.name}”`);
       await renderAutoBackup(root);

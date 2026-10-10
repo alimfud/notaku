@@ -50,6 +50,26 @@ sendiri untuk fitur Drive-nya.
 Fitur **Ruang Sinkron Bersama** bersifat opsional. Mode personal lama tetap
 menjadi default dan tetap memakai `notaku-sync.json` milik akun masing-masing.
 
+### Setup tambahan Google Picker (sekali saja)
+
+Scope `drive.file` mengharuskan setiap akun anggota memilih file bersama satu
+kali melalui Google Picker, walaupun pemilik sudah memberikan izin Editor.
+
+1. Di Google Cloud Console, aktifkan **Google Picker API** pada project yang
+   sama dengan OAuth Client ID NotaKu.
+2. Buka **APIs & Services → Credentials → Create Credentials → API key**.
+3. Pada pembatasan aplikasi pilih **Websites**, lalu tambahkan domain NotaKu
+   (contoh `https://nota.jajan.my.id/*`) dan `https://docs.google.com/*`.
+4. Pada pembatasan API, izinkan **Google Picker API** dan **Google Drive API**.
+5. Isi key tersebut di `js/config.js`:
+
+   ```js
+   export const GOOGLE_PICKER_API_KEY = 'AIza...';
+   ```
+
+API key ini bukan token pengguna dan tetap harus dibatasi berdasarkan domain
+serta API seperti langkah di atas.
+
 1. Pastikan kedua alamat Google sudah dimasukkan sebagai **Test users** jika
    OAuth consent screen masih dalam mode Testing.
 2. Pada perangkat pemilik, hubungkan Google Drive lalu buka **Ruang Sinkron
@@ -59,7 +79,9 @@ menjadi default dan tetap memakai `notaku-sync.json` milik akun masing-masing.
    file ruang tersebut dan NotaKu menyalin kode ruang secara otomatis.
 4. Kirimkan kode ruang berawalan `NK1.` kepada anggota melalui jalur pribadi.
 5. Pada perangkat kedua, hubungkan akun Google yang diundang lalu pilih
-   **Gabung dengan kode**. Data lokal dan data ruang akan digabung otomatis.
+   **Gabung dengan kode**. Google Picker akan terbuka; pilih file bernama
+   `NotaKu Sync - NAMA RUANG.json`. Setelah dipilih, data lokal dan data ruang
+   akan digabung otomatis.
 6. Untuk menghentikan uji coba, pilih **Kembali ke sinkron personal**. File
    bersama tidak dihapus dan data lokal tetap berada di perangkat.
 

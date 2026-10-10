@@ -6,10 +6,10 @@ import vm from 'node:vm';
 const source = (await readFile(new URL('../js/services/driveBackupService.js', import.meta.url), 'utf8'))
   .replace(/^import .*;$/gm, '').replace(/^export /gm, '');
 
-function contextFor({ settings, fetch }) {
+function contextFor({ settings, fetch, pickerKey = '', globals = {} }) {
   const context = vm.createContext({
     Date, Math, Uint8Array, Blob, FormData, AbortController, setTimeout, clearTimeout,
-    GOOGLE_CLIENT_ID: 'configured', navigator: { onLine: true },
+    GOOGLE_CLIENT_ID: '329437953527-client.apps.googleusercontent.com', GOOGLE_PICKER_API_KEY: pickerKey, navigator: { onLine: true },
     persistentAccess: async () => null,
     getSettings: async () => settings,
     saveSettings: async (partial) => { settings = { ...settings, ...partial }; },
@@ -17,6 +17,7 @@ function contextFor({ settings, fetch }) {
     db: { dumpAll: async () => ({ products: [], settings: [] }) },
     fetch,
     window: { dispatchEvent() {} }, CustomEvent: class {}, console: { error() {} },
+    ...globals,
   });
   vm.runInContext(source + `
     globalThis.codeFor = createSharedSyncCode;
@@ -26,6 +27,7 @@ function contextFor({ settings, fetch }) {
     globalThis.invite = inviteSharedSyncMember;
     globalThis.leaveSpace = leaveSharedSyncSpace;
     globalThis.pushCloud = pushToCloud;
+    globalThis.authorizeFile = authorizeSharedSyncFile;
     _accessToken = "valid";
     _tokenExpiryMs = Date.now() + 3600000;
   `, context);
@@ -111,4 +113,35 @@ test('failed join identifies the exact Google account that still needs permissio
     fetch: async () => ({ ok: false, status: 404 }),
   });
   await assert.rejects(() => f.context.findFile('token'), /anggota@example\.com.*Undang \+ Salin/s);
+});
+
+test('Picker authorizes only the file encoded in the shared room code', async () => {
+  const fileId = '1SharedFileAbCd';
+  let callback;
+  class DocsView {
+    setIncludeFolders() { return this; }
+    setMimeTypes() { return this; }
+    setQuery() { return this; }
+    setMode() { return this; }
+  }
+  class PickerBuilder {
+    addView() { return this; }
+    setOAuthToken() { return this; }
+    setDeveloperKey() { return this; }
+    setAppId() { return this; }
+    setOrigin() { return this; }
+    setTitle() { return this; }
+    setCallback(value) { callback = value; return this; }
+    build() { return { setVisible() { callback({ action: 'picked', docs: [{ id: fileId }] }); } }; }
+  }
+  const picker = {
+    DocsView, PickerBuilder, ViewId: { DOCS: 'docs' }, DocsViewMode: { LIST: 'list' },
+    Response: { ACTION: 'action', DOCUMENTS: 'docs' }, Document: { ID: 'id' }, Action: { PICKED: 'picked', CANCEL: 'cancel' },
+  };
+  const f = contextFor({
+    settings: { autoBackup: { driveConnected: true } }, pickerKey: 'picker-key',
+    fetch: async () => ({ ok: true }),
+    globals: { google: { picker }, gapi: { load() {} }, location: { origin: 'https://nota.example' } },
+  });
+  assert.equal(await f.context.authorizeFile(`NK1.${fileId}`), fileId);
 });

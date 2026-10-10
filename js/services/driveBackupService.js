@@ -28,7 +28,7 @@
 // atau aplikasi native — di luar kemampuan web app statis.
 // ===================================================================================
 
-import { GOOGLE_CLIENT_ID } from '../config.js';
+import { GOOGLE_CLIENT_ID, GOOGLE_PICKER_API_KEY } from '../config.js';
 import { getSettings, saveSettings } from './settingsService.js';
 import { createBackupBlob } from './backupService.js';
 import * as db from '../db.js';
@@ -46,6 +46,7 @@ let _tokenClient = null;
 let _accessToken = null;
 let _tokenExpiryMs = 0;
 let _gisLoadPromise = null;
+let _pickerLoadPromise = null;
 let _fallbackDeviceSyncId = '';
 
 const DEVICE_SYNC_ID_KEY = 'notaku-device-sync-id';
@@ -91,6 +92,37 @@ function driveFetch(input, options = {}) {
 
 export function isConfigured() {
   return !!GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== 'ISI_DENGAN_CLIENT_ID_GOOGLE_CLOUD_MU';
+}
+
+export function isSharedSyncPickerConfigured() {
+  return !!GOOGLE_PICKER_API_KEY && GOOGLE_PICKER_API_KEY !== 'ISI_DENGAN_API_KEY_GOOGLE_PICKER';
+}
+
+function googleAppId() {
+  return String(GOOGLE_CLIENT_ID || '').split('-')[0];
+}
+
+function loadPicker() {
+  if (_pickerLoadPromise) return _pickerLoadPromise;
+  _pickerLoadPromise = new Promise((resolve, reject) => {
+    const initialize = () => {
+      if (!globalThis.gapi?.load) { reject(new Error('Google Picker tidak dapat dimuat.')); return; }
+      globalThis.gapi.load('picker', {
+        callback: resolve,
+        onerror: () => reject(new Error('Google Picker tidak dapat dimuat. Periksa koneksi internet.')),
+        timeout: 15000,
+        ontimeout: () => reject(new Error('Google Picker terlalu lama merespons. Coba lagi.')),
+      });
+    };
+    if (globalThis.google?.picker && globalThis.gapi?.load) { resolve(); return; }
+    if (globalThis.gapi?.load) { initialize(); return; }
+    const script = document.createElement('script');
+    script.src = 'https://apis.google.com/js/api.js';
+    script.onload = initialize;
+    script.onerror = () => reject(new Error('Gagal memuat Google Picker. Periksa koneksi internet.'));
+    document.head.appendChild(script);
+  }).catch((error) => { _pickerLoadPromise = null; throw error; });
+  return _pickerLoadPromise;
 }
 
 function loadGis() {
@@ -840,13 +872,69 @@ async function getSharedSyncFile(token, fileId) {
     if (res.status === 403 || res.status === 404) {
       const settings = await getSettings();
       const account = settings.autoBackup?.driveAccountEmail || 'akun Google yang sedang terhubung';
-      throw new Error(`Akun ${account} belum mendapat izin ke ruang ini.\n\nDi perangkat pemilik, masukkan email tersebut lalu tekan “Undang + Salin”. Setelah itu gunakan kembali kode ruang yang sama.`);
+      let reason = '';
+      try {
+        const data = await res.json();
+        reason = data?.error?.errors?.[0]?.reason || '';
+      } catch { /* Respons 403/404 tidak selalu berisi JSON. */ }
+      const error = new Error(reason === 'appNotAuthorizedToFile'
+        ? `Izin Editor untuk ${account} sudah ada, tetapi NotaKu belum diizinkan membuka file ini. Pilih file ruang melalui Google Picker satu kali.`
+        : `Akun ${account} belum dapat membuka ruang ini. Pastikan pemilik sudah menekan “Undang + Salin”, lalu pilih file ruang melalui Google Picker.`);
+      error.code = 'shared_file_access_required';
+      throw error;
     }
     throw new Error('Gagal membuka ruang sinkron: ' + await readGoogleError(res));
   }
   const file = await res.json();
   const etag = res.headers?.get?.('etag') || '';
   return etag ? { ...file, etag } : file;
+}
+
+/**
+ * Membuat file bersama menjadi file yang secara eksplisit dibuka oleh app pada
+ * akun anggota. Ini diwajibkan oleh scope drive.file meski ACL Editor sudah ada.
+ */
+export async function authorizeSharedSyncFile(code) {
+  const fileId = parseSharedSyncCode(code);
+  if (!fileId) throw new Error('Kode ruang sinkron tidak valid.');
+  if (!isSharedSyncPickerConfigured()) {
+    throw new Error('Google Picker belum dikonfigurasi. Aktifkan Google Picker API, buat API key, lalu isi GOOGLE_PICKER_API_KEY di js/config.js.');
+  }
+  const token = await ensureToken();
+  await loadPicker();
+  return new Promise((resolve, reject) => {
+    const pickerApi = globalThis.google?.picker;
+    if (!pickerApi) { reject(new Error('Google Picker belum siap. Coba lagi.')); return; }
+    const view = new pickerApi.DocsView(pickerApi.ViewId.DOCS);
+    view.setIncludeFolders(false);
+    view.setMimeTypes('application/json');
+    view.setQuery('NotaKu Sync');
+    if (pickerApi.DocsViewMode?.LIST) view.setMode(pickerApi.DocsViewMode.LIST);
+
+    const picker = new pickerApi.PickerBuilder()
+      .addView(view)
+      .setOAuthToken(token)
+      .setDeveloperKey(GOOGLE_PICKER_API_KEY)
+      .setAppId(googleAppId())
+      .setOrigin(location.origin)
+      .setTitle('Pilih file ruang sinkron NotaKu')
+      .setCallback((data) => {
+        const action = data?.[pickerApi.Response.ACTION] || data?.action;
+        if (action === pickerApi.Action.PICKED || String(action).toLowerCase() === 'picked') {
+          const selected = data?.[pickerApi.Response.DOCUMENTS]?.[0] || data?.docs?.[0];
+          const selectedId = selected?.[pickerApi.Document.ID] || selected?.id;
+          if (selectedId !== fileId) {
+            reject(new Error('File yang dipilih tidak cocok dengan kode ruang. Pilih file NotaKu yang dibagikan oleh pemilik.'));
+            return;
+          }
+          resolve(fileId);
+        } else if (action === pickerApi.Action.CANCEL || String(action).toLowerCase() === 'cancel') {
+          reject(new Error('Pemilihan file ruang dibatalkan.'));
+        }
+      })
+      .build();
+    picker.setVisible(true);
+  });
 }
 
 async function findSyncFile(token) {
@@ -924,7 +1012,14 @@ export async function joinSharedSyncSpace(code) {
   const fileId = parseSharedSyncCode(code);
   if (!fileId) throw new Error('Kode ruang sinkron tidak valid.');
   const token = await ensureToken();
-  const file = await getSharedSyncFile(token, fileId);
+  let file;
+  try {
+    file = await getSharedSyncFile(token, fileId);
+  } catch (error) {
+    if (error.code !== 'shared_file_access_required') throw error;
+    await authorizeSharedSyncFile(code);
+    file = await getSharedSyncFile(token, fileId);
+  }
   if (file.capabilities?.canEdit === false) throw new Error('Ruang ini hanya memberi akses baca. Minta pemilik memberikan akses Editor.');
   const payload = await readSyncFile(token, file);
   const settings = await getSettings();
