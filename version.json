@@ -1,4 +1,4 @@
 {
-  "version": "1.33.5",
-  "notes": "Kode Ruang Sinkron Bersama disederhanakan menjadi 8 karakter, sementara kode lama tetap dapat digunakan."
+  "version": "1.34.0",
+  "notes": "Ruang Sinkron Bersama ditetapkan sebagai fitur resmi, dengan tampilan peran yang lebih jelas dan validasi file ruang yang lebih kuat."
 }

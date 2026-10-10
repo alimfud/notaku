@@ -85,8 +85,8 @@ const DEFAULTS = {
     lastSyncPromptKey: '',  // penanda popup mismatch terakhir agar tidak berulang
     autoSyncEnabled: true,
     autoSyncIntervalMinutes: 5,
-    // Opsional/eksperimental: akun Google berbeda dapat menunjuk ke satu file
-    // Drive yang dibagikan. Mode personal tetap menjadi perilaku default.
+    // Akun Google berbeda dapat menunjuk ke satu ruang sinkron bersama tanpa
+    // mengubah mode personal yang tetap menjadi perilaku default.
     syncMode: 'personal',   // personal | shared
     sharedSyncFileId: '',
     sharedSyncName: '',

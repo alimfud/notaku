@@ -55,7 +55,7 @@ test('personal mode keeps name lookup while shared mode addresses the invited fi
     fetch: async (url) => {
       requests.push(url);
       if (url.includes('/files?')) return { ok: true, json: async () => ({ files: [{ id: 'personal-file' }] }) };
-      return { ok: true, json: async () => ({ id: '1SharedFileAbCd', name: 'NotaKu Sync - Cabang.json', capabilities: { canEdit: true } }) };
+      return { ok: true, json: async () => ({ id: '1SharedFileAbCd', name: 'NotaKu Sync - Cabang.json', mimeType: 'application/json', appProperties: { notakuSyncSpace: '1' }, capabilities: { canEdit: true } }) };
     },
   });
   assert.equal((await f.context.findFile('token')).id, 'personal-file');
@@ -74,7 +74,7 @@ test('creating a shared space preserves personal mode as a reversible setting an
       requests.push({ url, options });
       if (url.includes('upload/drive')) return { ok: true, json: async () => ({ id: '1SharedFileAbCd', name: 'NotaKu Sync - Toko Pusat.json' }) };
       if (url.includes('/permissions')) return { ok: true, json: async () => ({ id: 'permission-1' }) };
-      return { ok: true, json: async () => ({ id: '1SharedFileAbCd', name: 'NotaKu Sync - Toko Pusat.json', ownedByMe: true, capabilities: { canEdit: true, canShare: true } }) };
+      return { ok: true, json: async () => ({ id: '1SharedFileAbCd', name: 'NotaKu Sync - Toko Pusat.json', mimeType: 'application/json', appProperties: { notakuSyncSpace: '1' }, ownedByMe: true, capabilities: { canEdit: true, canShare: true } }) };
     },
   });
 
@@ -104,7 +104,7 @@ test('shared upload refuses to overwrite a newer Drive revision', async () => {
       return {
         ok: true,
         headers: { get: (name) => name.toLowerCase() === 'etag' ? 'revision-new' : '' },
-        json: async () => ({ id: '1SharedFileAbCd', name: 'NotaKu Sync - Toko Pusat.json', capabilities: { canEdit: true } }),
+        json: async () => ({ id: '1SharedFileAbCd', name: 'NotaKu Sync - Toko Pusat.json', mimeType: 'application/json', appProperties: { notakuSyncSpace: '1' }, capabilities: { canEdit: true } }),
       };
     },
   });
@@ -126,11 +126,29 @@ test('members cannot invite another account even when their Drive permission all
     settings: { autoBackup: { driveConnected: true, syncMode: 'shared', sharedSyncFileId: '1MemberRoomAbCd', sharedSyncOwner: false } },
     fetch: async (url) => {
       if (url.includes('/permissions')) permissionRequests++;
-      return { ok: true, json: async () => ({ id: '1MemberRoomAbCd', name: 'NotaKu Sync - Cabang.json', ownedByMe: false, capabilities: { canEdit: true, canShare: true } }) };
+      return { ok: true, json: async () => ({ id: '1MemberRoomAbCd', name: 'NotaKu Sync - Cabang.json', mimeType: 'application/json', appProperties: { notakuSyncSpace: '1' }, ownedByMe: false, capabilities: { canEdit: true, canShare: true } }) };
     },
   });
   await assert.rejects(() => f.context.invite('teman@example.com'), /Hanya pemilik ruang/);
   assert.equal(permissionRequests, 0);
+});
+
+test('the connected owner account cannot be invited as its own member', async () => {
+  let requests = 0;
+  const f = contextFor({
+    settings: { autoBackup: { driveConnected: true, driveAccountEmail: 'owner@example.com', syncMode: 'shared', sharedSyncFileId: '1OwnerRoomAbCd', sharedSyncOwner: true } },
+    fetch: async () => { requests++; return { ok: true }; },
+  });
+  await assert.rejects(() => f.context.invite('OWNER@example.com'), /akun pemilik/);
+  assert.equal(requests, 0);
+});
+
+test('shared mode rejects an ordinary JSON file that is not a NotaKu sync room', async () => {
+  const f = contextFor({
+    settings: { autoBackup: { driveConnected: true, syncMode: 'shared', sharedSyncFileId: '1OrdinaryJsonFile' } },
+    fetch: async () => ({ ok: true, json: async () => ({ id: '1OrdinaryJsonFile', name: 'data.json', mimeType: 'application/json', capabilities: { canEdit: true } }) }),
+  });
+  await assert.rejects(() => f.context.findFile('token'), /bukan Ruang Sinkron Bersama NotaKu/);
 });
 
 test('Picker matches an eight-character room code to the selected shared file', async () => {

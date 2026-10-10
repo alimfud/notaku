@@ -45,10 +45,11 @@ sendiri untuk fitur Drive-nya.
    "Hubungkan Akun Google Drive" → pilih akun Google yang tadi didaftarkan
    sebagai Test User di langkah 4.
 
-## Uji coba sinkronisasi beda email
+## Sinkronisasi beda email
 
-Fitur **Ruang Sinkron Bersama** bersifat opsional. Mode personal lama tetap
-menjadi default dan tetap memakai `notaku-sync.json` milik akun masing-masing.
+**Ruang Sinkron Bersama** adalah fitur resmi untuk menyinkronkan data antarakun
+Google. Mode personal tetap menjadi default dan tetap memakai
+`notaku-sync.json` milik akun masing-masing.
 
 ### Setup tambahan Google Picker (sekali saja)
 
@@ -84,7 +85,7 @@ serta API seperti langkah di atas.
    **Gabung dengan kode**. Google Picker akan terbuka; pilih file bernama
    `NotaKu Sync - NAMA RUANG.json`. Setelah dipilih, data lokal dan data ruang
    akan digabung otomatis.
-6. Untuk menghentikan uji coba, pilih **Kembali ke sinkron personal**. File
+6. Untuk keluar dari ruang, pilih **Kembali ke sinkron personal**. File
    bersama tidak dihapus dan data lokal tetap berada di perangkat.
 
 ### Menghapus ruang lama

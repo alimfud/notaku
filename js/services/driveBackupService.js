@@ -886,7 +886,7 @@ export function parseSharedSyncCode(value) {
 async function getSharedSyncFile(token, fileId) {
   const id = normalizeSharedFileId(fileId);
   if (!id) throw new Error('Kode ruang sinkron tidak valid.');
-  const fields = 'id,name,modifiedTime,ownedByMe,capabilities(canEdit,canShare)';
+  const fields = 'id,name,mimeType,modifiedTime,ownedByMe,appProperties,capabilities(canEdit,canShare)';
   const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?fields=${encodeURIComponent(fields)}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -908,6 +908,12 @@ async function getSharedSyncFile(token, fileId) {
     throw new Error('Gagal membuka ruang sinkron: ' + await readGoogleError(res));
   }
   const file = await res.json();
+  if (file.appProperties?.notakuSyncSpace !== '1') {
+    throw new Error('File yang dipilih bukan Ruang Sinkron Bersama NotaKu. Pilih file bernama “NotaKu Sync - NAMA RUANG.json”.');
+  }
+  if (file.mimeType && file.mimeType !== 'application/json') {
+    throw new Error('Format file ruang sinkron tidak didukung. Pilih file ruang NotaKu berformat JSON.');
+  }
   const etag = res.headers?.get?.('etag') || '';
   return etag ? { ...file, etag } : file;
 }
@@ -1023,6 +1029,9 @@ export async function inviteSharedSyncMember(email) {
   const settings = await getSettings();
   const cfg = settings.autoBackup;
   if (cfg.syncMode !== 'shared' || !cfg.sharedSyncFileId) throw new Error('Buat atau gabung ruang sinkron terlebih dahulu.');
+  if (cleanEmail === String(cfg.driveAccountEmail || '').trim().toLowerCase()) {
+    throw new Error('Email tersebut adalah akun pemilik yang sedang terhubung. Masukkan email anggota lain.');
+  }
   const token = await ensureToken();
   const file = await getSharedSyncFile(token, cfg.sharedSyncFileId);
   if (file.ownedByMe !== true) throw new Error('Hanya pemilik ruang yang dapat mengundang anggota.');

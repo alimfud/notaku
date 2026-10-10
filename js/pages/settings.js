@@ -783,29 +783,29 @@ async function renderAutoBackup(root) {
         <div><input id="sharedMemberEmail" type="email" autocomplete="email" maxlength="254" placeholder="nama@gmail.com"><button type="button" class="settings-button btn small secondary" id="btnInviteSharedMember">Undang</button></div>
       </label>
       <label class="settings-shared-field"><span>Kode ruang</span>
-        <div><input id="sharedSyncCodeDisplay" value="${escapeHtml(sharedSyncCode)}" readonly><button type="button" class="settings-button btn small secondary" id="btnCopySharedCode">Salin lagi</button></div>
+        <div><input class="settings-shared-code" id="sharedSyncCodeDisplay" value="${escapeHtml(sharedSyncCode)}" readonly><button type="button" class="settings-button btn small secondary" id="btnCopySharedCode">Salin lagi</button></div>
       </label>` : `
       <div class="settings-shared-member-role"><b>Terhubung sebagai anggota</b><span>Hanya pemilik ruang yang dapat mengundang anggota baru atau menyalin kode ruang.</span></div>`;
   const sharedSyncControls = sharedSyncActive ? `
     <div class="settings-shared-sync" data-active="true">
-      <div class="settings-shared-sync-title"><span>Ruang Sinkron Bersama</span><span class="settings-experimental-badge">UJI COBA</span></div>
+      <div class="settings-shared-sync-title"><span>Ruang Sinkron Bersama</span><span class="settings-shared-role-badge" data-owner="${cfg.sharedSyncOwner ? 'true' : 'false'}">${cfg.sharedSyncOwner ? 'PEMILIK' : 'ANGGOTA'}</span></div>
       <div class="settings-shared-space-summary">
         <small>Ruang aktif</small><b>${escapeHtml(cfg.sharedSyncName || 'Ruang bersama')}</b>
-        <span>Data lokal perangkat ini disinkronkan dengan anggota ruang.</span>
+        <span>Perubahan dari perangkat anggota digabung dan disinkronkan melalui Google Drive.</span>
       </div>
       ${sharedSyncOwnerControls}
       <div class="settings-shared-secondary-actions"><button type="button" id="btnManageSharedSpaces">Kelola ruang tersimpan</button><button type="button" id="btnLeaveSharedSpace">Kembali ke sinkron personal</button></div>
     </div>` : `
     <div class="settings-shared-sync">
-      <div class="settings-shared-sync-title"><span>Ruang Sinkron Bersama</span><span class="settings-experimental-badge">UJI COBA</span></div>
+      <div class="settings-shared-sync-title"><span>Ruang Sinkron Bersama</span></div>
       <p>Akun Google berbeda dapat memakai satu file sinkron. Pemilik membuat ruang dan mengundang email anggota; anggota lalu menempel kode ruang.</p>
       <label class="settings-shared-field"><span>Buat ruang baru</span>
         <div><input id="sharedSpaceName" maxlength="60" placeholder="Contoh: Toko Pusat"><button type="button" class="settings-button btn small secondary" id="btnCreateSharedSpace" ${cfg.driveConnected ? '' : 'disabled'}>Buat</button></div>
       </label>
       <div class="settings-shared-member-hint">Akun yang harus diundang pemilik: <b>${escapeHtml(cfg.driveAccountEmail || 'hubungkan Google Drive dahulu')}</b></div>
-      ${sharedSyncPickerReady ? '<div class="settings-shared-picker-ready">Saat bergabung, pilih file <b>NotaKu Sync</b> yang dibagikan pemilik.</div>' : '<div class="settings-shared-picker-warning">Google Picker belum dikonfigurasi oleh pengelola aplikasi. Isi <code>GOOGLE_PICKER_API_KEY</code> agar akun berbeda dapat memilih file bersama.</div>'}
+      ${sharedSyncPickerReady ? '<div class="settings-shared-picker-ready">Saat bergabung, pilih file <b>NotaKu Sync</b> yang dibagikan pemilik.</div>' : '<div class="settings-shared-picker-warning">Fitur bergabung ke ruang belum siap pada instalasi ini. Hubungi pengelola NotaKu.</div>'}
       <label class="settings-shared-field"><span>Tempel kode dari pemilik</span>
-        <div><input id="sharedJoinCode" autocomplete="off" autocapitalize="characters" placeholder="8 karakter"><button type="button" class="settings-button btn small secondary" id="btnJoinSharedSpace" ${cfg.driveConnected ? '' : 'disabled'}>Gabung</button></div>
+        <div><input class="settings-shared-code" id="sharedJoinCode" autocomplete="off" autocapitalize="characters" maxlength="64" placeholder="8 karakter"><button type="button" class="settings-button btn small secondary" id="btnJoinSharedSpace" ${cfg.driveConnected && sharedSyncPickerReady ? '' : 'disabled'}>Gabung</button></div>
       </label>
       <button type="button" class="settings-shared-manage" id="btnManageSharedSpaces" ${cfg.driveConnected ? '' : 'disabled'}>Kelola ruang tersimpan</button>
     </div>`;
