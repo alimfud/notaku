@@ -77,10 +77,12 @@ tombol Hubungkan bisa langsung ditekan lagi.
 Google. Mode personal tetap menjadi default dan tetap memakai
 `notaku-sync.json` milik akun masing-masing.
 
-### Setup tambahan Google Picker (sekali saja)
+### Setup tambahan Google Picker web (sekali saja)
 
 Scope `drive.file` mengharuskan setiap akun anggota memilih file bersama satu
 kali melalui Google Picker, walaupun pemilik sudah memberikan izin Editor.
+Pengaturan API key berikut dipakai oleh versi web. APK memakai alur Picker
+mobile melalui OAuth dan otomatis kembali ke aplikasi setelah file dipilih.
 
 1. Di Google Cloud Console, aktifkan **Google Picker API** pada project yang
    sama dengan OAuth Client ID NotaKu.
@@ -110,7 +112,8 @@ serta API seperti langkah di atas.
 5. Pada perangkat kedua, hubungkan akun Google yang diundang lalu pilih
    **Gabung dengan kode**. Google Picker akan terbuka; pilih file bernama
    `NotaKu Sync - NAMA RUANG.json`. Setelah dipilih, data lokal dan data ruang
-   akan digabung otomatis.
+   akan digabung otomatis. Di APK, Picker tampil melalui panel Google seperti
+   proses Hubungkan dan kembali ke NotaKu tanpa membuka iframe Picker WebView.
 6. Untuk keluar dari ruang, pilih **Kembali ke sinkron personal**. File
    bersama tidak dihapus dan data lokal tetap berada di perangkat.
 

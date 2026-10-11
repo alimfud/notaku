@@ -6,6 +6,7 @@ const DEFAULT_SESSION_DAYS = 180;
 const MAX_SESSION_DAYS = 500;
 const FLOW_SECONDS = 600;
 const NATIVE_HANDOFF_SECONDS = 300;
+const NATIVE_PICKER_SECONDS = 300;
 const NATIVE_REDIRECT = 'id.notaku.app://oauth2callback';
 const NATIVE_ORIGINS = new Set(['http://localhost', 'https://localhost']);
 const SCOPE = 'openid email profile https://www.googleapis.com/auth/drive.file';
@@ -98,6 +99,7 @@ async function redis(cfg, command) {
 
 function sessionKey(id, origin) { return `notaku:google:${digest(origin + ':' + id)}`; }
 function nativeHandoffKey(value) { return `notaku:native-handoff:${digest(value)}`; }
+function nativePickerKey(value) { return `notaku:native-picker:${digest(value)}`; }
 function validId(value) { return /^[A-Za-z0-9_-]{43}$/.test(value); }
 function validHandoff(value) { return /^[A-Za-z0-9_-]{43}$/.test(value); }
 
@@ -179,7 +181,21 @@ export async function handleGoogleAuth(req, res, env = process.env) {
       const session = await readSessionById(handoffData.sessionId, cfg, origin);
       if (!session) return json(res, 401, { error: 'authorization_required' });
       return json(res, 200, { nativeSession: session.id, email: session.data.email,
-        accessToken: session.data.accessToken, expiresAt: session.data.tokenExpiresAt });
+        accessToken: session.data.accessToken, expiresAt: session.data.tokenExpiresAt,
+        ...(handoffData.pickedFileId ? { pickedFileId: handoffData.pickedFileId } : {}) });
+    }
+    if (action === 'native-picker-start' && method === 'POST') {
+      if (!isNativeRequest) return json(res, 403, { error: 'native_origin_not_allowed' });
+      const id = String(req.headers['x-notaku-native-session'] || '');
+      const session = await readSessionById(id, cfg, origin);
+      if (!session) return json(res, 401, { error: 'authorization_required' });
+      const values = new URLSearchParams(String(req.body || ''));
+      const challenge = values.get('challenge') || '';
+      if (!validHandoff(challenge)) return json(res, 400, { error: 'invalid_native_challenge' });
+      const request = randomBytes(32).toString('base64url');
+      const requestData = { sessionId: session.id, expectedEmail: session.data.email, challenge, origin };
+      await redis(cfg, ['SET', nativePickerKey(request), seal(requestData, cfg.key, 'native-picker:' + origin), 'EX', NATIVE_PICKER_SECONDS, 'NX']);
+      return json(res, 200, { url: `${origin}/api/google?action=picker-start&request=${encodeURIComponent(request)}` });
     }
     if (action === 'native-session' && method === 'POST') {
       if (!isNativeRequest) return json(res, 403, { error: 'native_origin_not_allowed' });
@@ -224,6 +240,31 @@ export async function handleGoogleAuth(req, res, env = process.env) {
       });
       return redirect(res, 'https://accounts.google.com/o/oauth2/v2/auth?' + params);
     }
+    if (action === 'picker-start' && method === 'GET') {
+      const request = url.searchParams.get('request') || '';
+      if (!validHandoff(request)) return json(res, 400, { error: 'invalid_picker_request' });
+      const key = nativePickerKey(request);
+      const sealed = await redis(cfg, ['GETDEL', key]);
+      if (!sealed) return json(res, 401, { error: 'picker_request_expired' });
+      let pickerRequest;
+      try { pickerRequest = unseal(sealed, cfg.key, 'native-picker:' + origin); }
+      catch { return json(res, 401, { error: 'invalid_picker_request' }); }
+      if (pickerRequest.origin !== origin || !validHandoff(pickerRequest.challenge)) return json(res, 401, { error: 'invalid_picker_request' });
+      const session = await readSessionById(pickerRequest.sessionId, cfg, origin);
+      if (!session) return json(res, 401, { error: 'authorization_required' });
+      const state = randomBytes(32).toString('base64url');
+      const verifier = randomBytes(32).toString('base64url');
+      const flow = { state, verifier, expectedEmail: pickerRequest.expectedEmail, native: true, picker: true,
+        sessionId: session.id, nativeChallenge: pickerRequest.challenge, expiresAt: Date.now() + FLOW_SECONDS * 1000 };
+      await redis(cfg, ['SET', `notaku:oauth:${digest(state)}`, origin, 'EX', FLOW_SECONDS, 'NX']);
+      setCookie(res, FLOW_COOKIE, seal(flow, cfg.key, 'flow:' + origin), FLOW_SECONDS);
+      const params = new URLSearchParams({ client_id: cfg.clientId, redirect_uri: callbackUri, response_type: 'code',
+        scope: 'https://www.googleapis.com/auth/drive.file', access_type: 'offline', prompt: 'consent', state,
+        trigger_onepick: 'true', mimetypes: 'application/json', include_granted_scopes: 'false',
+        code_challenge: digest(verifier), code_challenge_method: 'S256', login_hint: pickerRequest.expectedEmail,
+      });
+      return redirect(res, 'https://accounts.google.com/o/oauth2/v2/auth?' + params);
+    }
     if (action === 'callback' && method === 'GET') {
       let flow;
       try { flow = unseal(cookie(req, FLOW_COOKIE), cfg.key, 'flow:' + origin); } catch { return redirect(res, `${origin}/?google=invalid_state#/settings/autobackup`); }
@@ -239,6 +280,22 @@ export async function handleGoogleAuth(req, res, env = process.env) {
       if (!code || code.length > 8192) return redirect(res, returnUri('invalid_state'));
       const tokens = await tokenRequest(cfg, { code, grant_type: 'authorization_code', redirect_uri: callbackUri, code_verifier: flow.verifier });
       if (!String(tokens.scope || '').split(' ').includes('https://www.googleapis.com/auth/drive.file')) return redirect(res, returnUri('consent_required'));
+      if (flow.picker) {
+        const pickedFileIds = String(url.searchParams.get('picked_file_ids') || '').split(',').filter(Boolean);
+        if (pickedFileIds.length !== 1 || !/^[A-Za-z0-9_-]{10,200}$/.test(pickedFileIds[0])) return redirect(res, returnUri('picker_cancelled'));
+        const session = await readSessionById(flow.sessionId, cfg, origin);
+        if (!session || session.data.email.toLowerCase() !== flow.expectedEmail.toLowerCase()) return redirect(res, returnUri('authorization_required'));
+        session.data.accessToken = tokens.access_token;
+        session.data.refreshToken = tokens.refresh_token || session.data.refreshToken;
+        session.data.tokenExpiresAt = Date.now() + Number(tokens.expires_in || 3600) * 1000;
+        session.data.expiresAt = Date.now() + cfg.sessionSeconds * 1000;
+        const saved = await redis(cfg, ['SET', session.key, seal(session.data, cfg.key, 'session:' + origin), 'EX', cfg.sessionSeconds, 'XX']);
+        if (saved !== 'OK') return redirect(res, returnUri('authorization_required'));
+        const handoff = randomBytes(32).toString('base64url');
+        await redis(cfg, ['SET', nativeHandoffKey(handoff), seal({ sessionId: session.id, origin,
+          challenge: flow.nativeChallenge, pickedFileId: pickedFileIds[0] }, cfg.key, 'native-handoff:' + origin), 'EX', NATIVE_HANDOFF_SECONDS, 'NX']);
+        return redirect(res, returnUri('picked', handoff));
+      }
       const identityResponse = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
         headers: { Authorization: `Bearer ${tokens.access_token}` }, signal: AbortSignal.timeout(10000),
       });

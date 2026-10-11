@@ -166,12 +166,14 @@ async function createNativeChallenge(verifier) {
   return base64Url(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)));
 }
 
-function clearNativeLogin(error = new Error('Jendela login Google ditutup. Silakan tekan Hubungkan untuk mencoba lagi.')) {
+function clearNativeLogin(error = null) {
   const pending = _nativeOAuthPending;
   if (!pending) return;
   _nativeOAuthPending = null;
   clearTimeout(pending.timer);
-  pending.reject(error);
+  pending.reject(error || new Error(pending.kind === 'picker'
+    ? 'Pemilihan file Google Drive ditutup. Tekan Gabung untuk mencoba lagi.'
+    : 'Jendela login Google ditutup. Silakan tekan Hubungkan untuk mencoba lagi.'));
 }
 
 function nativeOAuthMessage(result) {
@@ -182,6 +184,8 @@ function nativeOAuthMessage(result) {
     consent_required: 'Google belum memberikan izin Drive. Silakan setujui semua izin yang diminta.',
     wrong_account: 'Pilih akun Google yang sebelumnya terhubung.',
     identity_failed: 'Akun Google belum dapat diverifikasi.',
+    picker_cancelled: 'Pemilihan file Google Drive dibatalkan.',
+    authorization_required: 'Sesi Google berakhir. Hubungkan kembali akun Google.',
   })[result] || 'Login Google dari APK belum berhasil.';
 }
 
@@ -195,7 +199,8 @@ async function handleNativeOAuthUrl(url) {
     try { await browser?.close?.(); } catch { /* browser may already be closed */ }
     const callback = new URL(url);
     const result = callback.searchParams.get('google');
-    if (result !== 'connected') throw new Error(nativeOAuthMessage(result));
+    const expectedResult = pending.kind === 'picker' ? 'picked' : 'connected';
+    if (result !== expectedResult) throw new Error(nativeOAuthMessage(result));
     const handoff = callback.searchParams.get('handoff') || '';
     if (!handoff) throw new Error('Google selesai, tetapi hasil login tidak kembali ke APK.');
     const response = await fetch(`${GOOGLE_BACKEND_ORIGIN}/api/google?action=native-exchange`, {
@@ -206,7 +211,8 @@ async function handleNativeOAuthUrl(url) {
     });
     if (!response.ok) throw new Error('Hasil login Google tidak dapat diteruskan ke APK. Silakan coba lagi.');
     const resultData = await response.json();
-    if (!resultData.accessToken || !resultData.email || !resultData.nativeSession) {
+    if (!resultData.accessToken || !resultData.email || !resultData.nativeSession
+      || (pending.kind === 'picker' && !resultData.pickedFileId)) {
       throw new Error('Respons login Google tidak valid.');
     }
     localStorage.setItem(NATIVE_SESSION_KEY, resultData.nativeSession);
@@ -214,7 +220,7 @@ async function handleNativeOAuthUrl(url) {
     _tokenExpiryMs = Number(resultData.expiresAt) || Date.now() + 3600000;
     const current = await getSettings();
     await saveSettings({ autoBackup: { ...current.autoBackup, driveConnected: true, driveAccountEmail: resultData.email } });
-    pending.resolve(resultData.email);
+    pending.resolve(pending.kind === 'picker' ? resultData.pickedFileId : resultData.email);
   } catch (error) {
     pending.reject(error);
   }
@@ -272,8 +278,43 @@ async function connectNativeAccount({ renew = false } = {}) {
         void browser.close().catch(() => {});
       }
     }, NATIVE_OAUTH_TIMEOUT_MS);
-    _nativeOAuthPending = { resolve, reject, timer, verifier };
+    _nativeOAuthPending = { kind: 'login', resolve, reject, timer, verifier };
     browser.open({ url: target.href }).catch((error) => {
+      if (_nativeOAuthPending?.reject === reject) clearNativeLogin(error);
+    });
+  });
+}
+
+async function authorizeNativeSharedSyncFile() {
+  const browser = nativePlugin('Browser');
+  if (!browser?.open) throw new Error('Browser APK belum tersedia. Instal APK versi terbaru.');
+  await ensureNativeAppListener();
+  await ensureNativeBrowserListener();
+  if (_nativeOAuthPending) throw new Error('Jendela Google sedang terbuka.');
+  let nativeSession = '';
+  try { nativeSession = localStorage.getItem(NATIVE_SESSION_KEY) || ''; } catch { /* private storage */ }
+  if (!nativeSession) throw new Error('Sesi Google berakhir. Hubungkan kembali akun Google.');
+  const verifier = createNativeVerifier();
+  const challenge = await createNativeChallenge(verifier);
+  const startResponse = await fetch(`${GOOGLE_BACKEND_ORIGIN}/api/google?action=native-picker-start`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Notaku-Native-Session': nativeSession },
+    body: new URLSearchParams({ challenge }),
+    cache: 'no-store',
+  });
+  if (startResponse.status === 401) throw new Error('Sesi Google berakhir. Hubungkan kembali akun Google.');
+  if (!startResponse.ok) throw new Error('Pemilih file Google Drive belum dapat dibuka. Silakan coba lagi.');
+  const start = await startResponse.json();
+  if (!start.url?.startsWith(`${GOOGLE_BACKEND_ORIGIN}/`)) throw new Error('Alamat pemilih file Google Drive tidak valid.');
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      if (_nativeOAuthPending?.reject === reject) {
+        clearNativeLogin(new Error('Pemilihan file Google Drive terlalu lama. Kembali ke APK lalu coba lagi.'));
+        void browser.close().catch(() => {});
+      }
+    }, NATIVE_OAUTH_TIMEOUT_MS);
+    _nativeOAuthPending = { kind: 'picker', resolve, reject, timer, verifier };
+    browser.open({ url: start.url }).catch((error) => {
       if (_nativeOAuthPending?.reject === reject) clearNativeLogin(error);
     });
   });
@@ -1121,6 +1162,13 @@ export async function authorizeSharedSyncFile(code) {
   const legacyFileId = parseSharedSyncCode(code);
   const shortCode = normalizeShortSharedCode(code);
   if (!legacyFileId && !shortCode) throw new Error('Kode ruang sinkron tidak valid.');
+  if (isNativeApp()) {
+    await ensureToken();
+    const selectedId = await authorizeNativeSharedSyncFile();
+    const matchesCode = legacyFileId ? selectedId === legacyFileId : shortSharedCodeForFile(selectedId) === shortCode;
+    if (!matchesCode) throw new Error('File yang dipilih tidak cocok dengan kode ruang. Pilih file NotaKu yang dibagikan oleh pemilik.');
+    return selectedId;
+  }
   if (!isSharedSyncPickerConfigured()) {
     throw new Error('Google Picker belum dikonfigurasi. Aktifkan Google Picker API, buat API key, lalu isi GOOGLE_PICKER_API_KEY di js/config.js.');
   }

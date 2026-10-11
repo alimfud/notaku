@@ -1,4 +1,4 @@
 {
-  "version": "1.35.3",
-  "notes": "Perbaikan login Google Drive APK: izinkan alur browser sistem dan bersihkan status saat login dibatalkan."
+  "version": "1.35.4",
+  "notes": "Perbaikan Gabung Ruang di APK: gunakan alur Google Picker mobile dan kembalikan file terpilih langsung ke aplikasi."
 }

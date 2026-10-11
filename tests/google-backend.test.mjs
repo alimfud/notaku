@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import handler from '../server/google-auth.js';
 
 function fixture(t) {
@@ -36,10 +37,11 @@ function fixture(t) {
     if (url === 'https://openidconnect.googleapis.com/v1/userinfo') return Response.json({ sub: 'subject', email: identityEmail, email_verified: true });
     throw new Error('Unexpected external request');
   });
-  async function request(action, { method = 'GET', cookie = '', origin = 'https://nota.example', extra = '' } = {}) {
+  async function request(action, { method = 'GET', cookie = '', origin = 'https://nota.example', extra = '', body = '', requestHeaders = {} } = {}) {
     const headers = {};
     const res = { statusCode: 200, setHeader(name, value) { headers[name] = value; }, getHeader(name) { return headers[name]; }, end(body = '') { this.body = body; } };
-    await handler({ method, url: `/api/google?action=${action}${extra}`, headers: { host: 'nota.example', origin, cookie } }, res);
+    await handler({ method, url: `/api/google?action=${action}${extra}`, body,
+      headers: { host: 'nota.example', origin, cookie, ...requestHeaders } }, res);
     return { status: res.statusCode, headers, body: res.body, json: () => JSON.parse(res.body) };
   }
   async function login(expected = '') {
@@ -93,4 +95,35 @@ test('login refuses another Google account when renewing an existing account', a
   assert.match(callback.headers.Location, /wrong_account/);
   assert.equal(sessionCookie, undefined);
   assert.equal([...f.records.keys()].filter((key) => key.startsWith('notaku:google:')).length, 0);
+});
+
+test('native Picker returns the selected Drive file to the existing APK session', async (t) => {
+  const f = fixture(t);
+  const { sessionCookie } = await f.login();
+  const nativeSession = sessionCookie.split('=')[1];
+  const verifier = 'v'.repeat(43);
+  const challenge = createHash('sha256').update(verifier).digest('base64url');
+  const start = await f.request('native-picker-start', {
+    method: 'POST', origin: 'http://localhost', body: new URLSearchParams({ challenge }).toString(),
+    requestHeaders: { 'x-notaku-native-session': nativeSession },
+  });
+  assert.equal(start.status, 200);
+  const pickerStartUrl = new URL(start.json().url);
+  const pickerStart = await f.request('picker-start', { extra: `&request=${encodeURIComponent(pickerStartUrl.searchParams.get('request'))}` });
+  const googleUrl = new URL(pickerStart.headers.Location);
+  assert.equal(googleUrl.searchParams.get('trigger_onepick'), 'true');
+  assert.equal(googleUrl.searchParams.get('scope'), 'https://www.googleapis.com/auth/drive.file');
+  const state = googleUrl.searchParams.get('state');
+  const flowCookie = pickerStart.headers['Set-Cookie'][0].split(';')[0];
+  const callback = await f.request('callback', {
+    cookie: flowCookie, extra: `&code=picker-code&state=${encodeURIComponent(state)}&picked_file_ids=1SharedFileAbCd`,
+  });
+  assert.match(callback.headers.Location, /^id\.notaku\.app:\/\/oauth2callback\?google=picked&handoff=/);
+  const handoff = new URL(callback.headers.Location).searchParams.get('handoff');
+  const exchange = await f.request('native-exchange', {
+    method: 'POST', origin: 'http://localhost', body: new URLSearchParams({ handoff, verifier }).toString(),
+  });
+  assert.equal(exchange.status, 200);
+  assert.equal(exchange.json().pickedFileId, '1SharedFileAbCd');
+  assert.equal(exchange.json().email, 'owner@example.com');
 });

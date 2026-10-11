@@ -11,6 +11,7 @@ function contextFor({ settings, fetch, pickerKey = '', globals = {} }) {
     Date, Math, Uint8Array, Blob, FormData, AbortController, setTimeout, clearTimeout,
     GOOGLE_CLIENT_ID: '329437953527-client.apps.googleusercontent.com', GOOGLE_PICKER_API_KEY: pickerKey, navigator: { onLine: true },
     persistentAccess: async () => null,
+    isNativeApp: () => false,
     getSettings: async () => settings,
     saveSettings: async (partial) => { settings = { ...settings, ...partial }; },
     createBackupBlob: async () => new Blob([JSON.stringify({ app: 'notaku', data: { products: [] } })], { type: 'application/json' }),
