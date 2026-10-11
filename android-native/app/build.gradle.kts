@@ -6,6 +6,7 @@ plugins {
 
 android { namespace = "id.notaku.app"; compileSdk = 35
     defaultConfig { applicationId = "id.notaku.app"; minSdk = 26; targetSdk = 35; versionCode = 103400; versionName = "1.34.0" }
+    buildTypes { release { isMinifyEnabled = false } }
 }
 
 kotlin { jvmToolchain(17) }
