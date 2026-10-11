@@ -5,8 +5,16 @@ plugins {
 }
 
 android { namespace = "id.notaku.app"; compileSdk = 35
-    defaultConfig { applicationId = "id.notaku.app"; minSdk = 26; targetSdk = 35; versionCode = 103400; versionName = "1.34.0" }
-    buildTypes { release { isMinifyEnabled = false } }
+    defaultConfig { applicationId = "id.notaku.app"; minSdk = 26; targetSdk = 35; versionCode = 103501; versionName = "1.35.1" }
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            // Sementara memakai debug keystore agar APK hasil GitHub Actions valid
+            // untuk instalasi. Production signing key dipindahkan ke GitHub Secret
+            // sebelum distribusi publik dan update otomatis.
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
 }
 
 kotlin { jvmToolchain(17) }
