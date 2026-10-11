@@ -12,6 +12,11 @@
  */
 export const GOOGLE_CLIENT_ID = '329437953527-hloho20c8qv1kt25j09r46vvunc8vrlt.apps.googleusercontent.com';
 
+// Origin backend OAuth yang dipakai oleh APK saat login melalui browser sistem.
+// Jangan gunakan localhost di sini: localhost hanya merupakan origin WebView
+// APK, sedangkan proses OAuth native diselesaikan oleh situs produksi.
+export const GOOGLE_BACKEND_ORIGIN = 'https://nota.jajan.my.id';
+
 // API key untuk Google Picker. Dibutuhkan hanya saat akun berbeda pertama
 // kali membuka file Ruang Sinkron Bersama. Lihat docs/DRIVE_SETUP.md.
 export const GOOGLE_PICKER_API_KEY = 'AIzaSyBv4OJ1cTn9x47wlkgc77fAbKejDnoVSac';

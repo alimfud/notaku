@@ -1,6 +1,6 @@
 {
   "name": "notaku",
-  "version": "1.35.1",
+  "version": "1.35.2",
   "private": true,
   "type": "module",
   "description": "NotaKu web/PWA and Android application",
@@ -17,6 +17,7 @@
   "dependencies": {
     "@capacitor-community/bluetooth-le": "8.2.0",
     "@capacitor/android": "8.5.2",
+    "@capacitor/app": "8.0.1",
     "@capacitor/browser": "8.0.1",
     "@capacitor/core": "8.5.2",
     "@capacitor/filesystem": "8.1.2",

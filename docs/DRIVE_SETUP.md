@@ -45,6 +45,30 @@ sendiri untuk fitur Drive-nya.
    "Hubungkan Akun Google Drive" → pilih akun Google yang tadi didaftarkan
    sebagai Test User di langkah 4.
 
+### Login dari APK Android
+
+APK tidak memakai popup Google Identity Services di dalam WebView. Saat tombol
+"Hubungkan Akun Google Drive" ditekan, APK membuka browser sistem, lalu backend
+`https://nota.jajan.my.id` mengembalikan hasil izin ke APK melalui tautan
+`id.notaku.app://oauth2callback`. Karena itu backend produksi harus sudah
+ter-deploy dan environment variable berikut harus aktif di Cloudflare Pages:
+
+- `APP_ORIGINS=https://nota.jajan.my.id`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `SESSION_ENCRYPTION_KEY`
+- `SESSIONS` atau pasangan variable Upstash
+
+Callback OAuth tetap:
+
+```text
+https://nota.jajan.my.id/api/google?action=callback
+```
+
+Tidak perlu membuat Android OAuth Client atau menambahkan `gsi/transform` ke
+Google Cloud. Alur localhost PC tetap memakai Web OAuth Client dan origin
+`http://localhost`; alur APK memakai browser sistem dan callback backend.
+
 ## Sinkronisasi beda email
 
 **Ruang Sinkron Bersama** adalah fitur resmi untuk menyinkronkan data antarakun
@@ -173,4 +197,3 @@ oleh Google, sekalipun domain induknya sama).
 Setelah cek/benerin poin di atas, di halaman "Atur Backup Otomatis": klik
 **"Putuskan"** dulu (supaya token lama dibuang bersih), lalu **"Hubungkan"**
 lagi dari awal, baru coba **"Backup Sekarang"**.
-

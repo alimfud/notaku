@@ -1,4 +1,4 @@
 {
-  "version": "1.35.1",
-  "notes": "Ruang Sinkron Bersama ditetapkan sebagai fitur resmi, dengan tampilan peran yang lebih jelas dan validasi file ruang yang lebih kuat."
+  "version": "1.35.2",
+  "notes": "Login Google Drive di APK memakai browser sistem dan callback aman agar tidak berhenti di halaman gsi/transform."
 }

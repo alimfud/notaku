@@ -5,6 +5,9 @@ const FLOW_COOKIE = '__Host-notaku-google-flow';
 const DEFAULT_SESSION_DAYS = 180;
 const MAX_SESSION_DAYS = 500;
 const FLOW_SECONDS = 600;
+const NATIVE_HANDOFF_SECONDS = 300;
+const NATIVE_REDIRECT = 'id.notaku.app://oauth2callback';
+const NATIVE_ORIGINS = new Set(['http://localhost', 'https://localhost']);
 const SCOPE = 'openid email profile https://www.googleapis.com/auth/drive.file';
 const digest = (value) => createHash('sha256').update(value).digest('base64url');
 
@@ -94,10 +97,11 @@ async function redis(cfg, command) {
 }
 
 function sessionKey(id, origin) { return `notaku:google:${digest(origin + ':' + id)}`; }
+function nativeHandoffKey(value) { return `notaku:native-handoff:${digest(value)}`; }
 function validId(value) { return /^[A-Za-z0-9_-]{43}$/.test(value); }
+function validHandoff(value) { return /^[A-Za-z0-9_-]{43}$/.test(value); }
 
-async function readSession(req, cfg, origin) {
-  const id = cookie(req, SESSION_COOKIE);
+async function readSessionById(id, cfg, origin) {
   if (!validId(id)) return null;
   const key = sessionKey(id, origin);
   const encrypted = await redis(cfg, ['GET', key]);
@@ -107,6 +111,10 @@ async function readSession(req, cfg, origin) {
     if (data.expiresAt <= Date.now()) return null;
     return { id, key, data };
   } catch { return null; }
+}
+
+async function readSession(req, cfg, origin) {
+  return readSessionById(cookie(req, SESSION_COOKIE), cfg, origin);
 }
 
 async function tokenRequest(cfg, values) {
@@ -129,6 +137,19 @@ export async function handleGoogleAuth(req, res, env = process.env) {
   res.setHeader('Vary', 'Cookie, Origin');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
+  const requestOrigin = String(req.headers.origin || '');
+  const isNativeRequest = NATIVE_ORIGINS.has(requestOrigin);
+  if (isNativeRequest) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Notaku-Native-Session');
+    res.setHeader('Access-Control-Max-Age', '600');
+  }
+  if ((req.method || 'GET') === 'OPTIONS') {
+    res.statusCode = isNativeRequest ? 204 : 403;
+    res.end();
+    return;
+  }
   let cfg;
   try { cfg = config(env); } catch { cfg = null; }
   const url = new URL(req.url, 'https://localhost');
@@ -141,15 +162,52 @@ export async function handleGoogleAuth(req, res, env = process.env) {
   const method = req.method || 'GET';
   if (action === 'status' && method === 'GET') return json(res, 200, { configured: true });
   const callbackUri = `${origin}/api/google?action=callback`;
-  const returnUri = (result) => `${origin}/?google=${result}#/settings/autobackup`;
   try {
+    if (action === 'native-exchange' && method === 'POST') {
+      if (!isNativeRequest) return json(res, 403, { error: 'native_origin_not_allowed' });
+      const values = new URLSearchParams(String(req.body || ''));
+      const handoff = values.get('handoff') || '';
+      if (!validHandoff(handoff)) return json(res, 400, { error: 'invalid_handoff' });
+      const sealed = await redis(cfg, ['GETDEL', nativeHandoffKey(handoff)]);
+      if (!sealed) return json(res, 401, { error: 'handoff_expired' });
+      let handoffData;
+      try { handoffData = unseal(sealed, cfg.key, 'native-handoff:' + origin); } catch { return json(res, 401, { error: 'invalid_handoff' }); }
+      const session = await readSessionById(handoffData.sessionId, cfg, origin);
+      if (!session) return json(res, 401, { error: 'authorization_required' });
+      return json(res, 200, { nativeSession: session.id, email: session.data.email,
+        accessToken: session.data.accessToken, expiresAt: session.data.tokenExpiresAt });
+    }
+    if (action === 'native-session' && method === 'POST') {
+      if (!isNativeRequest) return json(res, 403, { error: 'native_origin_not_allowed' });
+      const id = String(req.headers['x-notaku-native-session'] || '');
+      const session = await readSessionById(id, cfg, origin);
+      if (!session) return json(res, 401, { error: 'authorization_required' });
+      const data = session.data;
+      if (data.tokenExpiresAt <= Date.now() + 60000 || url.searchParams.get('refresh') === '1') {
+        const tokens = await tokenRequest(cfg, { grant_type: 'refresh_token', refresh_token: data.refreshToken });
+        data.accessToken = tokens.access_token;
+        data.refreshToken = tokens.refresh_token || data.refreshToken;
+        data.tokenExpiresAt = Date.now() + Number(tokens.expires_in || 3600) * 1000;
+      }
+      data.expiresAt = Date.now() + cfg.sessionSeconds * 1000;
+      const saved = await redis(cfg, ['SET', session.key, seal(data, cfg.key, 'session:' + origin), 'EX', cfg.sessionSeconds, 'XX']);
+      if (saved !== 'OK') return json(res, 401, { error: 'authorization_required' });
+      return json(res, 200, { email: data.email, accessToken: data.accessToken, expiresAt: data.tokenExpiresAt });
+    }
+    if (action === 'native-disconnect' && method === 'POST') {
+      if (!isNativeRequest) return json(res, 403, { error: 'native_origin_not_allowed' });
+      const id = String(req.headers['x-notaku-native-session'] || '');
+      if (validId(id)) await redis(cfg, ['DEL', sessionKey(id, origin)]);
+      return json(res, 200, { disconnected: true });
+    }
     if (action === 'start' && method === 'GET') {
       if (req.headers['sec-fetch-site'] === 'cross-site') return json(res, 403, { error: 'cross_site_request' });
       const state = randomBytes(32).toString('base64url');
       const verifier = randomBytes(32).toString('base64url');
       const expectedEmail = (url.searchParams.get('email') || '').trim().toLowerCase();
       if (expectedEmail.length > 254) return json(res, 400, { error: 'invalid_account' });
-      const flow = { state, verifier, expectedEmail, expiresAt: Date.now() + FLOW_SECONDS * 1000 };
+      const native = url.searchParams.get('native') === '1';
+      const flow = { state, verifier, expectedEmail, native, expiresAt: Date.now() + FLOW_SECONDS * 1000 };
       // Redis makes the OAuth state one-use, in addition to binding it to this browser.
       await redis(cfg, ['SET', `notaku:oauth:${digest(state)}`, origin, 'EX', FLOW_SECONDS, 'NX']);
       setCookie(res, FLOW_COOKIE, seal(flow, cfg.key, 'flow:' + origin), FLOW_SECONDS);
@@ -162,7 +220,10 @@ export async function handleGoogleAuth(req, res, env = process.env) {
     }
     if (action === 'callback' && method === 'GET') {
       let flow;
-      try { flow = unseal(cookie(req, FLOW_COOKIE), cfg.key, 'flow:' + origin); } catch { return redirect(res, returnUri('invalid_state')); }
+      try { flow = unseal(cookie(req, FLOW_COOKIE), cfg.key, 'flow:' + origin); } catch { return redirect(res, `${origin}/?google=invalid_state#/settings/autobackup`); }
+      const returnUri = (result, handoff = '') => flow.native
+        ? `${NATIVE_REDIRECT}?google=${result}${handoff ? `&handoff=${encodeURIComponent(handoff)}` : ''}`
+        : `${origin}/?google=${result}#/settings/autobackup`;
       setCookie(res, FLOW_COOKIE, '', 0);
       if (flow.expiresAt <= Date.now() || flow.state !== url.searchParams.get('state')) return redirect(res, returnUri('invalid_state'));
       const storedOrigin = await redis(cfg, ['GETDEL', `notaku:oauth:${digest(flow.state)}`]);
@@ -188,6 +249,11 @@ export async function handleGoogleAuth(req, res, env = process.env) {
       const oldId = cookie(req, SESSION_COOKIE);
       if (validId(oldId)) await redis(cfg, ['DEL', sessionKey(oldId, origin)]);
       setCookie(res, SESSION_COOKIE, id, cfg.sessionSeconds);
+      if (flow.native) {
+        const handoff = randomBytes(32).toString('base64url');
+        await redis(cfg, ['SET', nativeHandoffKey(handoff), seal({ sessionId: id, origin }, cfg.key, 'native-handoff:' + origin), 'EX', NATIVE_HANDOFF_SECONDS, 'NX']);
+        return redirect(res, returnUri('connected', handoff));
+      }
       return redirect(res, returnUri('connected'));
     }
     if (action !== 'session' && action !== 'disconnect') return json(res, 404, { error: 'not_found' });

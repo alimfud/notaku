@@ -28,11 +28,12 @@
 // atau aplikasi native — di luar kemampuan web app statis.
 // ===================================================================================
 
-import { GOOGLE_CLIENT_ID, GOOGLE_PICKER_API_KEY } from '../config.js';
+import { GOOGLE_BACKEND_ORIGIN, GOOGLE_CLIENT_ID, GOOGLE_PICKER_API_KEY } from '../config.js';
 import { getSettings, saveSettings } from './settingsService.js';
 import { createBackupBlob } from './backupService.js';
 import * as db from '../db.js';
 import { backendEnabled, persistentAccess, beginPersistentLogin, disconnectPersistentSession, invalidatePersistentAccess, consumeGoogleLoginMessage as readGoogleLoginMessage } from './googleSessionService.js';
+import { isNativeApp } from '../native.js';
 
 export function consumeGoogleLoginMessage() { return readGoogleLoginMessage(); }
 
@@ -48,6 +49,11 @@ let _tokenExpiryMs = 0;
 let _gisLoadPromise = null;
 let _pickerLoadPromise = null;
 let _fallbackDeviceSyncId = '';
+let _nativeAppListenerPromise = null;
+let _nativeOAuthPending = null;
+
+const NATIVE_SESSION_KEY = 'notaku-native-google-session';
+const NATIVE_OAUTH_TIMEOUT_MS = 5 * 60 * 1000;
 
 const DEVICE_SYNC_ID_KEY = 'notaku-device-sync-id';
 
@@ -138,6 +144,117 @@ function loadGis() {
   return _gisLoadPromise;
 }
 
+function nativePlugin(name) {
+  return window.Capacitor?.Plugins?.[name] || null;
+}
+
+function nativeOAuthMessage(result) {
+  return ({
+    cancelled: 'Penyambungan Google dibatalkan.',
+    invalid_state: 'Proses login Google sudah kedaluwarsa. Silakan coba lagi.',
+    unavailable: 'Layanan Google sedang tidak tersedia. Silakan coba lagi.',
+    consent_required: 'Google belum memberikan izin Drive. Silakan setujui semua izin yang diminta.',
+    wrong_account: 'Pilih akun Google yang sebelumnya terhubung.',
+    identity_failed: 'Akun Google belum dapat diverifikasi.',
+  })[result] || 'Login Google dari APK belum berhasil.';
+}
+
+async function handleNativeOAuthUrl(url) {
+  const pending = _nativeOAuthPending;
+  if (!pending) return;
+  _nativeOAuthPending = null;
+  clearTimeout(pending.timer);
+  try {
+    const browser = nativePlugin('Browser');
+    try { await browser?.close?.(); } catch { /* browser may already be closed */ }
+    const callback = new URL(url);
+    const result = callback.searchParams.get('google');
+    if (result !== 'connected') throw new Error(nativeOAuthMessage(result));
+    const handoff = callback.searchParams.get('handoff') || '';
+    if (!handoff) throw new Error('Google selesai, tetapi hasil login tidak kembali ke APK.');
+    const response = await fetch(`${GOOGLE_BACKEND_ORIGIN}/api/google?action=native-exchange`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ handoff }),
+      cache: 'no-store',
+    });
+    if (!response.ok) throw new Error('Hasil login Google tidak dapat diteruskan ke APK. Silakan coba lagi.');
+    const resultData = await response.json();
+    if (!resultData.accessToken || !resultData.email || !resultData.nativeSession) {
+      throw new Error('Respons login Google tidak valid.');
+    }
+    localStorage.setItem(NATIVE_SESSION_KEY, resultData.nativeSession);
+    _accessToken = resultData.accessToken;
+    _tokenExpiryMs = Number(resultData.expiresAt) || Date.now() + 3600000;
+    const current = await getSettings();
+    await saveSettings({ autoBackup: { ...current.autoBackup, driveConnected: true, driveAccountEmail: resultData.email } });
+    pending.resolve(resultData.email);
+  } catch (error) {
+    pending.reject(error);
+  }
+}
+
+async function ensureNativeAppListener() {
+  if (_nativeAppListenerPromise) return _nativeAppListenerPromise;
+  _nativeAppListenerPromise = (async () => {
+    const app = nativePlugin('App');
+    if (!app?.addListener) throw new Error('Komponen callback APK belum tersedia. Instal APK versi terbaru.');
+    await app.addListener('appUrlOpen', ({ url }) => {
+      if (String(url || '').startsWith('id.notaku.app://oauth2callback')) void handleNativeOAuthUrl(url);
+    });
+  })().catch((error) => {
+    _nativeAppListenerPromise = null;
+    throw error;
+  });
+  return _nativeAppListenerPromise;
+}
+
+async function connectNativeAccount({ renew = false } = {}) {
+  const browser = nativePlugin('Browser');
+  if (!browser?.open) throw new Error('Browser APK belum tersedia. Instal APK versi terbaru.');
+  await ensureNativeAppListener();
+  if (_nativeOAuthPending) throw new Error('Jendela login Google sedang terbuka.');
+  const previous = (await getSettings()).autoBackup;
+  const expectedEmail = renew ? previous.driveAccountEmail : '';
+  const target = new URL(`${GOOGLE_BACKEND_ORIGIN}/api/google`);
+  target.searchParams.set('action', 'start');
+  target.searchParams.set('native', '1');
+  if (expectedEmail) target.searchParams.set('email', expectedEmail);
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      if (_nativeOAuthPending?.reject === reject) _nativeOAuthPending = null;
+      reject(new Error('Login Google terlalu lama. Kembali ke APK lalu coba lagi.'));
+    }, NATIVE_OAUTH_TIMEOUT_MS);
+    _nativeOAuthPending = { resolve, reject, timer };
+    browser.open({ url: target.href }).catch((error) => {
+      clearTimeout(timer);
+      if (_nativeOAuthPending?.reject === reject) _nativeOAuthPending = null;
+      reject(error);
+    });
+  });
+}
+
+async function restoreNativeAccess() {
+  let nativeSession = '';
+  try { nativeSession = localStorage.getItem(NATIVE_SESSION_KEY) || ''; } catch { /* private storage */ }
+  if (!nativeSession) return null;
+  const response = await fetch(`${GOOGLE_BACKEND_ORIGIN}/api/google?action=native-session`, {
+    method: 'POST',
+    headers: { 'X-Notaku-Native-Session': nativeSession },
+    cache: 'no-store',
+  });
+  if (response.status === 401) {
+    try { localStorage.removeItem(NATIVE_SESSION_KEY); } catch { /* private storage */ }
+    return null;
+  }
+  if (!response.ok) throw new Error('Sesi Google APK belum dapat dipulihkan.');
+  const result = await response.json();
+  if (!result.accessToken || !result.email || !Number.isFinite(result.expiresAt)) return null;
+  _accessToken = result.accessToken;
+  _tokenExpiryMs = result.expiresAt;
+  return result;
+}
+
 function hasValidToken() {
   return _accessToken && Date.now() < _tokenExpiryMs - 30000;
 }
@@ -145,6 +262,7 @@ function hasValidToken() {
 /** Minta izin akses Google Drive (membuka popup login Google). Hasil dari klik tombol user. */
 export async function connectAccount({ renew = false } = {}) {
   if (!isConfigured()) throw new Error('GOOGLE_CLIENT_ID belum diisi. Lihat docs/DRIVE_SETUP.md.');
+  if (isNativeApp()) return connectNativeAccount({ renew });
   if (await backendEnabled()) {
     const cfg = (await getSettings()).autoBackup;
     return beginPersistentLogin(renew || cfg.driveConnected ? cfg.driveAccountEmail : '');
@@ -195,6 +313,19 @@ async function ensureToken({ interactive = true } = {}) {
 
 export async function restoreGoogleAccess() {
   if (hasValidToken() || navigator.onLine === false) return;
+  if (isNativeApp()) {
+    const session = await restoreNativeAccess();
+    if (!session) return;
+    const settings = await getSettings();
+    const cfg = settings.autoBackup;
+    if (cfg.driveConnected && cfg.driveAccountEmail && cfg.driveAccountEmail.toLowerCase() !== session.email.toLowerCase()) {
+      throw new Error('Akun sesi Google berbeda dari akun data perangkat ini. Hubungkan kembali akun yang sesuai.');
+    }
+    if (!cfg.driveConnected || cfg.driveAccountEmail !== session.email) {
+      await saveSettings({ autoBackup: { ...cfg, driveConnected: true, driveAccountEmail: session.email } });
+    }
+    return;
+  }
   const session = await persistentAccess();
   if (!session) return;
   const settings = await getSettings();
@@ -219,6 +350,25 @@ async function fetchAccountEmail() {
 }
 
 export async function disconnectAccount() {
+  if (isNativeApp()) {
+    let nativeSession = '';
+    try {
+      nativeSession = localStorage.getItem(NATIVE_SESSION_KEY) || '';
+      localStorage.removeItem(NATIVE_SESSION_KEY);
+    } catch { /* private storage */ }
+    if (nativeSession) {
+      await fetch(`${GOOGLE_BACKEND_ORIGIN}/api/google?action=native-disconnect`, {
+        method: 'POST',
+        headers: { 'X-Notaku-Native-Session': nativeSession },
+        cache: 'no-store',
+      }).catch(() => {});
+    }
+    _accessToken = null;
+    _tokenExpiryMs = 0;
+    const settings = await getSettings();
+    await saveSettings({ autoBackup: { ...settings.autoBackup, driveConnected: false, driveAccountEmail: '' } });
+    return;
+  }
   const persistent = await disconnectPersistentSession();
   if (!persistent && _accessToken && window.google?.accounts?.oauth2) {
     window.google.accounts.oauth2.revoke(_accessToken, () => {});

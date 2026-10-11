@@ -1,6 +1,6 @@
 import googleAuth from '../../server/google-auth.js';
 
-function createNodeRequest(request) {
+async function createNodeRequest(request) {
   const headers = {};
   const url = new URL(request.url);
   request.headers.forEach((value, key) => { headers[key.toLowerCase()] = value; });
@@ -9,7 +9,8 @@ function createNodeRequest(request) {
   // OAuth handler instead of trusting a forwarded header from the client.
   headers.host = url.host;
   headers['x-forwarded-host'] = url.host;
-  return { method: request.method, url: url.pathname + url.search, origin: url.origin, headers };
+  return { method: request.method, url: url.pathname + url.search, origin: url.origin, headers,
+    body: request.method === 'GET' || request.method === 'HEAD' ? '' : await request.text() };
 }
 
 function createNodeResponse() {
@@ -41,6 +42,6 @@ function createNodeResponse() {
 
 export async function onRequest(context) {
   const response = createNodeResponse();
-  await googleAuth(createNodeRequest(context.request), response, context.env);
+  await googleAuth(await createNodeRequest(context.request), response, context.env);
   return response.response();
 }
