@@ -12,6 +12,13 @@
 
 let deferredPrompt = null;
 
+// APK Capacitor sudah terpasang sebagai aplikasi Android. Jangan tampilkan
+// ajakan instalasi PWA di dalam WebView karena itu hanya membingungkan user.
+function isNativeApp() {
+  return document.body?.dataset.nativeApp === 'true'
+    || window.Capacitor?.isNativePlatform?.() === true;
+}
+
 export function isAppInstalled() {
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
@@ -21,6 +28,7 @@ function isIos() {
 }
 
 export async function getInstallReadiness() {
+  if (isNativeApp()) return { state: 'installed', label: 'Terpasang sebagai APK', detail: 'NotaKu sedang berjalan sebagai aplikasi Android.' };
   if (isAppInstalled()) return { state: 'installed', label: 'Sudah terpasang', detail: 'NotaKu sedang berjalan sebagai aplikasi.' };
   if (!window.isSecureContext && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
     return { state: 'unavailable', label: 'Belum siap dipasang', detail: 'Instalasi membutuhkan koneksi HTTPS.' };
@@ -78,7 +86,7 @@ function showBanner(onInstallClick, isIosManual, isManualFallback = false) {
 }
 
 export function initInstallPrompt() {
-  if (isAppInstalled()) return;
+  if (isNativeApp() || isAppInstalled()) return;
 
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
