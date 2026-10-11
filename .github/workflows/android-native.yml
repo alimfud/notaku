@@ -1,4 +1,4 @@
-name: NotaKu Native Android
+name: NotaKu Android APK
 
 on:
   push:
@@ -14,24 +14,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
       - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
-        with: { distribution: temurin, java-version: '17' }
-      - uses: gradle/actions/setup-gradle@0bdd871935719febd78681f197cd39af5b6e16a6 # v4.2.2
-        with: { gradle-version: '8.11.1' }
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install JavaScript dependencies
+        run: npm ci
+      - name: Bundle NotaKu web app into Android APK
+        run: npm run android:sync
       - name: Build debug APK
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-        working-directory: android-native
-        run: gradle assembleDebug
+        working-directory: android
+        run: ./gradlew assembleDebug
       - name: Build release APK
         if: startsWith(github.ref, 'refs/tags/v')
-        working-directory: android-native
-        run: gradle assembleRelease
+        working-directory: android
+        run: ./gradlew assembleRelease
       - name: Collect APK
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            cp android-native/app/build/outputs/apk/release/app-release*.apk "NotaKu-${GITHUB_REF_NAME}.apk"
+            cp android/app/build/outputs/apk/release/app-release.apk "NotaKu-${GITHUB_REF_NAME}.apk"
           else
-            cp android-native/app/build/outputs/apk/debug/app-debug.apk NotaKu-debug.apk
+            cp android/app/build/outputs/apk/debug/app-debug.apk NotaKu-debug.apk
           fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with: { name: NotaKu-Android, path: NotaKu-*.apk }
