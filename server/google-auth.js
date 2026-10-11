@@ -167,11 +167,15 @@ export async function handleGoogleAuth(req, res, env = process.env) {
       if (!isNativeRequest) return json(res, 403, { error: 'native_origin_not_allowed' });
       const values = new URLSearchParams(String(req.body || ''));
       const handoff = values.get('handoff') || '';
-      if (!validHandoff(handoff)) return json(res, 400, { error: 'invalid_handoff' });
-      const sealed = await redis(cfg, ['GETDEL', nativeHandoffKey(handoff)]);
+      const verifier = values.get('verifier') || '';
+      if (!validHandoff(handoff) || !validHandoff(verifier)) return json(res, 400, { error: 'invalid_handoff' });
+      const key = nativeHandoffKey(handoff);
+      const sealed = await redis(cfg, ['GET', key]);
       if (!sealed) return json(res, 401, { error: 'handoff_expired' });
       let handoffData;
       try { handoffData = unseal(sealed, cfg.key, 'native-handoff:' + origin); } catch { return json(res, 401, { error: 'invalid_handoff' }); }
+      if (digest(verifier) !== handoffData.challenge) return json(res, 401, { error: 'invalid_handoff' });
+      if (await redis(cfg, ['GETDEL', key]) !== sealed) return json(res, 401, { error: 'handoff_expired' });
       const session = await readSessionById(handoffData.sessionId, cfg, origin);
       if (!session) return json(res, 401, { error: 'authorization_required' });
       return json(res, 200, { nativeSession: session.id, email: session.data.email,
@@ -201,13 +205,15 @@ export async function handleGoogleAuth(req, res, env = process.env) {
       return json(res, 200, { disconnected: true });
     }
     if (action === 'start' && method === 'GET') {
-      if (req.headers['sec-fetch-site'] === 'cross-site') return json(res, 403, { error: 'cross_site_request' });
+      const native = url.searchParams.get('native') === '1';
+      if (req.headers['sec-fetch-site'] === 'cross-site' && !native) return json(res, 403, { error: 'cross_site_request' });
       const state = randomBytes(32).toString('base64url');
       const verifier = randomBytes(32).toString('base64url');
       const expectedEmail = (url.searchParams.get('email') || '').trim().toLowerCase();
       if (expectedEmail.length > 254) return json(res, 400, { error: 'invalid_account' });
-      const native = url.searchParams.get('native') === '1';
-      const flow = { state, verifier, expectedEmail, native, expiresAt: Date.now() + FLOW_SECONDS * 1000 };
+      const nativeChallenge = url.searchParams.get('native_challenge') || '';
+      if (native && !validHandoff(nativeChallenge)) return json(res, 400, { error: 'invalid_native_challenge' });
+      const flow = { state, verifier, expectedEmail, native, nativeChallenge, expiresAt: Date.now() + FLOW_SECONDS * 1000 };
       // Redis makes the OAuth state one-use, in addition to binding it to this browser.
       await redis(cfg, ['SET', `notaku:oauth:${digest(state)}`, origin, 'EX', FLOW_SECONDS, 'NX']);
       setCookie(res, FLOW_COOKIE, seal(flow, cfg.key, 'flow:' + origin), FLOW_SECONDS);
@@ -251,7 +257,7 @@ export async function handleGoogleAuth(req, res, env = process.env) {
       setCookie(res, SESSION_COOKIE, id, cfg.sessionSeconds);
       if (flow.native) {
         const handoff = randomBytes(32).toString('base64url');
-        await redis(cfg, ['SET', nativeHandoffKey(handoff), seal({ sessionId: id, origin }, cfg.key, 'native-handoff:' + origin), 'EX', NATIVE_HANDOFF_SECONDS, 'NX']);
+        await redis(cfg, ['SET', nativeHandoffKey(handoff), seal({ sessionId: id, origin, challenge: flow.nativeChallenge }, cfg.key, 'native-handoff:' + origin), 'EX', NATIVE_HANDOFF_SECONDS, 'NX']);
         return redirect(res, returnUri('connected', handoff));
       }
       return redirect(res, returnUri('connected'));

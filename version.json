@@ -1,4 +1,4 @@
 {
-  "version": "1.35.2",
-  "notes": "Login Google Drive di APK memakai browser sistem dan callback aman agar tidak berhenti di halaman gsi/transform."
+  "version": "1.35.3",
+  "notes": "Perbaikan login Google Drive APK: izinkan alur browser sistem dan bersihkan status saat login dibatalkan."
 }

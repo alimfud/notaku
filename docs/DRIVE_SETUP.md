@@ -48,7 +48,7 @@ sendiri untuk fitur Drive-nya.
 ### Login dari APK Android
 
 APK tidak memakai popup Google Identity Services di dalam WebView. Saat tombol
-"Hubungkan Akun Google Drive" ditekan, APK membuka browser sistem, lalu backend
+"Hubungkan Akun Google Drive" ditekan, APK membuka browser aman dalam aplikasi, lalu backend
 `https://nota.jajan.my.id` mengembalikan hasil izin ke APK melalui tautan
 `id.notaku.app://oauth2callback`. Karena itu backend produksi harus sudah
 ter-deploy dan environment variable berikut harus aktif di Cloudflare Pages:
@@ -68,6 +68,8 @@ https://nota.jajan.my.id/api/google?action=callback
 Tidak perlu membuat Android OAuth Client atau menambahkan `gsi/transform` ke
 Google Cloud. Alur localhost PC tetap memakai Web OAuth Client dan origin
 `http://localhost`; alur APK memakai browser sistem dan callback backend.
+Jika browser login ditutup dengan tombol X, APK mengakhiri percobaan tersebut;
+tombol Hubungkan bisa langsung ditekan lagi.
 
 ## Sinkronisasi beda email
 

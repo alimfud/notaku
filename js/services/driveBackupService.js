@@ -50,6 +50,7 @@ let _gisLoadPromise = null;
 let _pickerLoadPromise = null;
 let _fallbackDeviceSyncId = '';
 let _nativeAppListenerPromise = null;
+let _nativeBrowserListenerPromise = null;
 let _nativeOAuthPending = null;
 
 const NATIVE_SESSION_KEY = 'notaku-native-google-session';
@@ -148,6 +149,31 @@ function nativePlugin(name) {
   return window.Capacitor?.Plugins?.[name] || null;
 }
 
+function base64Url(bytes) {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function createNativeVerifier() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return base64Url(bytes);
+}
+
+async function createNativeChallenge(verifier) {
+  const bytes = new TextEncoder().encode(verifier);
+  return base64Url(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)));
+}
+
+function clearNativeLogin(error = new Error('Jendela login Google ditutup. Silakan tekan Hubungkan untuk mencoba lagi.')) {
+  const pending = _nativeOAuthPending;
+  if (!pending) return;
+  _nativeOAuthPending = null;
+  clearTimeout(pending.timer);
+  pending.reject(error);
+}
+
 function nativeOAuthMessage(result) {
   return ({
     cancelled: 'Penyambungan Google dibatalkan.',
@@ -175,7 +201,7 @@ async function handleNativeOAuthUrl(url) {
     const response = await fetch(`${GOOGLE_BACKEND_ORIGIN}/api/google?action=native-exchange`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ handoff }),
+      body: new URLSearchParams({ handoff, verifier: pending.verifier }),
       cache: 'no-store',
     });
     if (!response.ok) throw new Error('Hasil login Google tidak dapat diteruskan ke APK. Silakan coba lagi.');
@@ -209,27 +235,46 @@ async function ensureNativeAppListener() {
   return _nativeAppListenerPromise;
 }
 
+async function ensureNativeBrowserListener() {
+  if (_nativeBrowserListenerPromise) return _nativeBrowserListenerPromise;
+  _nativeBrowserListenerPromise = (async () => {
+    const browser = nativePlugin('Browser');
+    if (!browser?.addListener) throw new Error('Komponen browser APK belum tersedia. Instal APK versi terbaru.');
+    await browser.addListener('browserFinished', () => {
+      clearNativeLogin();
+    });
+  })().catch((error) => {
+    _nativeBrowserListenerPromise = null;
+    throw error;
+  });
+  return _nativeBrowserListenerPromise;
+}
+
 async function connectNativeAccount({ renew = false } = {}) {
   const browser = nativePlugin('Browser');
   if (!browser?.open) throw new Error('Browser APK belum tersedia. Instal APK versi terbaru.');
   await ensureNativeAppListener();
+  await ensureNativeBrowserListener();
   if (_nativeOAuthPending) throw new Error('Jendela login Google sedang terbuka.');
   const previous = (await getSettings()).autoBackup;
   const expectedEmail = renew ? previous.driveAccountEmail : '';
+  const verifier = createNativeVerifier();
+  const challenge = await createNativeChallenge(verifier);
   const target = new URL(`${GOOGLE_BACKEND_ORIGIN}/api/google`);
   target.searchParams.set('action', 'start');
   target.searchParams.set('native', '1');
+  target.searchParams.set('native_challenge', challenge);
   if (expectedEmail) target.searchParams.set('email', expectedEmail);
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      if (_nativeOAuthPending?.reject === reject) _nativeOAuthPending = null;
-      reject(new Error('Login Google terlalu lama. Kembali ke APK lalu coba lagi.'));
+      if (_nativeOAuthPending?.reject === reject) {
+        clearNativeLogin(new Error('Login Google terlalu lama. Kembali ke APK lalu coba lagi.'));
+        void browser.close().catch(() => {});
+      }
     }, NATIVE_OAUTH_TIMEOUT_MS);
-    _nativeOAuthPending = { resolve, reject, timer };
+    _nativeOAuthPending = { resolve, reject, timer, verifier };
     browser.open({ url: target.href }).catch((error) => {
-      clearTimeout(timer);
-      if (_nativeOAuthPending?.reject === reject) _nativeOAuthPending = null;
-      reject(error);
+      if (_nativeOAuthPending?.reject === reject) clearNativeLogin(error);
     });
   });
 }
