@@ -1,0 +1,37 @@
+name: NotaKu Native Android
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: android-native } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.11.1' }
+      - name: Build debug APK
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: gradle assembleDebug
+      - name: Build release APK
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: gradle assembleRelease
+      - name: Collect APK
+        working-directory: .
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then cp android-native/app/build/outputs/apk/release/app-release.apk NotaKu-${GITHUB_REF_NAME}.apk; else cp android-native/app/build/outputs/apk/debug/app-debug.apk NotaKu-debug.apk; fi
+      - uses: actions/upload-artifact@v4
+        with: { name: NotaKu-Android, path: NotaKu-*.apk }
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: gh release create "$GITHUB_REF_NAME" "NotaKu-${GITHUB_REF_NAME}.apk" --title "NotaKu $GITHUB_REF_NAME" --generate-notes
