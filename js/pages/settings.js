@@ -10,7 +10,6 @@ import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, checkForUpdate } from '../app.js';
 import { APP_VERSION } from '../version.js';
 import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
-import { decodeQrPayload, isValidQrisPayload, dynamicQrisImage } from '../services/qrisService.js';
 import * as db from '../db.js';
 import { formatAuditDetails, getAuditLogs, recordAudit } from '../services/auditLogService.js';
 import { registerBiometric, biometricAvailable } from '../services/appLockService.js';
@@ -542,28 +541,26 @@ async function renderQris(root) {
         <input class="settings-checkbox" type="checkbox" id="qrisToggle" ${s.qrisEnabled ? 'checked' : ''}>
       </label>
       <div class="settings-qris-placements">
-        <div class="settings-image-label">Tampilkan QR di</div>
-        <label class="settings-toggle-row settings-toggle-row--sub"><span>Detail nota &amp; gambar/PDF yang dibagikan</span><input class="settings-checkbox" type="checkbox" id="qrisReceiptToggle" ${s.qrisShowOnReceipt !== false ? 'checked' : ''}></label>
-        <label class="settings-toggle-row settings-toggle-row--sub"><span>Printer Bluetooth</span><input class="settings-checkbox" type="checkbox" id="qrisBluetoothToggle" ${s.qrisShowOnBluetooth !== false ? 'checked' : ''}></label>
-        <div class="row-meta">Bagikan sebagai teks/WhatsApp tidak dapat menyertakan gambar QR; gunakan opsi gambar atau PDF.</div>
+        <div class="settings-image-label">Lokasi tampilan QRIS</div>
+        <label class="settings-toggle-row settings-toggle-row--sub"><span>Detail nota + gambar/PDF nota</span><input class="settings-checkbox" type="checkbox" id="qrisReceiptToggle" ${s.qrisShowOnReceipt !== false ? 'checked' : ''}></label>
+        <label class="settings-toggle-row settings-toggle-row--sub"><span>Bagikan QRIS sebagai gambar</span><input class="settings-checkbox" type="checkbox" id="qrisShareToggle" ${s.qrisShowOnShare !== false ? 'checked' : ''}></label>
+        <label class="settings-toggle-row settings-toggle-row--sub"><span>Preview &amp; printer Bluetooth</span><input class="settings-checkbox" type="checkbox" id="qrisBluetoothToggle" ${s.qrisShowOnBluetooth !== false ? 'checked' : ''}></label>
+        <div class="row-meta">QRIS hanya muncul pada nota yang masih memiliki sisa tagihan. Bagikan sebagai teks tidak dapat membawa gambar QR.</div>
       </div>
     </div>
     <div class="settings-content">
-      <div class="settings-image-label">Gambar QRIS</div>
+      <div class="settings-image-label">Gambar QRIS statis toko</div>
       ${s.qrisImageData ? `<img class="settings-qris-image" src="${escapeHtml(s.qrisImageData)}" alt="QRIS toko">` : `<div class="settings-qris-empty info-card"><div class="info-text">Belum ada gambar QRIS. Upload dari galeri HP kamu (foto/screenshot kode QRIS statis milik tokomu, bisa didapat dari aplikasi bank/e-wallet).</div></div>`}
       <input class="settings-file-input" type="file" id="qrisFile" accept="image/*">
       <button class="btn secondary small" id="btnUploadQris">${s.qrisImageData ? 'Ganti Gambar' : 'Upload Gambar QRIS'}</button>
       ${s.qrisImageData ? `<button class="settings-remove-image btn danger small" id="btnRemoveQris">Hapus</button>` : ''}
-      <div class="settings-qris-experimental">
-        <div class="settings-image-label">Nominal otomatis (eksperimental)</div>
-        <p class="settings-description">NotaKu akan membuat QR baru dari payload QRIS ini memakai sisa tagihan. Fitur ini bukan API QRIS Dinamis resmi dan tidak dijamin diterima semua aplikasi pembayaran.</p>
-        <label class="settings-qris-field"><span>Payload QRIS</span><textarea id="qrisPayload" rows="4" spellcheck="false" placeholder="Tempel payload teks QRIS di sini jika payload tidak terbaca otomatis">${escapeHtml(s.qrisPayload || '')}</textarea></label>
-        <div class="settings-qris-actions"><button class="btn secondary small" id="btnSaveQrisPayload" type="button">Simpan Payload</button><span class="settings-qris-status">${s.qrisPayload ? 'Payload tersimpan — nominal otomatis aktif.' : 'Payload belum tersedia — QR tetap statis.'}</span></div>
-        <div class="settings-qris-preview-controls">
-          <label><span>Uji nominal</span><input id="qrisPreviewAmount" type="number" min="1" inputmode="numeric" placeholder="25500"></label>
-          <button class="btn secondary small" id="btnPreviewQris" type="button" ${s.qrisPayload ? '' : 'disabled'}>Tampilkan QR</button>
-        </div>
-        <img id="qrisDynamicPreview" class="settings-qris-image settings-qris-image--preview" alt="Pratinjau QRIS nominal" hidden>
+      <div class="settings-qris-guide">
+        <strong>QRIS akan tampil di banyak titik</strong>
+        <span>• Detail nota yang belum lunas</span>
+        <span>• Gambar nota dan PDF nota</span>
+        <span>• Bagikan QRIS sebagai gambar tersendiri</span>
+        <span>• Preview dan cetak printer Bluetooth</span>
+        <small>QRIS yang digunakan adalah gambar statis toko. Pelanggan tetap memasukkan nominal di aplikasi pembayaran.</small>
       </div>
     </div>
   `;
@@ -574,6 +571,10 @@ async function renderQris(root) {
   root.querySelector('#qrisReceiptToggle').onchange = async (e) => {
     await saveSettings({ qrisShowOnReceipt: e.target.checked });
     toast(e.target.checked ? 'QRIS ditampilkan di detail dan gambar/PDF' : 'QRIS disembunyikan dari detail dan gambar/PDF');
+  };
+  root.querySelector('#qrisShareToggle').onchange = async (e) => {
+    await saveSettings({ qrisShowOnShare: e.target.checked });
+    toast(e.target.checked ? 'Opsi Bagikan QRIS diaktifkan' : 'Opsi Bagikan QRIS dimatikan');
   };
   root.querySelector('#qrisBluetoothToggle').onchange = async (e) => {
     await saveSettings({ qrisShowOnBluetooth: e.target.checked });
@@ -586,36 +587,16 @@ async function renderQris(root) {
     if (file.size > 2 * 1024 * 1024) { toast('Ukuran gambar maksimal 2MB'); return; }
     const reader = new FileReader();
     reader.onload = async () => {
-      const detected = await decodeQrPayload(file);
-      const payload = isValidQrisPayload(detected) ? detected : '';
-      await saveSettings({ qrisImageData: reader.result, qrisPayload: payload });
-      toast(payload ? 'Gambar dan payload QRIS disimpan' : 'Gambar QRIS disimpan. Payload belum terbaca; kamu bisa menempelkannya manual.');
+      await saveSettings({ qrisImageData: reader.result });
+      toast('Gambar QRIS disimpan');
       await renderQris(root);
     };
     reader.readAsDataURL(file);
   };
-  root.querySelector('#btnSaveQrisPayload').onclick = async () => {
-    const payload = root.querySelector('#qrisPayload').value.trim();
-    if (payload && !isValidQrisPayload(payload)) {
-      toast('Payload QRIS tidak valid. Tempel teks QRIS lengkap dari kode merchant kamu.');
-      return;
-    }
-    await saveSettings({ qrisPayload: payload });
-    toast(payload ? 'Payload QRIS disimpan. Nominal otomatis aktif.' : 'Payload dihapus. QR kembali statis.');
-    await renderQris(root);
-  };
-  root.querySelector('#btnPreviewQris').onclick = () => {
-    const amount = Number(root.querySelector('#qrisPreviewAmount').value) || 0;
-    if (amount <= 0) { toast('Isi nominal uji terlebih dahulu.'); return; }
-    const image = dynamicQrisImage({ qrisImageData: s.qrisImageData, qrisPayload: root.querySelector('#qrisPayload').value }, amount);
-    const preview = root.querySelector('#qrisDynamicPreview');
-    preview.src = image;
-    preview.hidden = !image;
-  };
   const removeBtn = root.querySelector('#btnRemoveQris');
   if (removeBtn) {
     removeBtn.onclick = async () => {
-      await saveSettings({ qrisImageData: '', qrisPayload: '' });
+      await saveSettings({ qrisImageData: '' });
       toast('Gambar QRIS dihapus');
       await renderQris(root);
     };

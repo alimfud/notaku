@@ -1,4 +1,4 @@
 {
-  "version": "1.35.5",
-  "notes": "QRIS nominal eksperimental tampil di detail nota, gambar/PDF, dan printer Bluetooth."
+  "version": "1.35.6",
+  "notes": "QRIS statis kini dapat ditampilkan dan dibagikan di lebih banyak lokasi."
 }

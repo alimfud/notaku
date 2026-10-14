@@ -190,6 +190,14 @@ export async function createReceiptImage(element, invoiceNumber) {
   return new File([blob], filename(invoiceNumber, 'png'), { type: 'image/png' });
 }
 
+export async function createImageFileFromDataUrl(dataUrl, baseName = 'gambar') {
+  if (!/^data:image\//i.test(String(dataUrl || ''))) throw new Error('Gambar QRIS belum tersedia.');
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  const extension = blob.type === 'image/jpeg' ? 'jpg' : blob.type === 'image/webp' ? 'webp' : 'png';
+  return new File([blob], `${baseName.replace(/[^A-Za-z0-9_-]/g, '_')}.${extension}`, { type: blob.type || 'image/png' });
+}
+
 export async function createReceiptPdf(element, invoiceNumber, paperSize) {
   const canvas = await captureReceipt(element);
   await loadScript('../vendor/jspdf.umd.min.js', () => !!window.jspdf);

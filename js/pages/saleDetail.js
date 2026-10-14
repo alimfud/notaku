@@ -7,9 +7,8 @@ import { rupiah, dateShort, escapeHtml, qtyLabel, resolveFooterNote, maskPhone, 
 import { openSheet, confirmDialog } from '../ui/dialog.js';
 import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, navigateBack } from '../app.js';
-import { shareAsText, buildShareText, createReceiptImage, createReceiptPdf, downloadReceiptFile, shareReceiptFile } from '../services/printerService.js';
+import { shareAsText, buildShareText, createReceiptImage, createReceiptPdf, createImageFileFromDataUrl, downloadReceiptFile, shareReceiptFile } from '../services/printerService.js';
 import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
-import { dynamicQrisImage } from '../services/qrisService.js';
 
 /**
  * PERFORMANCE FIX #4: Timeout & Loading UI
@@ -65,7 +64,7 @@ async function draw(root, saleId) {
   const { sale, paidAmount, remaining, payments, displayStatus } = summary;
   const processStatus = getProcessStatus(sale);
   const showQris = settings.qrisEnabled && settings.qrisImageData && displayStatus !== 'PAID' && displayStatus !== 'OVERPAID';
-  const qrisImageData = showQris ? dynamicQrisImage(settings, remaining) : '';
+  const qrisImageData = showQris ? settings.qrisImageData : '';
   const receiptQrisImageData = settings.qrisShowOnReceipt !== false ? qrisImageData : '';
   const bluetoothQrisImageData = settings.qrisShowOnBluetooth !== false ? qrisImageData : '';
   const phoneDisplay = displayPhone(sale.customerPhone, settings);
@@ -316,6 +315,7 @@ function receiptLogoMarkup(settings) {
 
 async function showShareSheet(root, saleId, sale, items, settings, paidAmount, remaining) {
   const hasPhone = !!sale.customerPhone;
+  const canShareQris = settings.qrisEnabled && settings.qrisImageData && remaining > 0 && settings.qrisShowOnShare !== false;
 
   const result = await openSheet((body, close) => {
     body.classList.add('sale-detail-share-sheet');
@@ -326,6 +326,7 @@ async function showShareSheet(root, saleId, sale, items, settings, paidAmount, r
       <button class="settings-tile" id="shareImage"><div class="icon-box">🖼️</div><div class="settings-body"><div class="settings-title">Bagikan sebagai Gambar</div></div></button>
       <button class="settings-tile" id="shareText"><div class="icon-box">💬</div><div class="settings-body"><div class="settings-title">Bagikan sebagai Teks</div></div></button>
       <button class="settings-tile" id="doPrint"><div class="icon-box">🖨️</div><div class="settings-body"><div class="settings-title">Simpan PDF</div></div></button>
+      ${canShareQris ? '<button class="settings-tile" id="shareQris"><div class="icon-box">🔳</div><div class="settings-body"><div class="settings-title">Bagikan QRIS</div><div class="settings-sub">Kirim gambar QRIS langsung ke pelanggan</div></div></button>' : ''}
       <button class="settings-tile" id="duplicateSale"><div class="icon-box">⧉</div><div class="settings-body"><div class="settings-title">Salin sebagai Nota Baru</div><div class="settings-sub">Buat nota baru dari data nota ini</div></div></button>
       </div>
     `;
@@ -335,6 +336,7 @@ async function showShareSheet(root, saleId, sale, items, settings, paidAmount, r
     body.querySelector('#shareText').onclick = () => close('text');
     body.querySelector('#shareImage').onclick = () => close('image');
     body.querySelector('#doPrint').onclick = () => close('print');
+    body.querySelector('#shareQris')?.addEventListener('click', () => close('qris'));
     body.querySelector('#duplicateSale').onclick = () => close('duplicate');
   });
 
@@ -363,6 +365,16 @@ async function showShareSheet(root, saleId, sale, items, settings, paidAmount, r
     } catch (e) { toast('Gagal membagikan nota.'); }
     return;
   }
+  if (result === 'qris') {
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+    try {
+      const file = await createImageFileFromDataUrl(settings.qrisImageData, `QRIS-${sale.invoiceNumber}`);
+      document.getElementById('loadingOverlay').classList.add('hidden');
+      await showFileShare(file, toWhatsAppNumber(sale.customerPhone), false, 'QRIS');
+    } catch (e) { toast(e.message || 'Gagal menyiapkan gambar QRIS.'); }
+    finally { document.getElementById('loadingOverlay').classList.add('hidden'); }
+    return;
+  }
   if (result === 'image' || result === 'print') {
     document.getElementById('loadingOverlay').classList.remove('hidden');
     try {
@@ -371,20 +383,20 @@ async function showShareSheet(root, saleId, sale, items, settings, paidAmount, r
         ? await createReceiptImage(el, sale.invoiceNumber)
         : await createReceiptPdf(el, sale.invoiceNumber, settings.paperSize);
       document.getElementById('loadingOverlay').classList.add('hidden');
-      await showFileShare(file, toWhatsAppNumber(sale.customerPhone), result === 'print');
+      await showFileShare(file, toWhatsAppNumber(sale.customerPhone), result === 'print', 'Nota');
     } catch (e) { toast(e.message || 'Gagal membuat file nota.'); }
     finally { document.getElementById('loadingOverlay').classList.add('hidden'); }
   }
 }
 
 // A fresh tap after file generation preserves Web Share / popup user activation.
-async function showFileShare(file, waNumber, isPdf) {
+async function showFileShare(file, waNumber, isPdf, label = 'Nota') {
   await openSheet((body, close) => {
-    body.innerHTML = `<div class="sheet-title">${isPdf ? 'PDF' : 'Gambar'} Nota Siap</div>
+    body.innerHTML = `<div class="sheet-title">${isPdf ? 'PDF' : 'Gambar'} ${label} Siap</div>
       ${waNumber ? '<p class="receipt-share-help">Unduh file dan buka chat pelanggan, lalu lampirkan file tersebut di WhatsApp. Menu berbagi perangkat juga tersedia.</p>' : ''}
       ${waNumber ? '<button class="btn" id="fileWa">Unduh &amp; Buka WA Pelanggan</button>' : ''}
-      <button class="btn secondary" id="fileShare">Bagikan ${isPdf ? 'PDF' : 'Gambar'}</button>
-      <button class="btn secondary" id="fileSave">Simpan ${isPdf ? 'PDF' : 'Gambar'}</button>`;
+      <button class="btn secondary" id="fileShare">Bagikan ${isPdf ? 'PDF' : 'Gambar'} ${label}</button>
+      <button class="btn secondary" id="fileSave">Simpan ${isPdf ? 'PDF' : 'Gambar'} ${label}</button>`;
     const wa = body.querySelector('#fileWa');
     if (wa) wa.onclick = async () => {
       await downloadReceiptFile(file);

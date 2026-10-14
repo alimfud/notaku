@@ -47,8 +47,8 @@ const DEFAULTS = {
   // QRIS
   qrisEnabled: false,
   qrisImageData: '',        // base64 data URL gambar QRIS
-  qrisPayload: '',           // payload TLV QRIS; dipakai untuk nominal eksperimental
   qrisShowOnReceipt: true,   // detail nota dan gambar/PDF yang dibagikan
+  qrisShowOnShare: true,     // bagikan QRIS sebagai gambar tersendiri
   qrisShowOnBluetooth: true,
 
   // Privasi data pelanggan di struk
@@ -103,15 +103,21 @@ export async function getSettings() {
   if (_cache) return _cache;
   const existing = await db.get('settings', 1);
   if (existing) {
-    const savedShareTemplate = existing.whatsappTextTemplate?.trim();
-    const savedSimpleShareTemplate = existing.whatsappShareTemplate?.trim();
-    const savedReminderTemplate = existing.whatsappReminderTemplate?.trim();
+    const cleanedExisting = { ...existing };
+    // Hapus data payload dari versi QRIS nominal eksperimental yang sudah dihentikan.
+    if (Object.hasOwn(cleanedExisting, 'qrisPayload')) {
+      delete cleanedExisting.qrisPayload;
+      await db.put('settings', cleanedExisting);
+    }
+    const savedShareTemplate = cleanedExisting.whatsappTextTemplate?.trim();
+    const savedSimpleShareTemplate = cleanedExisting.whatsappShareTemplate?.trim();
+    const savedReminderTemplate = cleanedExisting.whatsappReminderTemplate?.trim();
     const oldReminderIsDefault = !savedReminderTemplate
       || savedReminderTemplate === LEGACY_DEFAULT_WHATSAPP_REMINDER_TEMPLATE
       || savedReminderTemplate === LEGACY_DETAILED_WHATSAPP_REMINDER_TEMPLATE;
     _cache = {
       ...DEFAULTS,
-      ...existing,
+      ...cleanedExisting,
       whatsappShareTemplate: savedSimpleShareTemplate || (
         !savedShareTemplate
         || savedShareTemplate === LEGACY_DEFAULT_WHATSAPP_SHARE_TEMPLATE
@@ -119,15 +125,15 @@ export async function getSettings() {
           ? DEFAULT_WHATSAPP_SHARE_MAIN_TEMPLATE
           : simplifyWhatsAppShareTemplate(savedShareTemplate)
       ),
-      whatsappShareProductTemplate: existing.whatsappShareProductTemplate?.trim() || DEFAULT_WHATSAPP_SHARE_PRODUCT_TEMPLATE,
-      whatsappReminderBothTemplate: existing.whatsappReminderBothTemplate?.trim()
+      whatsappShareProductTemplate: cleanedExisting.whatsappShareProductTemplate?.trim() || DEFAULT_WHATSAPP_SHARE_PRODUCT_TEMPLATE,
+      whatsappReminderBothTemplate: cleanedExisting.whatsappReminderBothTemplate?.trim()
         || (oldReminderIsDefault ? DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE : reminderTemplateForScenario(savedReminderTemplate, 'both')),
-      whatsappReminderPickupTemplate: existing.whatsappReminderPickupTemplate?.trim()
+      whatsappReminderPickupTemplate: cleanedExisting.whatsappReminderPickupTemplate?.trim()
         || (oldReminderIsDefault ? DEFAULT_WHATSAPP_REMINDER_PICKUP_TEMPLATE : reminderTemplateForScenario(savedReminderTemplate, 'pickup')),
-      whatsappReminderPaymentTemplate: existing.whatsappReminderPaymentTemplate?.trim()
+      whatsappReminderPaymentTemplate: cleanedExisting.whatsappReminderPaymentTemplate?.trim()
         || (oldReminderIsDefault ? DEFAULT_WHATSAPP_REMINDER_PAYMENT_TEMPLATE : reminderTemplateForScenario(savedReminderTemplate, 'payment')),
-      autoBackup: { ...DEFAULTS.autoBackup, ...existing.autoBackup },
-      security: { ...DEFAULTS.security, ...existing.security },
+      autoBackup: { ...DEFAULTS.autoBackup, ...cleanedExisting.autoBackup },
+      security: { ...DEFAULTS.security, ...cleanedExisting.security },
     };
     return _cache;
   }
@@ -139,6 +145,7 @@ export async function getSettings() {
 export async function saveSettings(partial) {
   const current = await getSettings();
   const normalized = { ...partial };
+  delete normalized.qrisPayload;
   if (Object.hasOwn(normalized, 'whatsappShareTemplate')) normalized.whatsappShareTemplate = normalized.whatsappShareTemplate?.trim() || DEFAULT_WHATSAPP_SHARE_MAIN_TEMPLATE;
   if (Object.hasOwn(normalized, 'whatsappShareProductTemplate')) normalized.whatsappShareProductTemplate = normalized.whatsappShareProductTemplate?.trim() || DEFAULT_WHATSAPP_SHARE_PRODUCT_TEMPLATE;
   if (Object.hasOwn(normalized, 'whatsappReminderBothTemplate')) normalized.whatsappReminderBothTemplate = normalized.whatsappReminderBothTemplate?.trim() || DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE;
