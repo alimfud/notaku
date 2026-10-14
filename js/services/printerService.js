@@ -242,6 +242,5 @@ export async function shareReceiptFile(file) {
       if (e.name === 'AbortError') return 'cancelled';
     }
   }
-  await downloadReceiptFile(file);
-  return 'downloaded';
+  return 'unsupported';
 }

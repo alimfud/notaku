@@ -398,29 +398,37 @@ async function showShareSheet(root, saleId, sale, items, settings, paidAmount, r
 // A fresh tap after file generation preserves Web Share / popup user activation.
 async function showFileShare(file, waNumber, isPdf, label = 'Nota') {
   await openSheet((body, close) => {
-    body.innerHTML = `<div class="sheet-title">${isPdf ? 'PDF' : 'Gambar'} ${label} Siap</div>
-      ${waNumber ? '<p class="receipt-share-help">Unduh file dan buka chat pelanggan, lalu lampirkan file tersebut di WhatsApp. Menu berbagi perangkat juga tersedia.</p>' : ''}
-      ${waNumber ? '<button class="btn" id="fileWa">Unduh &amp; Buka WA Pelanggan</button>' : ''}
+    const fileKind = isPdf ? `PDF ${label}` : `Gambar ${label}`;
+    const whatsappLabel = isPdf ? `Kirim PDF ${label} ke WhatsApp` : `Kirim Gambar ${label} ke WhatsApp`;
+    body.innerHTML = `<div class="sheet-title">${fileKind} Siap</div>
+      ${waNumber ? '<p class="receipt-share-help">Kirim langsung lewat menu berbagi perangkat. Pilih WhatsApp, pilih pelanggan, lalu tekan Kirim. File tidak disimpan otomatis.</p>' : ''}
+      ${waNumber ? `<button class="btn" id="fileWa">${whatsappLabel}</button>` : ''}
       <button class="btn secondary" id="fileShare">Bagikan ${isPdf ? 'PDF' : 'Gambar'} ${label}</button>
       <button class="btn secondary" id="fileSave">Simpan ${isPdf ? 'PDF' : 'Gambar'} ${label}</button>`;
     const wa = body.querySelector('#fileWa');
     if (wa) wa.onclick = async () => {
-      await downloadReceiptFile(file);
-      window.open(`https://wa.me/${waNumber}`, '_blank', 'noopener');
-      close();
+      try {
+        const status = await shareReceiptFile(file);
+        if (status === 'shared') {
+          toast(`${fileKind} dibagikan`);
+          close();
+        } else if (status === 'unsupported') {
+          toast('Perangkat ini belum mendukung kirim file langsung. Gunakan tombol Bagikan atau Simpan.');
+        }
+      } catch (e) { toast(e.message || `Gagal mengirim ${fileKind.toLowerCase()}.`); }
     };
     body.querySelector('#fileSave').onclick = async () => {
       try {
         await downloadReceiptFile(file);
-        toast('File nota diunduh');
+        toast(`${fileKind} disimpan`);
         close();
       } catch (e) { toast(e.message || 'Gagal menyimpan file nota.'); }
     };
     body.querySelector('#fileShare').onclick = async () => {
       try {
         const status = await shareReceiptFile(file);
-        if (status === 'downloaded') toast('File nota diunduh');
-        if (status !== 'cancelled') close();
+        if (status === 'shared') close();
+        if (status === 'unsupported') toast('Perangkat ini belum mendukung berbagi file langsung. Gunakan tombol Simpan.');
       } catch (e) { toast(e.message || 'Gagal membagikan file nota.'); }
     };
   });
