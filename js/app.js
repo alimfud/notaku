@@ -1,5 +1,6 @@
 // app.js — bootstrap aplikasi & router SPA.
 import { APP_VERSION } from './version.js';
+import { isNativeApp, getNativeUpdateInfo, downloadAndInstallNativeUpdate } from './native.js';
 import { initTheme } from './theme.js';
 import { initBottomNavIndicator } from './navIndicator.js';
 import { initMotion } from './motion.js';
@@ -27,6 +28,11 @@ const btnMenu = document.getElementById('btnMenu');
 const bottomnav = document.getElementById('bottomnav');
 const drawer = document.getElementById('drawer');
 const drawerOverlay = document.getElementById('drawerOverlay');
+const nativeUpdateBanner = document.getElementById('nativeUpdateBanner');
+const nativeUpdateMessage = document.getElementById('nativeUpdateMessage');
+const nativeUpdateNotes = document.getElementById('nativeUpdateNotes');
+const nativeUpdateButton = document.getElementById('nativeUpdateButton');
+const nativeUpdateDismiss = document.getElementById('nativeUpdateDismiss');
 initTheme();
 initBottomNavIndicator(bottomnav); // lekukan + bubble menu bawah (mobile)
 initMotion(); // animasi angka: ringkasan menghitung naik
@@ -73,6 +79,55 @@ const PAGE_LOADERS = {
 
 let currentToken = 0;
 let syncPromptOpen = false;
+let nativeUpdateInfo = null;
+let nativeUpdateBusy = false;
+
+function showNativeUpdate(info) {
+  nativeUpdateInfo = info?.available ? info : null;
+  if (!nativeUpdateBanner) return;
+  if (!nativeUpdateInfo) {
+    nativeUpdateBanner.classList.add('hidden');
+    return;
+  }
+  if (nativeUpdateMessage) nativeUpdateMessage.textContent = `Versi ${nativeUpdateInfo.version} sudah tersedia.`;
+  if (nativeUpdateNotes) {
+    const notes = nativeUpdateInfo.notes.replace(/[#*_`]/g, '').replace(/\s+/g, ' ').trim();
+    nativeUpdateNotes.textContent = notes ? notes.slice(0, 180) : 'Pembaruan berisi perbaikan dan peningkatan terbaru.';
+  }
+  if (nativeUpdateButton) {
+    nativeUpdateButton.disabled = false;
+    nativeUpdateButton.textContent = 'Perbarui sekarang';
+  }
+  nativeUpdateBanner.classList.remove('hidden');
+}
+
+async function installNativeUpdate() {
+  if (!nativeUpdateInfo || nativeUpdateBusy) return;
+  nativeUpdateBusy = true;
+  if (nativeUpdateButton) {
+    nativeUpdateButton.disabled = true;
+    nativeUpdateButton.textContent = 'Menyiapkan…';
+  }
+  const { toast } = await import('./ui/toast.js');
+  try {
+    const result = await downloadAndInstallNativeUpdate(nativeUpdateInfo.version);
+    if (result?.requiresPermission) {
+      toast('Izinkan pemasangan dari sumber ini, lalu tekan Perbarui lagi.');
+      if (nativeUpdateButton) nativeUpdateButton.textContent = 'Pasang setelah izin';
+    } else {
+      toast('APK siap dipasang. Konfirmasi pemasangan pada layar Android.');
+    }
+  } catch (error) {
+    toast(error.message || 'Gagal mengunduh pembaruan APK.');
+    if (nativeUpdateButton) nativeUpdateButton.textContent = 'Coba lagi';
+  } finally {
+    nativeUpdateBusy = false;
+    if (nativeUpdateButton) nativeUpdateButton.disabled = false;
+  }
+}
+
+nativeUpdateButton?.addEventListener('click', installNativeUpdate);
+nativeUpdateDismiss?.addEventListener('click', () => nativeUpdateBanner?.classList.add('hidden'));
 
 // Keep the old page's styles while a destination waits for data. Once its
 // first markup is inserted, switch page-scoped CSS in the same DOM checkpoint
@@ -207,6 +262,22 @@ export function navigateBack() {
 
 export async function checkForUpdate(silent = true) {
   const { toast } = await import('./ui/toast.js');
+  if (isNativeApp()) {
+    try {
+      const info = await getNativeUpdateInfo();
+      showNativeUpdate(info);
+      if (info?.available) {
+        if (!silent) toast(`Versi Android ${info.version} tersedia.`);
+      } else if (!silent) {
+        toast('Aplikasi sudah versi terbaru (' + APP_VERSION + ')');
+      }
+      return info;
+    } catch (e) {
+      console.error('[checkForNativeUpdate]', e);
+      if (!silent) toast('Gagal memeriksa pembaruan APK. Periksa koneksi internet.');
+      return null;
+    }
+  }
   try {
     // cache: 'no-store' memaksa browser mengambil langsung dari jaringan
     // tanpa lewat HTTP cache — tidak perlu trik query-string "?t=..." lagi
@@ -382,6 +453,7 @@ import('./installPrompt.js').then(({ initInstallPrompt }) => initInstallPrompt()
   // navigasi tambahan atau menjalankan aktivitas latar belakang lain.
   await checkAutomaticSync({ promptIfNeeded: true });
   runBackgroundChecks();
+  if (isNativeApp()) setTimeout(() => checkForUpdate(true), 2200);
   warmNavigation();
   scheduleAutomaticStatusRollover();
   setInterval(() => checkAutomaticBackup(), 60000);
@@ -404,6 +476,7 @@ import('./installPrompt.js').then(({ initInstallPrompt }) => initInstallPrompt()
       appWasHidden = false;
       runBackgroundChecks();
       checkAutomaticSync({ promptIfNeeded: true });
+      if (isNativeApp()) checkForUpdate(true);
     }
   });
 })();
