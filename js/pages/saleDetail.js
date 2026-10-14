@@ -9,6 +9,7 @@ import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, navigateBack } from '../app.js';
 import { shareAsText, buildShareText, createReceiptImage, createReceiptPdf, createImageFileFromDataUrl, downloadReceiptFile, shareReceiptFile } from '../services/printerService.js';
 import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
+import { dynamicQrisImage } from '../services/qrisService.js';
 
 /**
  * PERFORMANCE FIX #4: Timeout & Loading UI
@@ -64,7 +65,9 @@ async function draw(root, saleId) {
   const { sale, paidAmount, remaining, payments, displayStatus } = summary;
   const processStatus = getProcessStatus(sale);
   const showQris = settings.qrisEnabled && settings.qrisImageData && displayStatus !== 'PAID' && displayStatus !== 'OVERPAID';
-  const qrisImageData = showQris ? settings.qrisImageData : '';
+  const qrisImageData = showQris
+    ? dynamicQrisImage(settings, remaining, sale.invoiceNumber)
+    : '';
   const receiptQrisImageData = settings.qrisShowOnReceipt !== false ? qrisImageData : '';
   const bluetoothQrisImageData = settings.qrisShowOnBluetooth !== false ? qrisImageData : '';
   const phoneDisplay = displayPhone(sale.customerPhone, settings);
@@ -315,7 +318,10 @@ function receiptLogoMarkup(settings) {
 
 async function showShareSheet(root, saleId, sale, items, settings, paidAmount, remaining) {
   const hasPhone = !!sale.customerPhone;
-  const canShareQris = settings.qrisEnabled && settings.qrisImageData && remaining > 0 && settings.qrisShowOnShare !== false;
+  const qrisImageData = settings.qrisEnabled && settings.qrisImageData && remaining > 0
+    ? dynamicQrisImage(settings, remaining, sale.invoiceNumber)
+    : '';
+  const canShareQris = !!qrisImageData && settings.qrisShowOnShare !== false;
 
   const result = await openSheet((body, close) => {
     body.classList.add('sale-detail-share-sheet');
@@ -368,7 +374,7 @@ async function showShareSheet(root, saleId, sale, items, settings, paidAmount, r
   if (result === 'qris') {
     document.getElementById('loadingOverlay').classList.remove('hidden');
     try {
-      const file = await createImageFileFromDataUrl(settings.qrisImageData, `QRIS-${sale.invoiceNumber}`);
+      const file = await createImageFileFromDataUrl(qrisImageData, `QRIS-${sale.invoiceNumber}`);
       document.getElementById('loadingOverlay').classList.add('hidden');
       await showFileShare(file, toWhatsAppNumber(sale.customerPhone), false, 'QRIS');
     } catch (e) { toast(e.message || 'Gagal menyiapkan gambar QRIS.'); }

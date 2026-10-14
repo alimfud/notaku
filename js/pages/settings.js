@@ -13,6 +13,7 @@ import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
 import * as db from '../db.js';
 import { formatAuditDetails, getAuditLogs, recordAudit } from '../services/auditLogService.js';
 import { registerBiometric, biometricAvailable } from '../services/appLockService.js';
+import { decodeQrPayload, isValidQrisPayload } from '../services/qrisService.js';
 import {
   DEFAULT_WHATSAPP_SHARE_MAIN_TEMPLATE,
   DEFAULT_WHATSAPP_SHARE_PRODUCT_TEMPLATE,
@@ -554,13 +555,24 @@ async function renderQris(root) {
       <input class="settings-file-input" type="file" id="qrisFile" accept="image/*">
       <button class="btn secondary small" id="btnUploadQris">${s.qrisImageData ? 'Ganti Gambar' : 'Upload Gambar QRIS'}</button>
       ${s.qrisImageData ? `<button class="settings-remove-image btn danger small" id="btnRemoveQris">Hapus</button>` : ''}
+      <div class="settings-qris-dynamic">
+        <strong>Nominal otomatis (opsional)</strong>
+        <p>Tempel payload teks QRIS satu kali. Setelah tersimpan, NotaKu membuat QR dengan sisa tagihan pada detail nota, gambar/PDF, bagikan QRIS, dan printer Bluetooth. Tidak perlu mengisi nominal manual lagi.</p>
+        <textarea id="qrisPayloadInput" class="settings-qris-payload" rows="4" spellcheck="false" placeholder="Tempel teks QRIS di sini (diawali 0002...).">${escapeHtml(s.qrisPayload || '')}</textarea>
+        <div class="settings-qris-payload-actions">
+          <button class="btn secondary small" id="btnSaveQrisPayload">${s.qrisPayload ? 'Perbarui Payload' : 'Simpan Payload'}</button>
+          <button class="btn secondary small" id="btnDecodeQrisPayload" type="button">Baca dari Gambar</button>
+          <input class="settings-file-input" type="file" id="qrisDecodeFile" accept="image/*">
+        </div>
+        <div class="row-meta">${s.qrisPayload ? 'Payload tersimpan. Nominal akan mengikuti sisa tagihan.' : 'Payload belum tersimpan — QR tetap statis sampai teks QRIS berhasil dibaca.'}</div>
+      </div>
       <div class="settings-qris-guide">
         <strong>QRIS akan tampil di banyak titik</strong>
         <span>• Detail nota yang belum lunas</span>
         <span>• Gambar nota dan PDF nota</span>
         <span>• Bagikan QRIS sebagai gambar tersendiri</span>
         <span>• Preview dan cetak printer Bluetooth</span>
-        <small>QRIS yang digunakan adalah gambar statis toko. Pelanggan tetap memasukkan nominal di aplikasi pembayaran.</small>
+        <small>Jika payload tersimpan dan aplikasi pembayaran mendukungnya, nominal akan muncul otomatis. Jika belum, gambar statis tetap tersedia sebagai cadangan dan pelanggan mengisi nominal di aplikasi pembayaran.</small>
       </div>
     </div>
   `;
@@ -580,6 +592,36 @@ async function renderQris(root) {
     await saveSettings({ qrisShowOnBluetooth: e.target.checked });
     toast(e.target.checked ? 'QRIS ditampilkan di printer Bluetooth' : 'QRIS disembunyikan dari printer Bluetooth');
   };
+  root.querySelector('#btnSaveQrisPayload').onclick = async () => {
+    const input = root.querySelector('#qrisPayloadInput');
+    const payload = input.value.replace(/[\r\n]+/g, '').trim();
+    if (!payload) {
+      await saveSettings({ qrisPayload: '' });
+      toast('Payload dihapus. QRIS kembali statis.');
+      await renderQris(root);
+      return;
+    }
+    if (!isValidQrisPayload(payload)) {
+      toast('Payload QRIS tidak valid. Tempel teks hasil scan QRIS merchant.');
+      return;
+    }
+    await saveSettings({ qrisPayload: payload });
+    toast('Payload tersimpan. Nominal akan dibuat otomatis dari sisa tagihan.');
+    await renderQris(root);
+  };
+  root.querySelector('#btnDecodeQrisPayload').onclick = () => root.querySelector('#qrisDecodeFile').click();
+  root.querySelector('#qrisDecodeFile').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const payload = await decodeQrPayload(file);
+    if (!payload || !isValidQrisPayload(payload)) {
+      toast('Teks QRIS belum bisa dibaca otomatis dari gambar. Tempel payload teks QRIS satu kali.');
+      return;
+    }
+    await saveSettings({ qrisPayload: payload.trim() });
+    toast('Payload QRIS berhasil dibaca dan disimpan.');
+    await renderQris(root);
+  };
   root.querySelector('#btnUploadQris').onclick = () => root.querySelector('#qrisFile').click();
   root.querySelector('#qrisFile').onchange = async (e) => {
     const file = e.target.files[0];
@@ -587,8 +629,11 @@ async function renderQris(root) {
     if (file.size > 2 * 1024 * 1024) { toast('Ukuran gambar maksimal 2MB'); return; }
     const reader = new FileReader();
     reader.onload = async () => {
-      await saveSettings({ qrisImageData: reader.result });
-      toast('Gambar QRIS disimpan');
+      const decodedPayload = await decodeQrPayload(file);
+      const update = { qrisImageData: reader.result };
+      if (decodedPayload && isValidQrisPayload(decodedPayload)) update.qrisPayload = decodedPayload.trim();
+      await saveSettings(update);
+      toast(update.qrisPayload ? 'Gambar dan payload QRIS disimpan' : 'Gambar QRIS disimpan');
       await renderQris(root);
     };
     reader.readAsDataURL(file);

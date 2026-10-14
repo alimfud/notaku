@@ -47,6 +47,7 @@ const DEFAULTS = {
   // QRIS
   qrisEnabled: false,
   qrisImageData: '',        // base64 data URL gambar QRIS
+  qrisPayload: '',          // teks payload QRIS statis, disimpan sekali untuk nominal otomatis
   qrisShowOnReceipt: true,   // detail nota dan gambar/PDF yang dibagikan
   qrisShowOnShare: true,     // bagikan QRIS sebagai gambar tersendiri
   qrisShowOnBluetooth: true,
@@ -104,11 +105,6 @@ export async function getSettings() {
   const existing = await db.get('settings', 1);
   if (existing) {
     const cleanedExisting = { ...existing };
-    // Hapus data payload dari versi QRIS nominal eksperimental yang sudah dihentikan.
-    if (Object.hasOwn(cleanedExisting, 'qrisPayload')) {
-      delete cleanedExisting.qrisPayload;
-      await db.put('settings', cleanedExisting);
-    }
     const savedShareTemplate = cleanedExisting.whatsappTextTemplate?.trim();
     const savedSimpleShareTemplate = cleanedExisting.whatsappShareTemplate?.trim();
     const savedReminderTemplate = cleanedExisting.whatsappReminderTemplate?.trim();
@@ -145,7 +141,7 @@ export async function getSettings() {
 export async function saveSettings(partial) {
   const current = await getSettings();
   const normalized = { ...partial };
-  delete normalized.qrisPayload;
+  if (Object.hasOwn(normalized, 'qrisPayload')) normalized.qrisPayload = String(normalized.qrisPayload || '').replace(/[\r\n]+/g, '').trim();
   if (Object.hasOwn(normalized, 'whatsappShareTemplate')) normalized.whatsappShareTemplate = normalized.whatsappShareTemplate?.trim() || DEFAULT_WHATSAPP_SHARE_MAIN_TEMPLATE;
   if (Object.hasOwn(normalized, 'whatsappShareProductTemplate')) normalized.whatsappShareProductTemplate = normalized.whatsappShareProductTemplate?.trim() || DEFAULT_WHATSAPP_SHARE_PRODUCT_TEMPLATE;
   if (Object.hasOwn(normalized, 'whatsappReminderBothTemplate')) normalized.whatsappReminderBothTemplate = normalized.whatsappReminderBothTemplate?.trim() || DEFAULT_WHATSAPP_REMINDER_BOTH_TEMPLATE;
