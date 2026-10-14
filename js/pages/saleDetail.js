@@ -9,6 +9,7 @@ import { toast } from '../ui/toast.js';
 import { navigate, setPageTitle, setTopbarActions, navigateBack } from '../app.js';
 import { shareAsText, buildShareText, createReceiptImage, createReceiptPdf, downloadReceiptFile, shareReceiptFile } from '../services/printerService.js';
 import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
+import { dynamicQrisImage } from '../services/qrisService.js';
 
 /**
  * PERFORMANCE FIX #4: Timeout & Loading UI
@@ -64,11 +65,14 @@ async function draw(root, saleId) {
   const { sale, paidAmount, remaining, payments, displayStatus } = summary;
   const processStatus = getProcessStatus(sale);
   const showQris = settings.qrisEnabled && settings.qrisImageData && displayStatus !== 'PAID' && displayStatus !== 'OVERPAID';
+  const qrisImageData = showQris ? dynamicQrisImage(settings, remaining) : '';
+  const receiptQrisImageData = settings.qrisShowOnReceipt !== false ? qrisImageData : '';
+  const bluetoothQrisImageData = settings.qrisShowOnBluetooth !== false ? qrisImageData : '';
   const phoneDisplay = displayPhone(sale.customerPhone, settings);
 
   setTopbarActions([
     { icon: 'edit', label: 'Edit', title: 'Ubah Nota', onClick: () => navigate(`sale/${saleId}/edit`) },
-    { icon: 'bluetoothPrint', label: 'Print', title: 'Cetak Bluetooth', onClick: () => handleBluetoothPrint(sale, items, settings, paidAmount, remaining) },
+    { icon: 'bluetoothPrint', label: 'Print', title: 'Cetak Bluetooth', onClick: () => handleBluetoothPrint(sale, items, settings, paidAmount, remaining, bluetoothQrisImageData) },
     { icon: 'payment', label: 'Bayar', title: 'Tambah Pembayaran', onClick: () => handleAddPayment(root, saleId, remaining) },
     { icon: 'delete', label: 'Hapus', title: 'Hapus', onClick: () => handleDelete(root, saleId) },
   ]);
@@ -116,10 +120,10 @@ async function draw(root, saleId) {
           </div>
         </div>
         ${sale.note ? `<div class="row-meta receipt-note">Catatan: ${escapeHtml(sale.note)}</div>` : ''}
-        ${showQris ? `
+        ${receiptQrisImageData ? `
           <div class="receipt-qris">
             <div class="receipt-qris-label">Scan QRIS untuk bayar</div>
-            <img src="${settings.qrisImageData}" alt="QRIS" class="receipt-qris-image">
+            <img src="${escapeHtml(receiptQrisImageData)}" alt="QRIS" class="receipt-qris-image">
           </div>` : ''}
         ${footerResolved ? `<div class="receipt-footer">${escapeHtml(footerResolved)}</div>` : ''}
       </div>
@@ -404,7 +408,7 @@ async function showFileShare(file, waNumber, isPdf) {
   });
 }
 
-function buildBluetoothReceiptData(sale, items, settings, paidAmount, remaining) {
+function buildBluetoothReceiptData(sale, items, settings, paidAmount, remaining, qrisImageData = '') {
   return {
     storeName: settings.showStoreNameOnBluetooth !== false ? settings.storeName : '',
     storeAddress: settings.storeAddress,
@@ -429,14 +433,14 @@ function buildBluetoothReceiptData(sale, items, settings, paidAmount, remaining)
     paid: paidAmount,
     remaining,
     note: sale.note,
-    qrisImageData: settings.qrisEnabled && settings.qrisImageData && remaining > 0 ? settings.qrisImageData : '',
+    qrisImageData: settings.qrisEnabled && remaining > 0 ? qrisImageData : '',
     footerNote: resolveFooterNote(settings.footerNote),
   };
 }
 
-async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining) {
+async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining, qrisImageData = '') {
   const bt = await import('../services/printing/bluetoothPrinter.js');
-  const receiptData = buildBluetoothReceiptData(sale, items, settings, paidAmount, remaining);
+  const receiptData = buildBluetoothReceiptData(sale, items, settings, paidAmount, remaining, qrisImageData);
   const loading = document.getElementById('loadingOverlay');
   loading.classList.remove('hidden');
   try {

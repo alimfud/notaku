@@ -47,6 +47,9 @@ const DEFAULTS = {
   // QRIS
   qrisEnabled: false,
   qrisImageData: '',        // base64 data URL gambar QRIS
+  qrisPayload: '',           // payload TLV QRIS; dipakai untuk nominal eksperimental
+  qrisShowOnReceipt: true,   // detail nota dan gambar/PDF yang dibagikan
+  qrisShowOnBluetooth: true,
 
   // Privasi data pelanggan di struk
   maskCustomerPhone: true,  // kalau true, nomor HP pelanggan di struk cuma tampil 3 digit terakhir

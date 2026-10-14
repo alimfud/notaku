@@ -1,4 +1,4 @@
 {
-  "version": "1.35.4",
-  "notes": "Perbaikan Gabung Ruang di APK: gunakan alur Google Picker mobile dan kembalikan file terpilih langsung ke aplikasi."
+  "version": "1.35.5",
+  "notes": "QRIS nominal eksperimental tampil di detail nota, gambar/PDF, dan printer Bluetooth."
 }
