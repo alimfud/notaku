@@ -143,9 +143,6 @@
 [data-page="settings"] .settings-qris-empty{margin:0 0 10px;}
 [data-page="settings"] .settings-file-input{display:none}
 [data-page="settings"] .settings-remove-image{margin-left:8px;}
-[data-page="settings"] .settings-qris-guide{display:grid;gap:4px;margin-top:14px;padding:11px;border:1px solid var(--outline);border-radius:10px;background:var(--surface-dim);color:var(--ink-soft);font-size:11px;line-height:1.4;}
-[data-page="settings"] .settings-qris-guide strong{color:var(--ink);font-size:12px;}
-[data-page="settings"] .settings-qris-guide small{margin-top:4px;color:var(--muted);}
 [data-page="settings"] .settings-qris-dynamic{display:grid;gap:7px;margin-top:16px;padding:12px;border:1px solid var(--outline);border-radius:12px;background:var(--surface-dim);}
 [data-page="settings"] .settings-qris-dynamic strong{color:var(--ink);font-size:13px;}
 [data-page="settings"] .settings-qris-dynamic p{margin:0;color:var(--ink-soft);font-size:11px;line-height:1.45;}
@@ -696,15 +693,6 @@
 
 #pageRoot[data-page="settings"][data-section="qris"] .settings-qris-dynamic > .settings-heading strong {
   font-size:13px;
-}
-
-#pageRoot[data-page="settings"][data-section="qris"] .settings-qris-guide .settings-heading {
-  margin-bottom:0;
-}
-
-#pageRoot[data-page="settings"][data-section="qris"] .settings-qris-guide .qris-info-panel {
-  margin:4px 0 0;
-  background:var(--surface);
 }
 
 #pageRoot[data-page="settings"][data-section="qris"] .settings-qris-static-fallback {

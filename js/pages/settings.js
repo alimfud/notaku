@@ -586,6 +586,7 @@ async function renderQris(root) {
         <textarea id="qrisPayloadInput" class="settings-qris-payload" rows="4" spellcheck="false" placeholder="Tempel teks QRIS hasil baca dari gambar...">${escapeHtml(s.qrisPayload || '')}</textarea>
         <div class="settings-qris-payload-actions">
           <button class="btn secondary small" id="btnSaveQrisPayload">${s.qrisPayload ? 'Perbarui Payload' : 'Simpan Payload'}</button>
+          ${s.qrisPayload ? '<button class="btn danger small" id="btnRemoveQrisPayload" type="button">Hapus Payload</button>' : ''}
           <button class="btn secondary small" id="btnDecodeQrisPayload" type="button">Baca dari Gambar</button>
           <input class="settings-file-input" type="file" id="qrisDecodeFile" accept="image/*">
         </div>
@@ -620,19 +621,6 @@ async function renderQris(root) {
         <input class="settings-file-input" type="file" id="qrisFile" accept="image/*">
         <button class="btn secondary small" id="btnUploadQris">${s.qrisImageData ? 'Ganti Gambar QRIS' : 'Upload Gambar QRIS'}</button>
         ${s.qrisImageData ? `<button class="settings-remove-image btn danger small" id="btnRemoveQris">Hapus</button>` : ''}
-      </div>
-      <div class="settings-qris-guide">
-        <div class="settings-heading settings-heading-with-info">
-          <strong>QRIS tampil di</strong>
-          <button type="button" class="qris-info-toggle" data-qris-info="locations" aria-expanded="false" aria-label="Info lokasi QRIS"><span aria-hidden="true">i</span></button>
-        </div>
-        <span>• Detail nota dan gambar/PDF nota</span>
-        <span>• Bagikan QRIS sebagai gambar</span>
-        <span>• Preview dan printer Bluetooth</span>
-        <div class="qris-info-panel" data-qris-info-panel="locations" hidden>
-          <div class="qris-info-panel-header"><strong>Lokasi tampilan</strong><button type="button" class="qris-info-close" data-qris-info-close aria-label="Tutup informasi lokasi QRIS">×</button></div>
-          <p>Centang lokasi di atas untuk menampilkan atau menyembunyikan QRIS. QR hanya ditampilkan pada nota yang masih memiliki sisa tagihan.</p>
-        </div>
       </div>
     </div>
   `;
@@ -724,6 +712,20 @@ async function renderQris(root) {
     toast('Payload tersimpan. Nominal akan dibuat otomatis dari sisa tagihan.');
     await renderQris(root);
   };
+  const removePayloadBtn = root.querySelector('#btnRemoveQrisPayload');
+  if (removePayloadBtn) {
+    removePayloadBtn.onclick = async () => {
+      const confirmed = await confirmDialog({
+        title: 'Hapus payload QRIS?',
+        message: 'Nominal otomatis akan dimatikan. QRIS akan kembali menggunakan gambar statis atau meminta nominal manual.',
+        confirmLabel: 'Hapus Payload', dangerous: true,
+      });
+      if (!confirmed) return;
+      await saveSettings({ qrisPayload: '' });
+      toast('Payload dihapus. QRIS kembali statis.');
+      await renderQris(root);
+    };
+  }
   root.querySelector('#btnDecodeQrisPayload').onclick = () => root.querySelector('#qrisDecodeFile').click();
   root.querySelector('#qrisDecodeFile').onchange = async (e) => {
     const file = e.target.files[0];
