@@ -1,6 +1,6 @@
 {
   "name": "notaku",
-  "version": "1.36.13",
+  "version": "1.36.14",
   "private": true,
   "type": "module",
   "description": "NotaKu web/PWA and Android application",
@@ -27,4 +27,3 @@
     "@capacitor/cli": "8.5.2"
   }
 }
-

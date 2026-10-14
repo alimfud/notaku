@@ -1,5 +1,4 @@
 {
-  "version": "1.36.13",
-  "notes": "Notifikasi pembaruan APK dan pemasangan update langsung dari aplikasi Android."
+  "version": "1.36.14",
+  "notes": "Perbaikan startup aplikasi Android dan updater APK."
 }
-
