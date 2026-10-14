@@ -1,4 +1,4 @@
 {
-  "version": "1.36.3",
-  "notes": "Perbaikan format bit dan alignment QRIS agar hasil QR dapat dipindai."
+  "version": "1.36.4",
+  "notes": "Perbaikan format QR mask agar hasil QRIS dapat dipindai aplikasi pembayaran."
 }

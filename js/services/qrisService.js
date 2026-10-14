@@ -389,7 +389,10 @@ function setupPatterns(matrix, version) {
 
 function setupTypeInfo(matrix, mask) {
   const size = matrix.length;
-  const bits = bchTypeInfo(mask << 3);
+  // Level koreksi M bernilai 0 pada format information QR; mask mengisi
+  // tiga bit terakhir. Sebelumnya mask digeser ke tiga bit sehingga format
+  // QR terbaca sebagai level koreksi lain dan scanner menolaknya.
+  const bits = bchTypeInfo(mask);
   for (let i = 0; i < 15; i++) {
     const mod = ((bits >>> i) & 1) === 1;
     if (i < 6) matrix[i][8] = mod;
