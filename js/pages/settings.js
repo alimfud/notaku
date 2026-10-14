@@ -585,9 +585,15 @@ async function renderQris(root) {
         <p>Masukkan payload QRIS merchant satu kali untuk memakai sisa tagihan pada QR.</p>
         <textarea id="qrisPayloadInput" class="settings-qris-payload" rows="4" spellcheck="false" placeholder="Tempel teks QRIS hasil baca dari gambar...">${escapeHtml(s.qrisPayload || '')}</textarea>
         <div class="settings-qris-payload-actions">
-          <button class="btn secondary small" id="btnSaveQrisPayload" type="button" title="Simpan payload QRIS" aria-label="Simpan payload QRIS">Simpan</button>
-          ${s.qrisPayload ? '<button class="btn danger small" id="btnRemoveQrisPayload" type="button" title="Hapus payload QRIS" aria-label="Hapus payload QRIS">Hapus</button>' : ''}
-          <button class="btn secondary small" id="btnDecodeQrisPayload" type="button" title="Baca QRIS dari gambar" aria-label="Baca QRIS dari gambar">Baca QR dari gambar</button>
+          <button class="btn secondary small qris-action-icon" id="btnSaveQrisPayload" type="button" title="Simpan payload QRIS" aria-label="Simpan payload QRIS">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 4v5h8V4M8 20v-6h8v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            <span class="visually-hidden">Simpan</span>
+          </button>
+          <button class="btn secondary small qris-action-read" id="btnDecodeQrisPayload" type="button" title="Baca QRIS dari gambar" aria-label="Baca QRIS dari gambar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8.5" cy="9" r="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 17l4.5-4 3.5 3 2.5-2 4.5 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Baca QR</span>
+          </button>
+          ${s.qrisPayload ? '<button class="btn danger small qris-action-icon" id="btnRemoveQrisPayload" type="button" title="Hapus payload QRIS" aria-label="Hapus payload QRIS"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden">Hapus</span></button>' : ''}
           <input class="settings-file-input" type="file" id="qrisDecodeFile" accept="image/*">
         </div>
         <div class="row-meta">${s.qrisPayload ? 'Payload tersimpan · nominal mengikuti sisa tagihan.' : 'Payload belum tersimpan · QR tetap statis.'}</div>

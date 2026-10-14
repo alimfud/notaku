@@ -147,9 +147,11 @@
 [data-page="settings"] .settings-qris-dynamic strong{color:var(--ink);font-size:13px;}
 [data-page="settings"] .settings-qris-dynamic p{margin:0;color:var(--ink-soft);font-size:11px;line-height:1.45;}
 [data-page="settings"] .settings-qris-payload{width:100%;box-sizing:border-box;resize:vertical;min-height:76px;padding:9px;border:1px solid var(--outline);border-radius:9px;background:var(--surface);color:var(--ink);font:11px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;}
-[data-page="settings"] .settings-qris-payload-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
-[data-page="settings"] .settings-qris-payload-actions .btn{width:100%;box-sizing:border-box;padding:8px 8px;font-size:12.5px;}
-[data-page="settings"] .settings-qris-payload-actions #btnDecodeQrisPayload{grid-column:1 / -1;}
+[data-page="settings"] .settings-qris-payload-actions{display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;}
+[data-page="settings"] .settings-qris-payload-actions .btn{width:auto;box-sizing:border-box;padding:8px 10px;font-size:12.5px;}
+[data-page="settings"] .settings-qris-payload-actions .qris-action-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 40px;width:40px;height:38px;padding:8px;}
+[data-page="settings"] .settings-qris-payload-actions .qris-action-read{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:92px;}
+[data-page="settings"] .settings-qris-payload-actions svg{width:18px;height:18px;flex:0 0 auto;}
 [data-page="settings"] .settings-qris-payload-preview{display:grid;justify-items:start;gap:7px;margin-top:4px;padding-top:10px;border-top:1px dashed var(--outline);}
 [data-page="settings"] .settings-qris-payload-preview strong{font-size:12px;}
 [data-page="settings"] .settings-qris-payload-preview img{width:190px;height:190px;object-fit:contain;padding:8px;background:#fff;border:1px solid var(--outline);border-radius:10px;image-rendering:pixelated;}

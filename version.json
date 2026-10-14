@@ -1,4 +1,4 @@
 {
-  "version": "1.36.10",
-  "notes": "Menyederhanakan label tombol payload QRIS agar lebih ringkas."
+  "version": "1.36.12",
+  "notes": "Menempatkan tombol Baca QR di tengah antara simpan dan hapus."
 }
