@@ -32,6 +32,8 @@ jobs:
           java-version: '21'
       - name: Install JavaScript dependencies
         run: npm ci
+      - name: Sync application version
+        run: npm run version:sync
       - name: Bundle NotaKu web app into Android APK
         run: npm run android:sync
       - name: Restore release signing key
@@ -80,3 +82,4 @@ jobs:
             release_tag="v$version"
           fi
           gh release create "$release_tag" "NotaKu-$release_tag.apk" --target "$GITHUB_SHA" --title "NotaKu $release_tag" --generate-notes             || gh release upload "$release_tag" "NotaKu-$release_tag.apk" --clobber
+
