@@ -531,6 +531,7 @@ async function renderPrinter(root) {
 async function renderQris(root) {
   setPageTitle('QRIS');
   setTopbarActions([]);
+  root._qrisInfoCleanup?.();
   const s = await getSettings();
   let qrisPayloadPreview = '';
   let qrisPayloadPreviewError = '';
@@ -541,59 +542,133 @@ async function renderQris(root) {
   const initialPreviewImage = qrisPayloadPreview || s.qrisImageData || '';
   root.innerHTML = `
     <div class="settings-section">
+      <div class="settings-heading settings-heading-with-info">
+        <div>
+          <div class="settings-section-label">QRIS pembayaran</div>
+          <div class="row-meta">Atur QRIS yang tampil pada nota dan proses pembayaran.</div>
+        </div>
+        <button type="button" class="qris-info-toggle" data-qris-info="payment" aria-expanded="false" aria-label="Info QRIS pembayaran"><span aria-hidden="true">i</span></button>
+      </div>
+      <div class="qris-info-panel" data-qris-info-panel="payment" hidden>
+        <div class="qris-info-panel-header"><strong>Tentang QRIS di NotaKu</strong><button type="button" class="qris-info-close" data-qris-info-close aria-label="Tutup informasi QRIS">×</button></div>
+        <p>QRIS statis adalah QR merchant. Pelanggan biasanya memasukkan nominal sendiri di aplikasi pembayaran.</p>
+        <p>Jika payload tersimpan, NotaKu dapat membuat QR lokal dengan sisa tagihan pada nota. Fitur ini tidak terhubung ke API PJP dan tidak memberikan status pembayaran otomatis.</p>
+        <p>Untuk QRIS Dinamis resmi, QR dan status transaksi harus dibuat oleh penyedia QRIS melalui layanan resminya.</p>
+      </div>
       <label class="settings-toggle-row">
         <div>
-          <div class="settings-section-label">Aktifkan QRIS Pembayaran</div>
-          <div class="row-meta">QR muncul pada nota yang masih memiliki sisa tagihan.</div>
+          <div class="settings-image-label">Tampilkan QRIS pada pembayaran</div>
+          <div class="row-meta">QR muncul jika nota masih memiliki sisa tagihan.</div>
         </div>
         <input class="settings-checkbox" type="checkbox" id="qrisToggle" ${s.qrisEnabled ? 'checked' : ''}>
       </label>
       <div class="settings-qris-placements">
-        <div class="settings-image-label">Lokasi tampilan QRIS</div>
+        <div class="settings-image-label">Lokasi QRIS</div>
         <label class="settings-toggle-row settings-toggle-row--sub"><span>Detail nota + gambar/PDF nota</span><input class="settings-checkbox" type="checkbox" id="qrisReceiptToggle" ${s.qrisShowOnReceipt !== false ? 'checked' : ''}></label>
         <label class="settings-toggle-row settings-toggle-row--sub"><span>Bagikan QRIS sebagai gambar</span><input class="settings-checkbox" type="checkbox" id="qrisShareToggle" ${s.qrisShowOnShare !== false ? 'checked' : ''}></label>
         <label class="settings-toggle-row settings-toggle-row--sub"><span>Preview &amp; printer Bluetooth</span><input class="settings-checkbox" type="checkbox" id="qrisBluetoothToggle" ${s.qrisShowOnBluetooth !== false ? 'checked' : ''}></label>
-        <div class="row-meta">QRIS hanya muncul pada nota yang masih memiliki sisa tagihan. Bagikan sebagai teks tidak dapat membawa gambar QR.</div>
+        <div class="row-meta">Bagikan sebagai teks tidak membawa gambar QR.</div>
       </div>
     </div>
     <div class="settings-content">
-      <div class="settings-image-label">Gambar QRIS statis toko</div>
-      ${s.qrisImageData ? `<img class="settings-qris-image" src="${escapeHtml(s.qrisImageData)}" alt="QRIS toko">` : `<div class="settings-qris-empty info-card"><div class="info-text">Belum ada gambar QRIS. Upload dari galeri HP kamu (foto/screenshot kode QRIS statis milik tokomu, bisa didapat dari aplikasi bank/e-wallet).</div></div>`}
+      <div class="settings-heading settings-heading-with-info">
+        <div class="settings-image-label">Gambar QRIS merchant</div>
+        <button type="button" class="qris-info-toggle" data-qris-info="source" aria-expanded="false" aria-label="Info gambar QRIS merchant"><span aria-hidden="true">i</span></button>
+      </div>
+      <div class="qris-info-panel" data-qris-info-panel="source" hidden>
+        <div class="qris-info-panel-header"><strong>Gambar QRIS merchant</strong><button type="button" class="qris-info-close" data-qris-info-close aria-label="Tutup informasi gambar QRIS">×</button></div>
+        <p>Upload foto atau screenshot QRIS statis milik toko dari aplikasi bank/e-wallet atau dari penyedia QRIS.</p>
+        <p>Gunakan QR milik merchant sendiri dan pastikan nama merchant yang muncul di aplikasi pembayaran sudah benar sebelum menerima pembayaran.</p>
+      </div>
+      ${s.qrisImageData ? `<img class="settings-qris-image" src="${escapeHtml(s.qrisImageData)}" alt="QRIS merchant">` : `<div class="settings-qris-empty info-card"><div class="info-text">Belum ada gambar QRIS merchant.</div></div>`}
       <input class="settings-file-input" type="file" id="qrisFile" accept="image/*">
       <button class="btn secondary small" id="btnUploadQris">${s.qrisImageData ? 'Ganti Gambar' : 'Upload Gambar QRIS'}</button>
       ${s.qrisImageData ? `<button class="settings-remove-image btn danger small" id="btnRemoveQris">Hapus</button>` : ''}
       <div class="settings-qris-dynamic">
-        <strong>Nominal otomatis (opsional)</strong>
-        <p>Tempel payload teks QRIS satu kali. Setelah tersimpan, NotaKu membuat QR dengan sisa tagihan pada detail nota, gambar/PDF, bagikan QRIS, dan printer Bluetooth. Tidak perlu mengisi nominal manual lagi.</p>
-        <textarea id="qrisPayloadInput" class="settings-qris-payload" rows="4" spellcheck="false" placeholder="Tempel teks QRIS di sini (diawali 0002...).">${escapeHtml(s.qrisPayload || '')}</textarea>
+        <div class="settings-heading settings-heading-with-info">
+          <strong>Nominal otomatis</strong>
+          <button type="button" class="qris-info-toggle" data-qris-info="payload" aria-expanded="false" aria-label="Info nominal otomatis QRIS"><span aria-hidden="true">i</span></button>
+        </div>
+        <div class="qris-info-panel" data-qris-info-panel="payload" hidden>
+          <div class="qris-info-panel-header"><strong>Nominal otomatis</strong><button type="button" class="qris-info-close" data-qris-info-close aria-label="Tutup informasi nominal otomatis">×</button></div>
+          <p>Payload adalah teks yang tersimpan di dalam QRIS, bukan nomor rekening atau nama merchant. Teks ini dapat dibaca dari gambar QRIS dengan tombol <b>Baca dari Gambar</b>.</p>
+          <p>Setelah disimpan, NotaKu memakai sisa tagihan untuk membuat QR pada nota, gambar/PDF, bagikan QRIS, preview, dan printer Bluetooth.</p>
+          <p>Hasil ini tetap bergantung pada aplikasi pembayaran yang digunakan. Uji nominal kecil dan periksa nama merchant sebelum pembayaran.</p>
+        </div>
+        <p>Masukkan payload QRIS merchant satu kali untuk memakai sisa tagihan pada QR.</p>
+        <textarea id="qrisPayloadInput" class="settings-qris-payload" rows="4" spellcheck="false" placeholder="Tempel teks QRIS hasil baca dari gambar...">${escapeHtml(s.qrisPayload || '')}</textarea>
         <div class="settings-qris-payload-actions">
           <button class="btn secondary small" id="btnSaveQrisPayload">${s.qrisPayload ? 'Perbarui Payload' : 'Simpan Payload'}</button>
           <button class="btn secondary small" id="btnDecodeQrisPayload" type="button">Baca dari Gambar</button>
           <input class="settings-file-input" type="file" id="qrisDecodeFile" accept="image/*">
         </div>
-        <div class="row-meta">${s.qrisPayload ? 'Payload tersimpan. Nominal akan mengikuti sisa tagihan.' : 'Payload belum tersimpan — QR tetap statis sampai teks QRIS berhasil dibaca.'}</div>
+        <div class="row-meta">${s.qrisPayload ? 'Payload tersimpan · nominal mengikuti sisa tagihan.' : 'Payload belum tersimpan · QR tetap statis.'}</div>
         <div class="settings-qris-payload-preview" id="qrisPayloadPreview">
           <strong>${qrisPayloadPreview ? 'Preview QR dari payload' : 'Preview QRIS'}</strong>
           ${initialPreviewImage
             ? `<img src="${escapeHtml(initialPreviewImage)}" alt="Preview QRIS">`
             : `<div class="settings-qris-payload-preview-empty">${qrisPayloadPreviewError ? 'Preview belum dapat dibuat.' : 'Preview akan muncul setelah payload diisi.'}</div>`}
           <small>${qrisPayloadPreview
-            ? 'Ini preview kode dari payload tersimpan. Pada nota, QR akan dibuat ulang dengan nominal sisa tagihan.'
+            ? 'Preview dari payload tersimpan. Pada nota, QR mengikuti sisa tagihan.'
             : qrisPayloadPreviewError
-              ? `Payload terlalu panjang untuk generator preview saat ini: ${escapeHtml(qrisPayloadPreviewError)} Gambar QRIS asli tetap dapat digunakan.`
+              ? `Preview belum dapat dibuat. ${escapeHtml(qrisPayloadPreviewError)} Gambar QRIS asli tetap dapat digunakan.`
               : 'Tempel payload atau upload gambar QRIS untuk melihat preview.'}</small>
         </div>
       </div>
       <div class="settings-qris-guide">
-        <strong>QRIS akan tampil di banyak titik</strong>
-        <span>• Detail nota yang belum lunas</span>
-        <span>• Gambar nota dan PDF nota</span>
-        <span>• Bagikan QRIS sebagai gambar tersendiri</span>
-        <span>• Preview dan cetak printer Bluetooth</span>
-        <small>Jika payload tersimpan dan aplikasi pembayaran mendukungnya, nominal akan muncul otomatis. Jika belum, gambar statis tetap tersedia sebagai cadangan dan pelanggan mengisi nominal di aplikasi pembayaran.</small>
+        <div class="settings-heading settings-heading-with-info">
+          <strong>QRIS tampil di</strong>
+          <button type="button" class="qris-info-toggle" data-qris-info="locations" aria-expanded="false" aria-label="Info lokasi QRIS"><span aria-hidden="true">i</span></button>
+        </div>
+        <span>• Detail nota dan gambar/PDF nota</span>
+        <span>• Bagikan QRIS sebagai gambar</span>
+        <span>• Preview dan printer Bluetooth</span>
+        <div class="qris-info-panel" data-qris-info-panel="locations" hidden>
+          <div class="qris-info-panel-header"><strong>Lokasi tampilan</strong><button type="button" class="qris-info-close" data-qris-info-close aria-label="Tutup informasi lokasi QRIS">×</button></div>
+          <p>Centang lokasi di atas untuk menampilkan atau menyembunyikan QRIS. QR hanya ditampilkan pada nota yang masih memiliki sisa tagihan.</p>
+        </div>
       </div>
     </div>
   `;
+
+  let qrisInfoTimer;
+  const closeQrisInfo = () => {
+    clearTimeout(qrisInfoTimer);
+    root.querySelectorAll('.qris-info-panel').forEach((panel) => panel.hidden = true);
+    root.querySelectorAll('.qris-info-toggle').forEach((button) => button.setAttribute('aria-expanded', 'false'));
+  };
+  const openQrisInfo = (button) => {
+    closeQrisInfo();
+    const panel = root.querySelector(`[data-qris-info-panel="${button.dataset.qrisInfo}"]`);
+    if (!panel) return;
+    panel.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+    qrisInfoTimer = window.setTimeout(closeQrisInfo, 12000);
+  };
+  root.querySelectorAll('.qris-info-toggle').forEach((button) => {
+    button.onclick = (event) => {
+      event.stopPropagation();
+      const panel = root.querySelector(`[data-qris-info-panel="${button.dataset.qrisInfo}"]`);
+      if (panel && !panel.hidden) closeQrisInfo();
+      else openQrisInfo(button);
+    };
+  });
+  root.querySelectorAll('[data-qris-info-close]').forEach((button) => {
+    button.onclick = closeQrisInfo;
+  });
+  const onQrisInfoClick = (event) => {
+    if (!event.target.closest('.qris-info-panel, .qris-info-toggle')) closeQrisInfo();
+  };
+  const onQrisInfoKeydown = (event) => {
+    if (event.key === 'Escape') closeQrisInfo();
+  };
+  root.addEventListener('click', onQrisInfoClick);
+  root.addEventListener('keydown', onQrisInfoKeydown);
+  root._qrisInfoCleanup = () => {
+    clearTimeout(qrisInfoTimer);
+    root.removeEventListener('click', onQrisInfoClick);
+    root.removeEventListener('keydown', onQrisInfoKeydown);
+  };
   root.querySelector('#qrisToggle').onchange = async (e) => {
     await saveSettings({ qrisEnabled: e.target.checked });
     toast(e.target.checked ? 'QRIS diaktifkan' : 'QRIS dimatikan');

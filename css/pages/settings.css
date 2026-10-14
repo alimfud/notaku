@@ -612,6 +612,101 @@
   align-items:center;
 }
 
+#pageRoot[data-page="settings"][data-section="qris"] .settings-heading {
+  margin-bottom:7px;
+}
+
+#pageRoot[data-page="settings"][data-section="qris"] .settings-heading-with-info {
+  gap:8px;
+}
+
+#pageRoot[data-page="settings"][data-section="qris"] .qris-info-toggle {
+  flex:0 0 auto;
+  width:25px;
+  height:25px;
+  padding:0;
+  border:1px solid var(--outline);
+  border-radius:50%;
+  background:var(--surface);
+  color:var(--muted);
+  font:800 14px/1 var(--font);
+  cursor:pointer;
+  transition:background .15s ease,color .15s ease,border-color .15s ease;
+}
+
+#pageRoot[data-page="settings"][data-section="qris"] .qris-info-toggle:hover,
+#pageRoot[data-page="settings"][data-section="qris"] .qris-info-toggle[aria-expanded="true"] {
+  border-color:var(--accent);
+  background:var(--surface-dim);
+  color:var(--accent);
+}
+
+#pageRoot[data-page="settings"][data-section="qris"] .qris-info-panel {
+  position:relative;
+  display:grid;
+  gap:5px;
+  margin:0 0 10px;
+  padding:9px 10px;
+  border:1px solid var(--outline);
+  border-radius:10px;
+  background:var(--surface-dim);
+  color:var(--ink-soft);
+  font-size:11px;
+  line-height:1.45;
+  animation:qris-info-in .15s ease-out;
+}
+
+#pageRoot[data-page="settings"][data-section="qris"] .qris-info-panel[hidden] {
+  display:none;
+}
+
+#pageRoot[data-page="settings"][data-section="qris"] .qris-info-panel p {
+  margin:0;
+}
+
+#pageRoot[data-page="settings"][data-section="qris"] .qris-info-panel-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  color:var(--ink);
+}
+
+#pageRoot[data-page="settings"][data-section="qris"] .qris-info-close {
+  flex:0 0 auto;
+  width:22px;
+  height:22px;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  color:var(--muted);
+  font:700 18px/1 var(--font);
+  cursor:pointer;
+}
+
+#pageRoot[data-page="settings"][data-section="qris"] .qris-info-close:hover {
+  background:var(--surface);
+  color:var(--ink);
+}
+
+#pageRoot[data-page="settings"][data-section="qris"] .settings-qris-dynamic > .settings-heading {
+  margin-bottom:0;
+}
+
+#pageRoot[data-page="settings"][data-section="qris"] .settings-qris-dynamic > .settings-heading strong {
+  font-size:13px;
+}
+
+#pageRoot[data-page="settings"][data-section="qris"] .settings-qris-guide .settings-heading {
+  margin-bottom:0;
+}
+
+#pageRoot[data-page="settings"][data-section="qris"] .settings-qris-guide .qris-info-panel {
+  margin:4px 0 0;
+  background:var(--surface);
+}
+
 #pageRoot[data-page="settings"][data-section="qris"] .settings-qris-image {
   width:min(150px,100%);
   height:150px;
@@ -621,6 +716,11 @@
 
 #pageRoot[data-page="settings"][data-section="qris"] .settings-qris-empty {
   margin:7px 0 10px;
+}
+
+@keyframes qris-info-in {
+  from { opacity:0; transform:translateY(-3px); }
+  to { opacity:1; transform:translateY(0); }
 }
 
 /* Backup / Restore and automatic backup. */
