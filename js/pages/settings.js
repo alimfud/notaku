@@ -545,7 +545,7 @@ async function renderQris(root) {
       <div class="settings-heading settings-heading-with-info">
         <div>
           <div class="settings-section-label">QRIS pembayaran</div>
-          <div class="row-meta">Atur QRIS yang tampil pada nota dan proses pembayaran.</div>
+          
         </div>
         <button type="button" class="qris-info-toggle" data-qris-info="payment" aria-expanded="false" aria-label="Info QRIS pembayaran"><span aria-hidden="true">i</span></button>
       </div>
