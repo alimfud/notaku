@@ -533,9 +533,12 @@ async function renderQris(root) {
   setTopbarActions([]);
   const s = await getSettings();
   let qrisPayloadPreview = '';
+  let qrisPayloadPreviewError = '';
   if (s.qrisPayload) {
-    try { qrisPayloadPreview = qrPayloadToDataUrl(s.qrisPayload, 280); } catch { /* payload lama/format rusak ditangani oleh validasi */ }
+    try { qrisPayloadPreview = qrPayloadToDataUrl(s.qrisPayload, 280); }
+    catch (error) { qrisPayloadPreviewError = error.message || 'Preview QR belum dapat dibuat.'; }
   }
+  const initialPreviewImage = qrisPayloadPreview || s.qrisImageData || '';
   root.innerHTML = `
     <div class="settings-section">
       <label class="settings-toggle-row">
@@ -569,7 +572,17 @@ async function renderQris(root) {
           <input class="settings-file-input" type="file" id="qrisDecodeFile" accept="image/*">
         </div>
         <div class="row-meta">${s.qrisPayload ? 'Payload tersimpan. Nominal akan mengikuti sisa tagihan.' : 'Payload belum tersimpan — QR tetap statis sampai teks QRIS berhasil dibaca.'}</div>
-        ${qrisPayloadPreview ? `<div class="settings-qris-payload-preview"><strong>Preview QR dari payload</strong><img src="${escapeHtml(qrisPayloadPreview)}" alt="Preview QRIS dari payload"><small>Ini preview kode dari payload tersimpan. Pada nota, QR akan dibuat ulang dengan nominal sisa tagihan.</small></div>` : ''}
+        <div class="settings-qris-payload-preview" id="qrisPayloadPreview">
+          <strong>${qrisPayloadPreview ? 'Preview QR dari payload' : 'Preview QRIS'}</strong>
+          ${initialPreviewImage
+            ? `<img src="${escapeHtml(initialPreviewImage)}" alt="Preview QRIS">`
+            : `<div class="settings-qris-payload-preview-empty">Preview akan muncul setelah payload diisi.</div>`}
+          <small>${qrisPayloadPreview
+            ? 'Ini preview kode dari payload tersimpan. Pada nota, QR akan dibuat ulang dengan nominal sisa tagihan.'
+            : qrisPayloadPreviewError
+              ? `Payload terlalu panjang untuk generator preview saat ini: ${escapeHtml(qrisPayloadPreviewError)} Gambar QRIS asli tetap dapat digunakan.`
+              : 'Tempel payload atau upload gambar QRIS untuk melihat preview.'}</small>
+        </div>
       </div>
       <div class="settings-qris-guide">
         <strong>QRIS akan tampil di banyak titik</strong>
@@ -597,9 +610,25 @@ async function renderQris(root) {
     await saveSettings({ qrisShowOnBluetooth: e.target.checked });
     toast(e.target.checked ? 'QRIS ditampilkan di printer Bluetooth' : 'QRIS disembunyikan dari printer Bluetooth');
   };
+  const payloadInput = root.querySelector('#qrisPayloadInput');
+  const payloadPreview = root.querySelector('#qrisPayloadPreview');
+  const refreshPayloadPreview = () => {
+    const payload = payloadInput.value.replace(/[\r\n]+/g, '').trim();
+    if (!payload) {
+      payloadPreview.innerHTML = `<strong>Preview QRIS</strong><div class="settings-qris-payload-preview-empty">Preview akan muncul setelah payload diisi.</div><small>Tempel payload atau upload gambar QRIS untuk melihat preview.</small>`;
+      return;
+    }
+    try {
+      const image = qrPayloadToDataUrl(payload, 280);
+      payloadPreview.innerHTML = `<strong>Preview QR dari payload</strong><img src="${escapeHtml(image)}" alt="Preview QRIS dari payload"><small>Preview langsung dari teks payload yang sedang diisi. Simpan payload untuk menggunakannya pada transaksi.</small>`;
+    } catch (error) {
+      const fallback = s.qrisImageData;
+      payloadPreview.innerHTML = `<strong>Preview QRIS</strong>${fallback ? `<img src="${escapeHtml(fallback)}" alt="Preview QRIS dari gambar asli">` : '<div class="settings-qris-payload-preview-empty">Preview belum dapat dibuat.</div>'}<small>${escapeHtml(error.message || 'Payload QR belum dapat dibuat.')}${fallback ? ' Gambar QRIS asli ditampilkan sebagai cadangan.' : ''}</small>`;
+    }
+  };
+  payloadInput.addEventListener('input', refreshPayloadPreview);
   root.querySelector('#btnSaveQrisPayload').onclick = async () => {
-    const input = root.querySelector('#qrisPayloadInput');
-    const payload = input.value.replace(/[\r\n]+/g, '').trim();
+    const payload = payloadInput.value.replace(/[\r\n]+/g, '').trim();
     if (!payload) {
       await saveSettings({ qrisPayload: '' });
       toast('Payload dihapus. QRIS kembali statis.');
