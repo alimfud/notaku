@@ -364,10 +364,6 @@ function setupPatterns(matrix, version) {
   setupFinder(matrix, 0, 0);
   setupFinder(matrix, size - 7, 0);
   setupFinder(matrix, 0, size - 7);
-  for (let i = 8; i < size - 8; i++) {
-    if (matrix[i][6] === null) matrix[i][6] = i % 2 === 0;
-    if (matrix[6][i] === null) matrix[6][i] = i % 2 === 0;
-  }
   for (const row of ALIGNMENT_POSITIONS[version]) {
     for (const col of ALIGNMENT_POSITIONS[version]) {
       if (matrix[row][col] !== null) continue;
@@ -375,6 +371,10 @@ function setupPatterns(matrix, version) {
         matrix[row + r][col + c] = Math.max(Math.abs(r), Math.abs(c)) !== 1;
       }
     }
+  }
+  for (let i = 8; i < size - 8; i++) {
+    if (matrix[i][6] === null) matrix[i][6] = i % 2 === 0;
+    if (matrix[6][i] === null) matrix[6][i] = i % 2 === 0;
   }
   for (let i = 0; i < 8; i++) {
     if (matrix[i][8] === null) matrix[i][8] = false;
@@ -391,7 +391,7 @@ function setupTypeInfo(matrix, mask) {
   const size = matrix.length;
   const bits = bchTypeInfo(mask << 3);
   for (let i = 0; i < 15; i++) {
-    const mod = !((bits >>> i) & 1);
+    const mod = ((bits >>> i) & 1) === 1;
     if (i < 6) matrix[i][8] = mod;
     else if (i < 8) matrix[i + 1][8] = mod;
     else matrix[size - 15 + i][8] = mod;
@@ -407,7 +407,7 @@ function setupVersionInfo(matrix, version) {
   const bits = bchTypeNumber(version);
   const size = matrix.length;
   for (let i = 0; i < 18; i++) {
-    const mod = !((bits >>> i) & 1);
+    const mod = ((bits >>> i) & 1) === 1;
     matrix[Math.floor(i / 3)][i % 3 + size - 8 - 3] = mod;
     matrix[i % 3 + size - 8 - 3][Math.floor(i / 3)] = mod;
   }
