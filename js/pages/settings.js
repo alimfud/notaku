@@ -571,19 +571,6 @@ async function renderQris(root) {
       </div>
     </div>
     <div class="settings-content">
-      <div class="settings-heading settings-heading-with-info">
-        <div class="settings-image-label">Gambar QRIS merchant</div>
-        <button type="button" class="qris-info-toggle" data-qris-info="source" aria-expanded="false" aria-label="Info gambar QRIS merchant"><span aria-hidden="true">i</span></button>
-      </div>
-      <div class="qris-info-panel" data-qris-info-panel="source" hidden>
-        <div class="qris-info-panel-header"><strong>Gambar QRIS merchant</strong><button type="button" class="qris-info-close" data-qris-info-close aria-label="Tutup informasi gambar QRIS">×</button></div>
-        <p>Upload foto atau screenshot QRIS statis milik toko dari aplikasi bank/e-wallet atau dari penyedia QRIS.</p>
-        <p>Gunakan QR milik merchant sendiri dan pastikan nama merchant yang muncul di aplikasi pembayaran sudah benar sebelum menerima pembayaran.</p>
-      </div>
-      ${s.qrisImageData ? `<img class="settings-qris-image" src="${escapeHtml(s.qrisImageData)}" alt="QRIS merchant">` : `<div class="settings-qris-empty info-card"><div class="info-text">Belum ada gambar QRIS merchant.</div></div>`}
-      <input class="settings-file-input" type="file" id="qrisFile" accept="image/*">
-      <button class="btn secondary small" id="btnUploadQris">${s.qrisImageData ? 'Ganti Gambar' : 'Upload Gambar QRIS'}</button>
-      ${s.qrisImageData ? `<button class="settings-remove-image btn danger small" id="btnRemoveQris">Hapus</button>` : ''}
       <div class="settings-qris-dynamic">
         <div class="settings-heading settings-heading-with-info">
           <strong>Nominal otomatis</strong>
@@ -614,6 +601,25 @@ async function renderQris(root) {
               ? `Preview belum dapat dibuat. ${escapeHtml(qrisPayloadPreviewError)} Gambar QRIS asli tetap dapat digunakan.`
               : 'Tempel payload atau upload gambar QRIS untuk melihat preview.'}</small>
         </div>
+      </div>
+      <div class="settings-qris-static-fallback">
+        <div class="settings-heading settings-heading-with-info">
+          <div>
+            <div class="settings-image-label">QRIS statis (opsional)</div>
+            <div class="row-meta">Gunakan sebagai cadangan jika QR nominal gagal dipindai.</div>
+          </div>
+          <button type="button" class="qris-info-toggle" data-qris-info="source" aria-expanded="false" aria-label="Info QRIS statis cadangan"><span aria-hidden="true">i</span></button>
+        </div>
+        <div class="qris-info-panel" data-qris-info-panel="source" hidden>
+          <div class="qris-info-panel-header"><strong>QRIS statis cadangan</strong><button type="button" class="qris-info-close" data-qris-info-close aria-label="Tutup informasi QRIS statis">×</button></div>
+          <p>Upload foto atau screenshot QRIS statis milik toko dari aplikasi bank/e-wallet atau penyedia QRIS.</p>
+          <p>Jika QR nominal tidak terbaca atau ditolak aplikasi pembayaran, pelanggan dapat memakai QR ini lalu memasukkan nominal secara manual.</p>
+          <p>Pastikan nama merchant yang muncul di aplikasi pembayaran sudah benar sebelum menerima pembayaran.</p>
+        </div>
+        ${s.qrisImageData ? `<img class="settings-qris-image" src="${escapeHtml(s.qrisImageData)}" alt="QRIS statis merchant">` : `<div class="settings-qris-empty info-card"><div class="info-text">Belum ada QRIS statis cadangan.</div></div>`}
+        <input class="settings-file-input" type="file" id="qrisFile" accept="image/*">
+        <button class="btn secondary small" id="btnUploadQris">${s.qrisImageData ? 'Ganti Gambar QRIS' : 'Upload Gambar QRIS'}</button>
+        ${s.qrisImageData ? `<button class="settings-remove-image btn danger small" id="btnRemoveQris">Hapus</button>` : ''}
       </div>
       <div class="settings-qris-guide">
         <div class="settings-heading settings-heading-with-info">
