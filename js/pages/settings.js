@@ -578,16 +578,16 @@ async function renderQris(root) {
         </div>
         <div class="qris-info-panel" data-qris-info-panel="payload" hidden>
           <div class="qris-info-panel-header"><strong>Nominal otomatis</strong><button type="button" class="qris-info-close" data-qris-info-close aria-label="Tutup informasi nominal otomatis">×</button></div>
-          <p>Payload adalah teks yang tersimpan di dalam QRIS, bukan nomor rekening atau nama merchant. Teks ini dapat dibaca dari gambar QRIS dengan tombol <b>Baca dari Gambar</b>.</p>
+          <p>Payload adalah teks yang tersimpan di dalam QRIS, bukan nomor rekening atau nama merchant. Teks ini dapat dibaca dari gambar QRIS dengan tombol <b>Baca QR dari gambar</b>.</p>
           <p>Setelah disimpan, NotaKu memakai sisa tagihan untuk membuat QR pada nota, gambar/PDF, bagikan QRIS, preview, dan printer Bluetooth.</p>
           <p>Hasil ini tetap bergantung pada aplikasi pembayaran yang digunakan. Uji nominal kecil dan periksa nama merchant sebelum pembayaran.</p>
         </div>
         <p>Masukkan payload QRIS merchant satu kali untuk memakai sisa tagihan pada QR.</p>
         <textarea id="qrisPayloadInput" class="settings-qris-payload" rows="4" spellcheck="false" placeholder="Tempel teks QRIS hasil baca dari gambar...">${escapeHtml(s.qrisPayload || '')}</textarea>
         <div class="settings-qris-payload-actions">
-          <button class="btn secondary small" id="btnSaveQrisPayload">${s.qrisPayload ? 'Perbarui Payload' : 'Simpan Payload'}</button>
-          ${s.qrisPayload ? '<button class="btn danger small" id="btnRemoveQrisPayload" type="button">Hapus Payload</button>' : ''}
-          <button class="btn secondary small" id="btnDecodeQrisPayload" type="button">Baca dari Gambar</button>
+          <button class="btn secondary small" id="btnSaveQrisPayload" type="button" title="Simpan payload QRIS" aria-label="Simpan payload QRIS">Simpan</button>
+          ${s.qrisPayload ? '<button class="btn danger small" id="btnRemoveQrisPayload" type="button" title="Hapus payload QRIS" aria-label="Hapus payload QRIS">Hapus</button>' : ''}
+          <button class="btn secondary small" id="btnDecodeQrisPayload" type="button" title="Baca QRIS dari gambar" aria-label="Baca QRIS dari gambar">Baca QR dari gambar</button>
           <input class="settings-file-input" type="file" id="qrisDecodeFile" accept="image/*">
         </div>
         <div class="row-meta">${s.qrisPayload ? 'Payload tersimpan · nominal mengikuti sisa tagihan.' : 'Payload belum tersimpan · QR tetap statis.'}</div>
