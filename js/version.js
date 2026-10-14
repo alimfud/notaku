@@ -1,2 +1,2 @@
 // Dibuat otomatis dari version.json oleh scripts/sync-version.mjs.
-export const APP_VERSION = '1.35.9';
+export const APP_VERSION = '1.36.0';

@@ -576,7 +576,7 @@ async function renderQris(root) {
           <strong>${qrisPayloadPreview ? 'Preview QR dari payload' : 'Preview QRIS'}</strong>
           ${initialPreviewImage
             ? `<img src="${escapeHtml(initialPreviewImage)}" alt="Preview QRIS">`
-            : `<div class="settings-qris-payload-preview-empty">Preview akan muncul setelah payload diisi.</div>`}
+            : `<div class="settings-qris-payload-preview-empty">${qrisPayloadPreviewError ? 'Preview belum dapat dibuat.' : 'Preview akan muncul setelah payload diisi.'}</div>`}
           <small>${qrisPayloadPreview
             ? 'Ini preview kode dari payload tersimpan. Pada nota, QR akan dibuat ulang dengan nominal sisa tagihan.'
             : qrisPayloadPreviewError
@@ -652,7 +652,13 @@ async function renderQris(root) {
       toast('Teks QRIS belum bisa dibaca otomatis dari gambar. Tempel payload teks QRIS satu kali.');
       return;
     }
-    await saveSettings({ qrisPayload: payload.trim() });
+    const imageData = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('Gambar QRIS tidak dapat disimpan.'));
+      reader.readAsDataURL(file);
+    });
+    await saveSettings({ qrisPayload: payload.trim(), qrisImageData: imageData });
     toast('Payload QRIS berhasil dibaca dan disimpan.');
     await renderQris(root);
   };
