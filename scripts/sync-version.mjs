@@ -10,6 +10,9 @@ if (!/^\d+\.\d+\.\d+$/.test(version)) {
   throw new Error(`Versi di version.json tidak valid: ${version || '(kosong)'}`);
 }
 
+const [major, minor, patch] = version.split('.').map(Number);
+const androidVersionCode = major * 100000 + minor * 100 + patch;
+
 const changes = [];
 
 async function syncText(relativePath, update) {
@@ -48,6 +51,10 @@ await syncText('sw.js', (source) => source.replace(
 await syncText('README.md', (source) => source
   .replace(/\*\*Versi saat ini:\*\* v\d+\.\d+\.\d+/, `**Versi saat ini:** v${version}`));
 
+await syncText('android/app/build.gradle', (source) => source
+  .replace(/versionCode\s+\d+/, `versionCode ${androidVersionCode}`)
+  .replace(/versionName\s+"[^"]+"/, `versionName "${version}"`));
+
 if (checkOnly && changes.length) {
   throw new Error(`Metadata versi belum sinkron dengan version.json: ${changes.join(', ')}`);
 }
@@ -55,3 +62,4 @@ if (checkOnly && changes.length) {
 console.log(changes.length
   ? `Versi ${version} disinkronkan ke: ${changes.join(', ')}`
   : `Semua metadata sudah sinkron pada versi ${version}.`);
+
