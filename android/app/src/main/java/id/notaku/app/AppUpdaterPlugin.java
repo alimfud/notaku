@@ -125,7 +125,4 @@ public class AppUpdaterPlugin extends Plugin {
         return apkFile;
     }
 }
-<<<<<<< HEAD
-=======
 
->>>>>>> e011ddef4267c03bd6564ef9c47510b4a14d2ac0
