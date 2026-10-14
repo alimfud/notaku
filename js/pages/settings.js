@@ -13,7 +13,7 @@ import { receiptLogo, logoWidth } from '../services/receiptLogo.js';
 import * as db from '../db.js';
 import { formatAuditDetails, getAuditLogs, recordAudit } from '../services/auditLogService.js';
 import { registerBiometric, biometricAvailable } from '../services/appLockService.js';
-import { decodeQrPayload, isValidQrisPayload } from '../services/qrisService.js';
+import { decodeQrPayload, isValidQrisPayload, qrPayloadToDataUrl } from '../services/qrisService.js';
 import {
   DEFAULT_WHATSAPP_SHARE_MAIN_TEMPLATE,
   DEFAULT_WHATSAPP_SHARE_PRODUCT_TEMPLATE,
@@ -532,6 +532,10 @@ async function renderQris(root) {
   setPageTitle('QRIS');
   setTopbarActions([]);
   const s = await getSettings();
+  let qrisPayloadPreview = '';
+  if (s.qrisPayload) {
+    try { qrisPayloadPreview = qrPayloadToDataUrl(s.qrisPayload, 280); } catch { /* payload lama/format rusak ditangani oleh validasi */ }
+  }
   root.innerHTML = `
     <div class="settings-section">
       <label class="settings-toggle-row">
@@ -565,6 +569,7 @@ async function renderQris(root) {
           <input class="settings-file-input" type="file" id="qrisDecodeFile" accept="image/*">
         </div>
         <div class="row-meta">${s.qrisPayload ? 'Payload tersimpan. Nominal akan mengikuti sisa tagihan.' : 'Payload belum tersimpan — QR tetap statis sampai teks QRIS berhasil dibaca.'}</div>
+        ${qrisPayloadPreview ? `<div class="settings-qris-payload-preview"><strong>Preview QR dari payload</strong><img src="${escapeHtml(qrisPayloadPreview)}" alt="Preview QRIS dari payload"><small>Ini preview kode dari payload tersimpan. Pada nota, QR akan dibuat ulang dengan nominal sisa tagihan.</small></div>` : ''}
       </div>
       <div class="settings-qris-guide">
         <strong>QRIS akan tampil di banyak titik</strong>

@@ -1,4 +1,4 @@
 {
-  "version": "1.35.7",
-  "notes": "QRIS dapat membuat nominal otomatis dari payload merchant tanpa input nominal per transaksi."
+  "version": "1.35.8",
+  "notes": "Preview QRIS ditampilkan setelah payload QRIS tersimpan."
 }
