@@ -1,4 +1,4 @@
 {
-  "version": "1.36.0",
-  "notes": "Preview QRIS panjang memakai gambar asli sebagai cadangan setelah Baca dari Gambar."
+  "version": "1.36.2",
+  "notes": "Generator QRIS mendukung payload panjang hingga QR Code version 40 dan dapat membuat QR dari payload tanpa gambar sumber."
 }

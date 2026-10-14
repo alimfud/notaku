@@ -202,7 +202,7 @@ export async function buildReceiptBytes(data, charWidth = 32) {
   if (data.qrisImageData) {
     try {
       const qris = await imageToCanvas(data.qrisImageData);
-      const qrisWidth = width >= 48 ? 240 : 192;
+      const qrisWidth = width >= 48 ? 280 : 220;
       const raster = imageToMonochromeBits(qris, qrisWidth, 180);
       b.feed(1).align('center').line('Scan QRIS untuk bayar');
       b.rasterImage(raster.widthPx, raster.heightPx, raster.bits);

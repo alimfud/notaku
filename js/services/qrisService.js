@@ -4,33 +4,70 @@
 // tetap harus berasal dari QRIS merchant sendiri; NotaKu hanya menambahkan
 // nominal transaksi, mengubah POI method menjadi dinamis, lalu menghitung CRC.
 
-const QR_ECC_CODEWORDS = {
-  1: 10,
-  2: 16,
-  3: 26,
-  4: 18,
-  5: 24,
-  6: 16,
-  7: 18,
-  8: 22,
-  9: 22,
-  10: 26,
+// QR byte-capacity block layout untuk error correction level M. Setiap tripel
+// berisi jumlah blok, total codeword per blok, lalu data codeword per blok.
+// Tabel lengkap ini membuat payload QRIS yang panjang tetap bisa digambar
+// offline, sampai QR Code version 40.
+const QR_DATA_BLOCK_GROUPS_M = {
+  1: [1, 26, 16],
+  2: [1, 44, 28],
+  3: [1, 70, 44],
+  4: [2, 50, 32],
+  5: [2, 67, 43],
+  6: [4, 43, 27],
+  7: [4, 49, 31],
+  8: [2, 60, 38, 2, 61, 39],
+  9: [3, 58, 36, 2, 59, 37],
+  10: [4, 69, 43, 1, 70, 44],
+  11: [1, 80, 50, 4, 81, 51],
+  12: [6, 58, 36, 2, 59, 37],
+  13: [8, 59, 37, 1, 60, 38],
+  14: [4, 64, 40, 5, 65, 41],
+  15: [5, 65, 41, 5, 66, 42],
+  16: [7, 73, 45, 3, 74, 46],
+  17: [10, 74, 46, 1, 75, 47],
+  18: [9, 69, 43, 4, 70, 44],
+  19: [3, 70, 44, 11, 71, 45],
+  20: [3, 67, 41, 13, 68, 42],
+  21: [17, 68, 42],
+  22: [17, 74, 46],
+  23: [4, 75, 47, 14, 76, 48],
+  24: [6, 73, 45, 14, 74, 46],
+  25: [8, 75, 47, 13, 76, 48],
+  26: [19, 74, 46, 4, 75, 47],
+  27: [22, 73, 45, 3, 74, 46],
+  28: [3, 73, 45, 23, 74, 46],
+  29: [21, 73, 45, 7, 74, 46],
+  30: [19, 75, 47, 10, 76, 48],
+  31: [2, 74, 46, 29, 75, 47],
+  32: [10, 74, 46, 23, 75, 47],
+  33: [14, 74, 46, 21, 75, 47],
+  34: [14, 74, 46, 23, 75, 47],
+  35: [12, 75, 47, 26, 76, 48],
+  36: [6, 75, 47, 34, 76, 48],
+  37: [29, 74, 46, 14, 75, 47],
+  38: [13, 74, 46, 32, 75, 47],
+  39: [40, 75, 47, 7, 76, 48],
+  40: [18, 75, 47, 31, 76, 48],
 };
 
-// QR byte-capacity block layout untuk error correction level M. Setiap angka
-// adalah jumlah codeword data pada satu blok; ECC ditambahkan sama rata.
-const QR_DATA_BLOCKS_M = {
-  1: [16],
-  2: [28],
-  3: [44],
-  4: [32, 32],
-  5: [43, 43],
-  6: [27, 27, 27, 27],
-  7: [31, 31, 31, 31],
-  8: [38, 38, 39, 39],
-  9: [36, 36, 36, 36, 38],
-  10: [43, 43, 43, 43, 44],
-};
+function expandQrBlocks(groups) {
+  const blocks = [];
+  for (let index = 0; index < groups.length; index += 3) {
+    const count = groups[index];
+    const dataCodewords = groups[index + 2];
+    for (let block = 0; block < count; block++) blocks.push(dataCodewords);
+  }
+  return blocks;
+}
+
+const QR_DATA_BLOCKS_M = Object.fromEntries(
+  Object.entries(QR_DATA_BLOCK_GROUPS_M).map(([version, groups]) => [version, expandQrBlocks(groups)]),
+);
+
+const QR_ECC_CODEWORDS = Object.fromEntries(
+  Object.entries(QR_DATA_BLOCK_GROUPS_M).map(([version, groups]) => [version, groups[1] - groups[2]]),
+);
 
 const ALIGNMENT_POSITIONS = {
   1: [],
@@ -43,6 +80,36 @@ const ALIGNMENT_POSITIONS = {
   8: [6, 24, 42],
   9: [6, 26, 46],
   10: [6, 28, 50],
+  11: [6, 30, 54],
+  12: [6, 32, 58],
+  13: [6, 34, 62],
+  14: [6, 26, 46, 66],
+  15: [6, 26, 48, 70],
+  16: [6, 26, 50, 74],
+  17: [6, 30, 54, 78],
+  18: [6, 30, 56, 82],
+  19: [6, 30, 58, 86],
+  20: [6, 34, 62, 90],
+  21: [6, 28, 50, 72, 94],
+  22: [6, 26, 50, 74, 98],
+  23: [6, 30, 54, 78, 102],
+  24: [6, 28, 54, 80, 106],
+  25: [6, 32, 58, 84, 110],
+  26: [6, 30, 58, 86, 114],
+  27: [6, 34, 62, 90, 118],
+  28: [6, 26, 50, 74, 98, 122],
+  29: [6, 30, 54, 78, 102, 126],
+  30: [6, 26, 52, 78, 104, 130],
+  31: [6, 30, 56, 82, 108, 134],
+  32: [6, 34, 60, 86, 112, 138],
+  33: [6, 30, 58, 86, 114, 142],
+  34: [6, 34, 62, 90, 118, 146],
+  35: [6, 30, 54, 78, 102, 126, 150],
+  36: [6, 24, 50, 76, 102, 128, 154],
+  37: [6, 28, 54, 80, 106, 132, 158],
+  38: [6, 32, 58, 84, 110, 136, 162],
+  39: [6, 26, 54, 82, 110, 138, 166],
+  40: [6, 30, 58, 86, 114, 142, 170],
 };
 
 const PAD_BYTES = [0xec, 0x11];
@@ -402,8 +469,8 @@ function lostPoint(matrix) {
 
 function encodeQrMatrix(payload) {
   let version = 1;
-  while (version <= 10 && !bytesForVersion(payload, version)) version++;
-  if (version > 10) throw new Error('Payload QRIS terlalu panjang untuk dibuat offline.');
+  while (version <= 40 && !bytesForVersion(payload, version)) version++;
+  if (version > 40) throw new Error('Payload QRIS terlalu panjang untuk dibuat sebagai QR Code.');
   const codewords = bytesForVersion(payload, version);
   let best = null;
   for (let mask = 0; mask < 8; mask++) {
@@ -462,12 +529,14 @@ export async function decodeQrPayload(file) {
 }
 
 export function dynamicQrisImage(settings, amount, merchantReference = '') {
-  if (!settings?.qrisImageData || !(Number(amount) > 0)) return '';
-  if (!settings.qrisPayload) return settings.qrisImageData;
-  try {
-    return qrPayloadToDataUrl(buildDynamicQrisPayload(settings.qrisPayload, amount, merchantReference));
-  } catch {
-    return settings.qrisImageData;
+  if (!(Number(amount) > 0)) return '';
+  if (settings?.qrisPayload) {
+    try {
+      return qrPayloadToDataUrl(buildDynamicQrisPayload(settings.qrisPayload, amount, merchantReference));
+    } catch {
+      // Payload yang belum valid tetap boleh memakai gambar QRIS statis.
+    }
   }
+  return settings?.qrisImageData || '';
 }
 

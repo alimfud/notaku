@@ -64,7 +64,7 @@ async function draw(root, saleId) {
   const settings = await withTimeout(getSettings(), 5000);
   const { sale, paidAmount, remaining, payments, displayStatus } = summary;
   const processStatus = getProcessStatus(sale);
-  const showQris = settings.qrisEnabled && settings.qrisImageData && displayStatus !== 'PAID' && displayStatus !== 'OVERPAID';
+  const showQris = settings.qrisEnabled && (settings.qrisImageData || settings.qrisPayload) && displayStatus !== 'PAID' && displayStatus !== 'OVERPAID';
   const qrisImageData = showQris
     ? dynamicQrisImage(settings, remaining, sale.invoiceNumber)
     : '';
@@ -318,7 +318,7 @@ function receiptLogoMarkup(settings) {
 
 async function showShareSheet(root, saleId, sale, items, settings, paidAmount, remaining) {
   const hasPhone = !!sale.customerPhone;
-  const qrisImageData = settings.qrisEnabled && settings.qrisImageData && remaining > 0
+  const qrisImageData = settings.qrisEnabled && (settings.qrisImageData || settings.qrisPayload) && remaining > 0
     ? dynamicQrisImage(settings, remaining, sale.invoiceNumber)
     : '';
   const canShareQris = !!qrisImageData && settings.qrisShowOnShare !== false;
