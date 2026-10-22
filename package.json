@@ -12,7 +12,7 @@
     "android:build": "npm run android:sync && cd android && ./gradlew assembleDebug",
     "android:release": "npm run android:sync && cd android && ./gradlew assembleRelease",
     "pretest": "npm run version:check",
-    "test": "node --test --test-isolation=none tests/*.test.mjs"
+    "test": "node scripts/run-tests.mjs"
   },
   "dependencies": {
     "@capacitor-community/bluetooth-le": "8.2.0",
