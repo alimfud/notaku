@@ -1,4 +1,4 @@
 {
-  "version": "1.36.16",
-  "notes": "Penyesuaian ukuran font Android menjadi 107%."
+  "version": "1.36.17",
+  "notes": "Menambahkan pengaturan auto cutter Bluetooth yang aktif secara default."
 }
