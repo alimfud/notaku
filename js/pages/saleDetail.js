@@ -496,7 +496,10 @@ async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining
         loading.classList.remove('hidden');
       }
     }
-    await bt.printReceiptViaBluetooth(receiptData, { charWidth: settings.btCharWidth || 32 });
+    await bt.printReceiptViaBluetooth(receiptData, {
+      charWidth: settings.btCharWidth || 32,
+      autoCut: settings.btAutoCut !== false,
+    });
     toast('Berhasil dikirim ke printer');
   } catch (e) {
     toast(e.message || 'Gagal mencetak via Bluetooth.');

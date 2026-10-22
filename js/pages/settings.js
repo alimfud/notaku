@@ -482,6 +482,10 @@ async function renderPrinter(root) {
     <div class="section-title">Lebar Kertas Bluetooth</div>
     <label class="field-radio"><input type="radio" name="charwidth" value="32" ${s.btCharWidth === 32 ? 'checked' : ''}><div><div class="radio-title">58mm (32 karakter/baris)</div></div></label>
     <label class="field-radio"><input type="radio" name="charwidth" value="48" ${s.btCharWidth === 48 ? 'checked' : ''}><div><div class="radio-title">80mm (48 karakter/baris)</div></div></label>
+    <label class="settings-preview-toggle">
+      <div><div class="settings-label">Auto cutter</div><div class="row-meta">Potong kertas otomatis setelah struk selesai, jika didukung printer.</div></div>
+      <input class="settings-preview-checkbox" id="autoCutToggle" type="checkbox" ${s.btAutoCut !== false ? 'checked' : ''}>
+    </label>
 
     <div class="section-title">Ukuran Kertas PDF</div>
     <label class="field-radio"><input type="radio" name="paper" value="THERMAL_58MM" ${s.paperSize === 'THERMAL_58MM' ? 'checked' : ''}><div><div class="radio-title">Thermal 58mm</div><div class="radio-sub">Printer struk kecil (kasir portabel)</div></div></label>
@@ -502,6 +506,10 @@ async function renderPrinter(root) {
   root.querySelectorAll('input[name="charwidth"]').forEach((r) => {
     r.onchange = async () => { await saveSettings({ btCharWidth: Number(r.value) }); toast('Lebar kertas Bluetooth disimpan'); };
   });
+  root.querySelector('#autoCutToggle').onchange = async (e) => {
+    await saveSettings({ btAutoCut: e.target.checked });
+    toast(e.target.checked ? 'Auto cutter diaktifkan' : 'Auto cutter dinonaktifkan');
+  };
   root.querySelector('#printPreviewToggle').onchange = async (e) => {
     await saveSettings({ printPreview: e.target.checked });
     toast(e.target.checked ? 'Preview Bluetooth diaktifkan' : 'Preview Bluetooth dinonaktifkan');

@@ -134,12 +134,12 @@ async function writeBytes(bytes) {
 }
 
 /** Print text with the printer's native font. Only logo/QRIS remain bitmaps. */
-export async function printReceiptViaBluetooth(receiptData, { charWidth = 32 } = {}) {
+export async function printReceiptViaBluetooth(receiptData, { charWidth = 32, autoCut = true } = {}) {
   if (!isConnected()) throw new Error('Printer belum tersambung. Sambungkan dulu lewat Setting → Printer.');
-  await writeBytes(await buildReceiptBytes(receiptData, charWidth));
+  await writeBytes(await buildReceiptBytes(receiptData, charWidth, autoCut));
 }
 
-export async function buildReceiptBytes(data, charWidth = 32) {
+export async function buildReceiptBytes(data, charWidth = 32, autoCut = true) {
   const width = Number(charWidth) >= 48 ? 48 : 32;
   const paperDots = width * 12;
   const rp = (value) => 'Rp' + Math.round(Number(value) || 0).toLocaleString('id-ID');
@@ -211,7 +211,9 @@ export async function buildReceiptBytes(data, charWidth = 32) {
 
   b.align('center');
   for (const line of String(data.footerNote || '').split('\n')) centeredLines(b, line, width);
-  return b.size(0).bold(false).feed(1).cut().toBytes();
+  b.size(0).bold(false).feed(1);
+  if (autoCut) b.cut();
+  return b.toBytes();
 }
 
 function normalizedText(value) {

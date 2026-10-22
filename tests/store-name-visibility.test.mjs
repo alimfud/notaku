@@ -56,3 +56,12 @@ test('Bluetooth receipt omits store-name bytes when disabled', async () => {
   assert.doesNotMatch(hidden, /Jajan Hajatan/);
   assert.match(hidden, /INV-001/);
 });
+
+test('Bluetooth auto cutter is enabled by default and can be disabled', async () => {
+  const cutCommand = Buffer.from([0x1d, 0x56, 0x00]);
+  const defaultBytes = Buffer.from(await buildReceiptBytes(receiptData('')));
+  const disabledBytes = Buffer.from(await buildReceiptBytes(receiptData(''), 32, false));
+
+  assert.notEqual(defaultBytes.indexOf(cutCommand), -1);
+  assert.equal(disabledBytes.indexOf(cutCommand), -1);
+});

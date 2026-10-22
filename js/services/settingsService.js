@@ -43,6 +43,7 @@ const DEFAULTS = {
   btPrinterId: '',          // id perangkat Web Bluetooth yang terakhir tersambung (untuk sambung ulang otomatis)
   btPrinterName: '',
   btCharWidth: 32,          // 32 (58mm) atau 48 (80mm) karakter per baris
+  btAutoCut: true,          // kirim perintah potong otomatis setelah struk selesai
 
   // QRIS
   qrisEnabled: false,
