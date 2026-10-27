@@ -298,12 +298,24 @@ async function paidAmountRowCanvas(data, paidLabel, totalLabel, balanceLabel, pa
   const fontSize = Math.max(18, Math.round(paperDots * 0.055));
   const totalFontSize = Math.round(fontSize * 1.8);
   let stampImage = null;
-  try { stampImage = await loadStampImage(PAID_STAMP_SRC); } catch { /* tanpa stempel jika gambar gagal dimuat */ }
+  
+  try { 
+    stampImage = await loadStampImage(PAID_STAMP_SRC); 
+  } catch { /* tanpa stempel jika gambar gagal dimuat */ }
+  
   const stampWidth = paperDots * PAID_STAMP_WIDTH_RATIO;
   const stampHeight = stampImage ? stampWidth * stampImage.naturalHeight / stampImage.naturalWidth : 0;
+  
+  // 👈 HITUNG ROTASI UNTUK MEMASTIKAN CANVAS TIDAK TERPOTONG
+  const stampAngle = PAID_STAMP_ROTATE * Math.PI / 180;
+  const stampBoxHeight = Math.abs(stampWidth * Math.sin(stampAngle)) + Math.abs(stampHeight * Math.cos(stampAngle));
+  
   const lineStep = fontSize * 1.5;
   canvas.width = paperDots;
-  canvas.height = Math.ceil(Math.max(lineStep * 2 + totalFontSize, stampHeight) + 8);
+  
+  // 👈 GUNAKAN stampBoxHeight PADA PERHITUNGAN TINGGI CANVAS
+  canvas.height = Math.ceil(Math.max(lineStep * 2 + totalFontSize, stampBoxHeight) + 8);
+  
   const centerY = canvas.height / 2;
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -329,9 +341,16 @@ async function paidAmountRowCanvas(data, paidLabel, totalLabel, balanceLabel, pa
   if (stampImage) {
     ctx.save();
     ctx.globalAlpha = PAID_STAMP_OPACITY;
-    const x = (paperDots - stampWidth) / 2 + paperDots * PAID_STAMP_OFFSET_X;
-    const y = centerY - stampHeight / 2 + lineStep * PAID_STAMP_OFFSET_Y;
-    ctx.drawImage(stampImage, x, y, stampWidth, stampHeight);
+    
+    // 👈 TERAPKAN TRANSLATE & ROTATE PADA STEMPEL
+    const cx = paperDots / 2 + paperDots * PAID_STAMP_OFFSET_X;
+    const cy = centerY + lineStep * PAID_STAMP_OFFSET_Y;
+    ctx.translate(cx, cy);
+    ctx.rotate(stampAngle);
+    
+    // 👈 GAMBAR STEMPEL DENGAN TITIK TENGAH (TANPA OFFSET X/Y LAGI)
+    ctx.drawImage(stampImage, -stampWidth / 2, -stampHeight / 2, stampWidth, stampHeight);
+    
     ctx.restore();
   }
   return canvas;
