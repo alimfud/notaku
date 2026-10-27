@@ -286,9 +286,9 @@ function compactQuantityLine(builder, left, right, paperDots) {
 //   PAID_STAMP_OPACITY     : 0.1 (tipis) sampai 1 (pekat)
 // =====================================================================
 const PAID_STAMP_SRC = 'icons/stamp-lunas.png';
-const PAID_STAMP_WIDTH_RATIO = 0.5;
+const PAID_STAMP_WIDTH_RATIO = 0.4;
 const PAID_STAMP_OFFSET_X = 0;
-const PAID_STAMP_OFFSET_Y = 0;
+const PAID_STAMP_OFFSET_Y = 0.5;
 const PAID_STAMP_OPACITY = 0.5;
 
 async function paidAmountRowCanvas(data, paidLabel, totalLabel, balanceLabel, paperDots) {

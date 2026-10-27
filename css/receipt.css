@@ -46,9 +46,9 @@
    Titik tengah stempel = tengah baris "BAYAR".
    ===================================================================== */
 .receipt-payment-paid,.bluetooth-native-paid-row{
-  --paid-stamp-width:200px;
-  --paid-stamp-x:0px;
-  --paid-stamp-y:0px;
+  --paid-stamp-width:170px;
+  --paid-stamp-x:-5px;
+  --paid-stamp-y:-50px;
   --paid-stamp-opacity:.55;
   position:relative;
 }
