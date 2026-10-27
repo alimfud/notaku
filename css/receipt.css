@@ -50,7 +50,7 @@
   --paid-stamp-x:-5px;
   --paid-stamp-y:-50px;
   --paid-stamp-opacity:.55;
-  --paid-stamp-rotate: -10deg;
+  --paid-stamp-rotate: -15deg;
   position:relative;
 }
 .bluetooth-native-paid-row{--paid-stamp-width:170px;} /* ukuran stempel di pratinjau Bluetooth */
