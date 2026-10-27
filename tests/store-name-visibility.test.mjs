@@ -57,15 +57,40 @@ test('Bluetooth receipt omits store-name bytes when disabled', async () => {
   assert.match(hidden, /INV-001/);
 });
 
-test('Bluetooth receipt marks only paid invoices with the LUNAS frame', async () => {
-  const paid = Buffer.from(await buildReceiptBytes({ ...receiptData(''), isPaid: true })).toString('latin1');
-  const unpaid = Buffer.from(await buildReceiptBytes({ ...receiptData(''), isPaid: false, paid: 5000, remaining: 5000 })).toString('latin1');
+test('Bluetooth receipt overlays a raster LUNAS stamp on the paid amount row only', async () => {
+  const paintedText = [];
+  const previousDocument = globalThis.document;
+  globalThis.document = {
+    createElement() {
+      const canvas = { width: 0, height: 0 };
+      const ctx = {
+        fillStyle: '', strokeStyle: '', font: '', textBaseline: '', textAlign: '', globalAlpha: 1, lineWidth: 1,
+        fillRect() {}, strokeRect() {}, save() {}, restore() {}, translate() {}, rotate() {}, drawImage() {},
+        fillText(text) { paintedText.push(String(text)); },
+        measureText(text) { return { width: String(text).length * 20 }; },
+        getImageData(_x, _y, width, height) { return { data: new Uint8ClampedArray(width * height * 4).fill(255) }; },
+      };
+      canvas.getContext = () => ctx;
+      return canvas;
+    },
+  };
+  try {
+    const paidBytes = Buffer.from(await buildReceiptBytes({ ...receiptData(''), isPaid: true })).toString('latin1');
+    const unpaidBytes = Buffer.from(await buildReceiptBytes({ ...receiptData(''), isPaid: false, paid: 5000, remaining: 5000 })).toString('latin1');
+    const rasterCommand = Buffer.from([0x1d, 0x76, 0x30, 0x00]).toString('latin1');
 
-  assert.match(paid, /LUNAS/);
-  assert.match(paid, /\+[-]{17}\+/);
-  assert.match(paid, /\|  \+[-]{11}\+  \|/);
-  assert.match(paid, /\|  \|   LUNAS   \|  \|/);
-  assert.doesNotMatch(unpaid, /LUNAS/);
+    assert.ok(paidBytes.includes(rasterCommand));
+    assert.ok(paintedText.includes('TOTAL'));
+    assert.ok(paintedText.includes('BAYAR'));
+    assert.ok(paintedText.includes('Rp10.000'));
+    assert.ok(paintedText.includes('KEMBALI'));
+    assert.ok(paintedText.includes('LUNAS'));
+    assert.doesNotMatch(unpaidBytes, /LUNAS/);
+    assert.ok(!unpaidBytes.includes(rasterCommand));
+  } finally {
+    if (previousDocument === undefined) delete globalThis.document;
+    else globalThis.document = previousDocument;
+  }
 });
 
 test('Bluetooth auto cutter is enabled by default and can be disabled', async () => {

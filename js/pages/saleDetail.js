@@ -116,12 +116,11 @@ async function draw(root, saleId) {
           ${sale.shippingAmount > 0 ? `<div class="tr"><span>Ongkos Kirim</span><span>+${rupiah(sale.shippingAmount)}</span></div>` : ''}
           ${sale.otherAmount > 0 ? `<div class="tr"><span>${escapeHtml(sale.otherLabel || 'Lain-lain')}</span><span>+${rupiah(sale.otherAmount)}</span></div>` : ''}
           <div class="tr grand"><span>TOTAL</span><span>${rupiah(sale.total)}</span></div>
-          <div class="tr receipt-payment-detail"><span>BAYAR</span><span>${rupiah(paidAmount)}</span></div>
+          <div class="tr receipt-payment-detail ${displayStatus === 'PAID' ? 'receipt-payment-paid' : ''}"><span>BAYAR</span><span>${rupiah(paidAmount)}</span>${displayStatus === 'PAID' ? '<span class="receipt-paid-stamp" aria-label="Status nota LUNAS">LUNAS</span>' : ''}</div>
           <div class="tr receipt-payment-detail receipt-balance ${remaining > 0 ? 'receipt-balance--due' : 'receipt-balance--paid'}">
             <span>${remaining > 0 ? 'SISA' : 'KEMBALI'}</span><span>${rupiah(Math.abs(remaining))}</span>
           </div>
         </div>
-        ${displayStatus === 'PAID' ? '<div class="receipt-paid-stamp-wrap"><span class="receipt-paid-stamp" aria-label="Status nota LUNAS">LUNAS</span></div>' : ''}
         ${sale.note ? `<div class="row-meta receipt-note">Catatan: ${escapeHtml(sale.note)}</div>` : ''}
         ${receiptQrisImageData ? `
           <div class="receipt-qris">
@@ -527,9 +526,8 @@ async function showBluetoothPreview(data, charWidth) {
       ${data.other > 0 ? `<div class="bluetooth-native-pair"><span>${escapeHtml(data.otherLabel || 'Lain-lain')}</span><span>+${rupiah(data.other)}</span></div>` : ''}
       <div class="bluetooth-native-divider"></div>
       <div class="bluetooth-native-pair bluetooth-native-total"><span>TOTAL</span><span>${rupiah(data.total)}</span></div>
-      <div class="bluetooth-native-pair"><span>BAYAR</span><span>${rupiah(data.paid)}</span></div>
+      <div class="bluetooth-native-pair bluetooth-native-paid-row"><span>BAYAR</span><span>${rupiah(data.paid)}</span>${data.isPaid ? '<span class="bluetooth-native-paid-stamp" aria-label="Status nota LUNAS">LUNAS</span>' : ''}</div>
       <div class="bluetooth-native-pair bluetooth-native-bold"><span>${data.remaining > 0 ? 'SISA' : 'KEMBALI'}</span><span>${rupiah(Math.abs(data.remaining))}</span></div>
-      ${data.isPaid ? '<div class="bluetooth-native-center"><span class="bluetooth-native-paid-stamp">LUNAS</span></div>' : ''}
       ${data.note ? `<div class="bluetooth-native-note"><b>Catatan:</b><br>${escapeHtml(data.note)}</div>` : ''}
       ${data.qrisImageData ? `<div class="bluetooth-native-center"><span>Scan QRIS untuk bayar</span><img class="bluetooth-native-qris" src="${escapeHtml(data.qrisImageData)}" alt="QRIS"></div>` : ''}
       <div class="bluetooth-native-footer">${escapeHtml(data.footerNote)}</div>
