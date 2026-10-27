@@ -1,5 +1,5 @@
 /* Receipt */
-.receipt{background:#fff;padding:22px 20px 30px;}
+.receipt{position:relative;background:#fff;padding:22px 20px 30px;}
 .receipt-logo-wrap{text-align:center;}
 .receipt-logo{display:inline-block;width:var(--receipt-logo-max-width,100%);max-width:100%;height:auto;object-fit:contain;}
 .receipt .receipt-shop{text-align:center;font-size:18px;font-weight:800;}
@@ -36,8 +36,8 @@
 .receipt .receipt-balance{font-weight:700;}
 .receipt .receipt-balance--due{color:var(--accent);}
 .receipt .receipt-balance--paid{color:var(--status-lunas);}
-.receipt-paid-stamp-wrap{display:flex;justify-content:center;margin:12px 0 5px;}
-.receipt-paid-stamp{display:inline-block;padding:6px 18px;border:3px double #28734f;color:#28734f;font-size:17px;font-weight:900;letter-spacing:2px;line-height:1;text-align:center;transform:rotate(-3deg);}
+.receipt-paid-stamp-wrap{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;margin:0;pointer-events:none;}
+.receipt-paid-stamp{display:inline-block;padding:10px 28px;border:4px double #28734f;color:#28734f;font-size:30px;font-weight:900;letter-spacing:3px;line-height:1;text-align:center;opacity:.58;transform:rotate(-7deg);}
 .bluetooth-native-paid-stamp{display:inline-block;margin:8px auto 2px;padding:5px 12px;border:3px double #28734f;color:#28734f;font-size:12px;font-weight:800;letter-spacing:1.5px;text-align:center;}
 .sale-detail-receipt-wrap{padding:16px;}
 .receipt-share-help{padding:0 20px;color:var(--ink-soft);font-size:13px;line-height:1.5;}
