@@ -290,6 +290,7 @@ const PAID_STAMP_WIDTH_RATIO = 0.4;
 const PAID_STAMP_OFFSET_X = 0;
 const PAID_STAMP_OFFSET_Y = 0.5;
 const PAID_STAMP_OPACITY = 0.5;
+const PAID_STAMP_ROTATE = -8;
 
 async function paidAmountRowCanvas(data, paidLabel, totalLabel, balanceLabel, paperDots) {
   const canvas = document.createElement('canvas');
