@@ -191,22 +191,14 @@ export async function buildReceiptBytes(data, charWidth = 32, autoCut = true) {
   b.bold(true).size(2);
   b.twoColumn('TOTAL', rp(data.total), width);
   b.size(0).bold(false);
-  b.twoColumn('BAYAR', rp(data.paid), width);
-  b.bold(true).twoColumn(data.remaining > 0 ? 'SISA' : 'KEMBALI', rp(Math.abs(data.remaining)), width).bold(false);
   if (data.isPaid) {
-    const label = 'LUNAS';
-    const inset = 3;
-    const innerWidth = label.length + inset * 2;
-    const innerBorder = `+${'-'.repeat(innerWidth)}+`;
-    const outerBorder = `+${'-'.repeat(innerBorder.length + 4)}+`;
-    b.feed(1).align('center').bold(true)
-      .line(outerBorder)
-      .line(`|  ${innerBorder}  |`)
-      .line(`|  |${' '.repeat(inset)}${label}${' '.repeat(inset)}|  |`)
-      .line(`|  ${innerBorder}  |`)
-      .line(outerBorder)
-      .bold(false).feed(1).align('left');
+    const paidRow = paidAmountRowCanvas(data, rp(data.paid), rp(data.total), rp(Math.abs(data.remaining)), paperDots);
+    const raster = imageToMonochromeBits(paidRow, paperDots, 184);
+    b.rasterImage(raster.widthPx, raster.heightPx, raster.bits);
+  } else {
+    b.twoColumn('BAYAR', rp(data.paid), width);
   }
+  b.bold(true).twoColumn(data.remaining > 0 ? 'SISA' : 'KEMBALI', rp(Math.abs(data.remaining)), width).bold(false);
 
   if (data.note) {
     b.feed(1).bold(true).line('Catatan:').bold(false);
@@ -281,6 +273,63 @@ function compactQuantityLine(builder, left, right, paperDots) {
   ctx.fillText(rightText, Math.ceil(ctx.measureText(leftText).width) + 16, 14);
   const raster = imageToMonochromeBits(canvas, paperDots, 150);
   builder.rasterImage(raster.widthPx, raster.heightPx, raster.bits);
+}
+
+function paidAmountRowCanvas(data, paidLabel, totalLabel, balanceLabel, paperDots) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const fontSize = Math.max(18, Math.round(paperDots * 0.055));
+  const totalFontSize = Math.round(fontSize * 1.8);
+  const stampFontSize = Math.max(32, Math.round(paperDots * 0.105));
+  const stampText = 'LUNAS';
+  const stampTextWidth = (() => {
+    ctx.font = `900 ${stampFontSize}px Arial, sans-serif`;
+    return ctx.measureText(stampText).width;
+  })();
+  const stampWidth = stampTextWidth + stampFontSize * 0.8;
+  const stampHeight = stampFontSize * 1.35;
+  const angle = -16 * Math.PI / 180;
+  const lineStep = fontSize * 1.5;
+  const rotatedStampHeight = Math.abs(stampWidth * Math.sin(angle)) + Math.abs(stampHeight * Math.cos(angle));
+  canvas.width = paperDots;
+  canvas.height = Math.ceil(Math.max(lineStep * 2 + totalFontSize, rotatedStampHeight) + 8);
+  const centerY = canvas.height / 2;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#111';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.font = `bold ${totalFontSize}px Arial, sans-serif`;
+  ctx.fillText('TOTAL', 0, centerY - lineStep);
+  ctx.textAlign = 'right';
+  ctx.fillText(totalLabel, paperDots - 2, centerY - lineStep);
+  ctx.fillStyle = '#111';
+  ctx.textAlign = 'left';
+  ctx.font = `${fontSize}px Arial, sans-serif`;
+  ctx.fillText('BAYAR', 0, centerY);
+  ctx.textAlign = 'right';
+  ctx.fillText(paidLabel, paperDots - 2, centerY);
+  ctx.textAlign = 'left';
+  ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+  ctx.fillText(data.remaining > 0 ? 'SISA' : 'KEMBALI', 0, centerY + lineStep);
+  ctx.textAlign = 'right';
+  ctx.fillText(balanceLabel, paperDots - 2, centerY + lineStep);
+
+  ctx.save();
+  ctx.translate(paperDots / 2, centerY);
+  ctx.rotate(angle);
+  ctx.globalAlpha = 0.5;
+  ctx.strokeStyle = '#28734f';
+  ctx.fillStyle = '#28734f';
+  ctx.lineWidth = Math.max(2, stampFontSize * 0.08);
+  ctx.strokeRect(-stampWidth / 2, -stampHeight / 2, stampWidth, stampHeight);
+  ctx.strokeRect(-stampWidth / 2 + 5, -stampHeight / 2 + 5, stampWidth - 10, stampHeight - 10);
+  ctx.font = `900 ${stampFontSize}px Arial, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(stampText, 0, 0);
+  ctx.restore();
+  return canvas;
 }
 
 async function imageToCanvas(src, trimWhitespace = false) {
