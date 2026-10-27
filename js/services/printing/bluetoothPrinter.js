@@ -192,7 +192,7 @@ export async function buildReceiptBytes(data, charWidth = 32, autoCut = true) {
   b.twoColumn('TOTAL', rp(data.total), width);
   b.size(0).bold(false);
   if (data.isPaid) {
-    const paidRow = paidAmountRowCanvas(data, rp(data.paid), rp(data.total), rp(Math.abs(data.remaining)), paperDots);
+    const paidRow = await paidAmountRowCanvas(data, rp(data.paid), rp(data.total), rp(Math.abs(data.remaining)), paperDots);
     const raster = imageToMonochromeBits(paidRow, paperDots, 184);
     b.rasterImage(raster.widthPx, raster.heightPx, raster.bits);
   } else {
@@ -275,24 +275,34 @@ function compactQuantityLine(builder, left, right, paperDots) {
   builder.rasterImage(raster.widthPx, raster.heightPx, raster.bits);
 }
 
-function paidAmountRowCanvas(data, paidLabel, totalLabel, balanceLabel, paperDots) {
+// =====================================================================
+// STEMPEL LUNAS UNTUK CETAK BLUETOOTH  (gambar: icons/stamp-lunas.png)
+// >>> UBAH POSISI / UKURAN STEMPEL DI SINI <<<
+//   PAID_STAMP_WIDTH_RATIO : lebar stempel = rasio x lebar kertas (0.50 = 50%)
+//                            makin kecil angka, makin kecil stempel
+//   PAID_STAMP_OFFSET_X    : geser kiri(-) / kanan(+), dalam rasio lebar kertas
+//                            contoh 0.05 = geser kanan 5%
+//   PAID_STAMP_OFFSET_Y    : geser atas(-) / bawah(+), dalam rasio tinggi baris
+//   PAID_STAMP_OPACITY     : 0.1 (tipis) sampai 1 (pekat)
+// =====================================================================
+const PAID_STAMP_SRC = 'icons/stamp-lunas.png';
+const PAID_STAMP_WIDTH_RATIO = 0.5;
+const PAID_STAMP_OFFSET_X = 0;
+const PAID_STAMP_OFFSET_Y = 0;
+const PAID_STAMP_OPACITY = 0.5;
+
+async function paidAmountRowCanvas(data, paidLabel, totalLabel, balanceLabel, paperDots) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   const fontSize = Math.max(18, Math.round(paperDots * 0.055));
   const totalFontSize = Math.round(fontSize * 1.8);
-  const stampFontSize = Math.max(32, Math.round(paperDots * 0.105));
-  const stampText = 'LUNAS';
-  const stampTextWidth = (() => {
-    ctx.font = `900 ${stampFontSize}px Arial, sans-serif`;
-    return ctx.measureText(stampText).width;
-  })();
-  const stampWidth = stampTextWidth + stampFontSize * 0.8;
-  const stampHeight = stampFontSize * 1.35;
-  const angle = -16 * Math.PI / 180;
+  let stampImage = null;
+  try { stampImage = await loadStampImage(PAID_STAMP_SRC); } catch { /* tanpa stempel jika gambar gagal dimuat */ }
+  const stampWidth = paperDots * PAID_STAMP_WIDTH_RATIO;
+  const stampHeight = stampImage ? stampWidth * stampImage.naturalHeight / stampImage.naturalWidth : 0;
   const lineStep = fontSize * 1.5;
-  const rotatedStampHeight = Math.abs(stampWidth * Math.sin(angle)) + Math.abs(stampHeight * Math.cos(angle));
   canvas.width = paperDots;
-  canvas.height = Math.ceil(Math.max(lineStep * 2 + totalFontSize, rotatedStampHeight) + 8);
+  canvas.height = Math.ceil(Math.max(lineStep * 2 + totalFontSize, stampHeight) + 8);
   const centerY = canvas.height / 2;
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -315,21 +325,24 @@ function paidAmountRowCanvas(data, paidLabel, totalLabel, balanceLabel, paperDot
   ctx.textAlign = 'right';
   ctx.fillText(balanceLabel, paperDots - 2, centerY + lineStep);
 
-  ctx.save();
-  ctx.translate(paperDots / 2, centerY);
-  ctx.rotate(angle);
-  ctx.globalAlpha = 0.5;
-  ctx.strokeStyle = '#28734f';
-  ctx.fillStyle = '#28734f';
-  ctx.lineWidth = Math.max(2, stampFontSize * 0.08);
-  ctx.strokeRect(-stampWidth / 2, -stampHeight / 2, stampWidth, stampHeight);
-  ctx.strokeRect(-stampWidth / 2 + 5, -stampHeight / 2 + 5, stampWidth - 10, stampHeight - 10);
-  ctx.font = `900 ${stampFontSize}px Arial, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(stampText, 0, 0);
-  ctx.restore();
+  if (stampImage) {
+    ctx.save();
+    ctx.globalAlpha = PAID_STAMP_OPACITY;
+    const x = (paperDots - stampWidth) / 2 + paperDots * PAID_STAMP_OFFSET_X;
+    const y = centerY - stampHeight / 2 + lineStep * PAID_STAMP_OFFSET_Y;
+    ctx.drawImage(stampImage, x, y, stampWidth, stampHeight);
+    ctx.restore();
+  }
   return canvas;
+}
+
+function loadStampImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Gambar stempel tidak dapat dimuat.'));
+    image.src = src;
+  });
 }
 
 async function imageToCanvas(src, trimWhitespace = false) {

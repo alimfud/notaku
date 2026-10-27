@@ -57,15 +57,22 @@ test('Bluetooth receipt omits store-name bytes when disabled', async () => {
   assert.match(hidden, /INV-001/);
 });
 
-test('Bluetooth receipt overlays a raster LUNAS stamp on the paid amount row only', async () => {
+test('Bluetooth receipt overlays a raster LUNAS stamp image on the paid amount row only', async () => {
   const paintedText = [];
+  const drawnImages = [];
   const previousDocument = globalThis.document;
+  const previousImage = globalThis.Image;
+  globalThis.Image = class {
+    constructor() { this.naturalWidth = 560; this.naturalHeight = 313; }
+    set src(value) { this._src = value; queueMicrotask(() => this.onload?.()); }
+    get src() { return this._src; }
+  };
   globalThis.document = {
     createElement() {
       const canvas = { width: 0, height: 0 };
       const ctx = {
         fillStyle: '', strokeStyle: '', font: '', textBaseline: '', textAlign: '', globalAlpha: 1, lineWidth: 1,
-        fillRect() {}, strokeRect() {}, save() {}, restore() {}, translate() {}, rotate() {}, drawImage() {},
+        fillRect() {}, strokeRect() {}, save() {}, restore() {}, translate() {}, rotate() {}, drawImage(image) { drawnImages.push(image.src); },
         fillText(text) { paintedText.push(String(text)); },
         measureText(text) { return { width: String(text).length * 20 }; },
         getImageData(_x, _y, width, height) { return { data: new Uint8ClampedArray(width * height * 4).fill(255) }; },
@@ -84,12 +91,15 @@ test('Bluetooth receipt overlays a raster LUNAS stamp on the paid amount row onl
     assert.ok(paintedText.includes('BAYAR'));
     assert.ok(paintedText.includes('Rp10.000'));
     assert.ok(paintedText.includes('KEMBALI'));
-    assert.ok(paintedText.includes('LUNAS'));
+    assert.ok(drawnImages.includes('icons/stamp-lunas.png'));
+    assert.ok(!paintedText.includes('LUNAS'));
     assert.doesNotMatch(unpaidBytes, /LUNAS/);
     assert.ok(!unpaidBytes.includes(rasterCommand));
   } finally {
     if (previousDocument === undefined) delete globalThis.document;
     else globalThis.document = previousDocument;
+    if (previousImage === undefined) delete globalThis.Image;
+    else globalThis.Image = previousImage;
   }
 });
 

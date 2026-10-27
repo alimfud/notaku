@@ -58,6 +58,7 @@ const CORE_ASSETS = [
   './icons/icon-192.png?v=printer-2',
   './icons/icon-512.png?v=printer-2',
   './icons/icon-maskable-512.png?v=printer-2',
+  './icons/stamp-lunas.png',
   './js/app.js',
   './js/theme.js',
   './js/navIndicator.js',

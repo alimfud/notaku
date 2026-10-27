@@ -36,9 +36,30 @@
 .receipt .receipt-balance{font-weight:700;}
 .receipt .receipt-balance--due{color:var(--accent);}
 .receipt .receipt-balance--paid{color:var(--status-lunas);}
-.receipt-payment-paid,.bluetooth-native-paid-row{position:relative;}
-.receipt-paid-stamp,.bluetooth-native-paid-stamp{position:absolute;left:50%;top:50%;z-index:2;display:inline-block;padding:10px 26px;border:5px double #28734f;border-radius:2px;background:transparent;color:#28734f;font-size:50px;font-weight:900;letter-spacing:3px;line-height:1;text-align:center;white-space:nowrap;opacity:.5;pointer-events:none;transform:translate(-50%,-50%) rotate(-16deg);}
-.bluetooth-native-paid-stamp{padding:8px 20px;font-size:44px;letter-spacing:2px;}
+/* =====================================================================
+   STEMPEL LUNAS (gambar: icons/stamp-lunas.png)
+   >>> UBAH POSISI / UKURAN STEMPEL DI SINI <<<
+   --paid-stamp-width   : ukuran stempel (makin kecil angka, makin kecil stempel)
+   --paid-stamp-x       : geser KIRI(-) / KANAN(+)  contoh: -10px atau 10px
+   --paid-stamp-y       : geser ATAS(-) / BAWAH(+)  contoh: -8px atau 8px
+   --paid-stamp-opacity : transparansi 0.1 (tipis) sampai 1 (pekat)
+   Titik tengah stempel = tengah baris "BAYAR".
+   ===================================================================== */
+.receipt-payment-paid,.bluetooth-native-paid-row{
+  --paid-stamp-width:200px;
+  --paid-stamp-x:0px;
+  --paid-stamp-y:0px;
+  --paid-stamp-opacity:.55;
+  position:relative;
+}
+.bluetooth-native-paid-row{--paid-stamp-width:170px;} /* ukuran stempel di pratinjau Bluetooth */
+.receipt-paid-stamp,.bluetooth-native-paid-stamp{
+  position:absolute;left:50%;top:50%;z-index:2;
+  width:var(--paid-stamp-width);height:auto;
+  opacity:var(--paid-stamp-opacity);
+  pointer-events:none;
+  transform:translate(calc(-50% + var(--paid-stamp-x)),calc(-50% + var(--paid-stamp-y)));
+}
 .sale-detail-receipt-wrap{padding:16px;}
 .receipt-share-help{padding:0 20px;color:var(--ink-soft);font-size:13px;line-height:1.5;}
 .print-preview-label{text-align:center;font-size:12px;color:var(--muted);padding:4px 16px 12px;}
