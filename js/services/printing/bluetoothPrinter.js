@@ -193,6 +193,20 @@ export async function buildReceiptBytes(data, charWidth = 32, autoCut = true) {
   b.size(0).bold(false);
   b.twoColumn('BAYAR', rp(data.paid), width);
   b.bold(true).twoColumn(data.remaining > 0 ? 'SISA' : 'KEMBALI', rp(Math.abs(data.remaining)), width).bold(false);
+  if (data.isPaid) {
+    const label = 'LUNAS';
+    const inset = 3;
+    const innerWidth = label.length + inset * 2;
+    const innerBorder = `+${'-'.repeat(innerWidth)}+`;
+    const outerBorder = `+${'-'.repeat(innerBorder.length + 4)}+`;
+    b.feed(1).align('center').bold(true)
+      .line(outerBorder)
+      .line(`|  ${innerBorder}  |`)
+      .line(`|  |${' '.repeat(inset)}${label}${' '.repeat(inset)}|  |`)
+      .line(`|  ${innerBorder}  |`)
+      .line(outerBorder)
+      .bold(false).feed(1).align('left');
+  }
 
   if (data.note) {
     b.feed(1).bold(true).line('Catatan:').bold(false);

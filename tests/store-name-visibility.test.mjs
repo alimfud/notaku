@@ -57,6 +57,17 @@ test('Bluetooth receipt omits store-name bytes when disabled', async () => {
   assert.match(hidden, /INV-001/);
 });
 
+test('Bluetooth receipt marks only paid invoices with the LUNAS frame', async () => {
+  const paid = Buffer.from(await buildReceiptBytes({ ...receiptData(''), isPaid: true })).toString('latin1');
+  const unpaid = Buffer.from(await buildReceiptBytes({ ...receiptData(''), isPaid: false, paid: 5000, remaining: 5000 })).toString('latin1');
+
+  assert.match(paid, /LUNAS/);
+  assert.match(paid, /\+[-]{17}\+/);
+  assert.match(paid, /\|  \+[-]{11}\+  \|/);
+  assert.match(paid, /\|  \|   LUNAS   \|  \|/);
+  assert.doesNotMatch(unpaid, /LUNAS/);
+});
+
 test('Bluetooth auto cutter is enabled by default and can be disabled', async () => {
   const cutCommand = Buffer.from([0x1d, 0x56, 0x00]);
   const defaultBytes = Buffer.from(await buildReceiptBytes(receiptData('')));
