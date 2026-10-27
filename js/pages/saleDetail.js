@@ -74,7 +74,7 @@ async function draw(root, saleId) {
 
   setTopbarActions([
     { icon: 'edit', label: 'Edit', title: 'Ubah Nota', onClick: () => navigate(`sale/${saleId}/edit`) },
-    { icon: 'bluetoothPrint', label: 'Print', title: 'Cetak Bluetooth', onClick: () => handleBluetoothPrint(sale, items, settings, paidAmount, remaining, bluetoothQrisImageData) },
+    { icon: 'bluetoothPrint', label: 'Print', title: 'Cetak Bluetooth', onClick: () => handleBluetoothPrint(sale, items, settings, paidAmount, remaining, bluetoothQrisImageData, displayStatus) },
     { icon: 'payment', label: 'Bayar', title: 'Tambah Pembayaran', onClick: () => handleAddPayment(root, saleId, remaining) },
     { icon: 'delete', label: 'Hapus', title: 'Hapus', onClick: () => handleDelete(root, saleId) },
   ]);
@@ -121,6 +121,7 @@ async function draw(root, saleId) {
             <span>${remaining > 0 ? 'SISA' : 'KEMBALI'}</span><span>${rupiah(Math.abs(remaining))}</span>
           </div>
         </div>
+        ${displayStatus === 'PAID' ? '<div class="receipt-paid-stamp-wrap"><span class="receipt-paid-stamp" aria-label="Status nota LUNAS">LUNAS</span></div>' : ''}
         ${sale.note ? `<div class="row-meta receipt-note">Catatan: ${escapeHtml(sale.note)}</div>` : ''}
         ${receiptQrisImageData ? `
           <div class="receipt-qris">
@@ -434,7 +435,7 @@ async function showFileShare(file, waNumber, isPdf, label = 'Nota') {
   });
 }
 
-function buildBluetoothReceiptData(sale, items, settings, paidAmount, remaining, qrisImageData = '') {
+function buildBluetoothReceiptData(sale, items, settings, paidAmount, remaining, qrisImageData = '', displayStatus = '') {
   return {
     storeName: settings.showStoreNameOnBluetooth !== false ? settings.storeName : '',
     storeAddress: settings.storeAddress,
@@ -458,15 +459,16 @@ function buildBluetoothReceiptData(sale, items, settings, paidAmount, remaining,
     total: sale.total,
     paid: paidAmount,
     remaining,
+    isPaid: displayStatus === 'PAID',
     note: sale.note,
     qrisImageData: settings.qrisEnabled && remaining > 0 ? qrisImageData : '',
     footerNote: resolveFooterNote(settings.footerNote),
   };
 }
 
-async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining, qrisImageData = '') {
+async function handleBluetoothPrint(sale, items, settings, paidAmount, remaining, qrisImageData = '', displayStatus = '') {
   const bt = await import('../services/printing/bluetoothPrinter.js');
-  const receiptData = buildBluetoothReceiptData(sale, items, settings, paidAmount, remaining, qrisImageData);
+  const receiptData = buildBluetoothReceiptData(sale, items, settings, paidAmount, remaining, qrisImageData, displayStatus);
   const loading = document.getElementById('loadingOverlay');
   loading.classList.remove('hidden');
   try {
@@ -527,6 +529,7 @@ async function showBluetoothPreview(data, charWidth) {
       <div class="bluetooth-native-pair bluetooth-native-total"><span>TOTAL</span><span>${rupiah(data.total)}</span></div>
       <div class="bluetooth-native-pair"><span>BAYAR</span><span>${rupiah(data.paid)}</span></div>
       <div class="bluetooth-native-pair bluetooth-native-bold"><span>${data.remaining > 0 ? 'SISA' : 'KEMBALI'}</span><span>${rupiah(Math.abs(data.remaining))}</span></div>
+      ${data.isPaid ? '<div class="bluetooth-native-center"><span class="bluetooth-native-paid-stamp">LUNAS</span></div>' : ''}
       ${data.note ? `<div class="bluetooth-native-note"><b>Catatan:</b><br>${escapeHtml(data.note)}</div>` : ''}
       ${data.qrisImageData ? `<div class="bluetooth-native-center"><span>Scan QRIS untuk bayar</span><img class="bluetooth-native-qris" src="${escapeHtml(data.qrisImageData)}" alt="QRIS"></div>` : ''}
       <div class="bluetooth-native-footer">${escapeHtml(data.footerNote)}</div>
