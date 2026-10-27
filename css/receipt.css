@@ -59,7 +59,7 @@
   width:var(--paid-stamp-width);height:auto;
   opacity:var(--paid-stamp-opacity);
   pointer-events:none;
-  transform:translate(calc(-50% + var(--paid-stamp-x)),calc(-50% + var(--paid-stamp-y)));
+  transform:translate(calc(-50% + var(--paid-stamp-x)),calc(-50% + var(--paid-stamp-y))) rotate(var(--paid-stamp-rotate,0deg));
 }
 .sale-detail-receipt-wrap{padding:16px;}
 .receipt-share-help{padding:0 20px;color:var(--ink-soft);font-size:13px;line-height:1.5;}
