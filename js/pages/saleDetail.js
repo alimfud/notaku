@@ -230,8 +230,8 @@ async function handleEditPayment(root, saleId, payment) {
       <div class="sale-detail-payment-edit-fields">
         <label class="sale-detail-sheet-field"><span>Jumlah bayar</span><div><b>Rp</b><input id="pAmount" type="number" inputmode="numeric" min="1" value="${Math.round(payment.amount)}" autofocus></div></label>
         <div class="sale-detail-payment-datetime">
-          <label class="sale-detail-sheet-field"><span>Tanggal</span><div><input id="pDate" type="date" value="${payment.paymentDate}"></div></label>
-          <label class="sale-detail-sheet-field"><span>Jam</span><div><input id="pTime" type="time" value="${payment.paymentTime}"></div></label>
+          <label class="sale-detail-sheet-field"><span>Tanggal</span><div><input id="pDate" type="date" value="${escapeHtml(payment.paymentDate)}"></div></label>
+          <label class="sale-detail-sheet-field"><span>Jam</span><div><input id="pTime" type="time" value="${escapeHtml(payment.paymentTime)}"></div></label>
         </div>
         <label class="sale-detail-sheet-field"><span>Catatan <em>Opsional</em></span><div><input id="pNote" value="${escapeHtml(payment.note || '')}" placeholder="Tambahkan catatan"></div></label>
       </div>
