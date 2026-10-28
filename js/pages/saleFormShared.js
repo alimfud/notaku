@@ -296,7 +296,7 @@ function wireScanInput(root, state) {
       return;
     }
     suggestBox.innerHTML = matches.map((p) => `
-      <button class="row" data-id="${p.id}" style="width:100%;border-bottom:1px solid var(--outline);padding:10px 12px;">
+      <button class="row" data-id="${escapeHtml(p.id)}" style="width:100%;border-bottom:1px solid var(--outline);padding:10px 12px;">
         <div class="row-body"><div class="row-title">${escapeHtml(p.name)}</div>${p.category ? `<div class="row-meta">${escapeHtml(p.category)}</div>` : ''}</div>
         <div class="row-money">${rupiah(p.price)}</div>
       </button>`).join('');
@@ -567,7 +567,7 @@ async function pickCustomer(root, mode, state, onSave) {
       const f = filter.toLowerCase();
       const rows = customers.filter((c2) => c2.name.toLowerCase().includes(f));
       listEl.innerHTML = rows.map((c2) => `
-        <button class="row sale-customer-option" data-id="${c2.id}" type="button">
+        <button class="row sale-customer-option" data-id="${escapeHtml(c2.id)}" type="button">
           <div class="avatar">${c2.name[0]?.toUpperCase() || '?'}</div>
           <div class="row-body"><div class="row-title">${escapeHtml(c2.name)}</div>${c2.phone ? `<div class="row-meta">${escapeHtml(c2.phone)}</div>` : ''}</div>
         </button>`).join('');

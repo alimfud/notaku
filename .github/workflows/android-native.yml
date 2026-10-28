@@ -13,11 +13,13 @@ on:
         type: boolean
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       RELEASE_BUILD: ${{ startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release) }}
     steps:
@@ -71,15 +73,25 @@ jobs:
         with:
           name: NotaKu-Android
           path: NotaKu-*.apk
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release)
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: NotaKu-Android
+          path: dist
       - name: Publish GitHub Release
-        if: env.RELEASE_BUILD == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          version="$(node -p "JSON.parse(require('fs').readFileSync('version.json', 'utf8')).version")"
-          release_tag="$GITHUB_REF_NAME"
-          if [[ "$GITHUB_REF" != refs/tags/v* ]]; then
-            release_tag="v$version"
-          fi
-          gh release create "$release_tag" "NotaKu-$release_tag.apk" --target "$GITHUB_SHA" --title "NotaKu $release_tag" --generate-notes             || gh release upload "$release_tag" "NotaKu-$release_tag.apk" --clobber
-
+          apk_path="$(find dist -maxdepth 1 -type f -name 'NotaKu-v*.apk' -print -quit)"
+          test -n "$apk_path"
+          release_tag="${apk_path##*/NotaKu-}"
+          release_tag="${release_tag%.apk}"
+          gh release create "$release_tag" "$apk_path" --target "$GITHUB_SHA" --title "NotaKu $release_tag" --generate-notes \
+            || gh release upload "$release_tag" "$apk_path" --clobber

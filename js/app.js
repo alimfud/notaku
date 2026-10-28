@@ -54,7 +54,7 @@ async function openGlobalSearch() {
     if (!query) { results.innerHTML = '<small>Ketik untuk mencari di seluruh data.</small>'; return; }
     const [sales, products, customers, expenses] = await Promise.all([db.getAll('sales'), db.getAll('products'), db.getAll('customers'), db.getAll('expenses')]);
     const found = [];
-    sales.filter((row) => !row.isDeleted && [row.invoiceNumber, row.customerName, row.customerPhone, row.saleDate].some((value) => String(value || '').toLowerCase().includes(query))).slice(0, 8).forEach((row) => found.push({ type: 'Nota', title: row.invoiceNumber, sub: `${row.customerName} · ${row.saleDate}`, route: `sale/${row.id}` }));
+    sales.filter((row) => !row.isDeleted && [row.invoiceNumber, row.customerName, row.customerPhone, row.saleDate].some((value) => String(value || '').toLowerCase().includes(query))).slice(0, 8).forEach((row) => found.push({ type: 'Nota', title: row.invoiceNumber, sub: `${row.customerName} · ${row.saleDate}`, route: `sale/${encodeURIComponent(row.id)}` }));
     products.filter((row) => row.isActive !== 0 && [row.name, row.category, row.barcode].some((value) => String(value || '').toLowerCase().includes(query))).slice(0, 6).forEach((row) => found.push({ type: 'Produk', title: row.name, sub: row.category || 'Produk', route: 'products' }));
     customers.filter((row) => row.isActive !== 0 && [row.name, row.phone, row.address].some((value) => String(value || '').toLowerCase().includes(query))).slice(0, 6).forEach((row) => found.push({ type: 'Pelanggan', title: row.name, sub: row.phone || 'Pelanggan', route: `customers/${encodeURIComponent(row.id)}` }));
     expenses.filter((row) => [row.title, row.category, row.note, row.expenseDate].some((value) => String(value || '').toLowerCase().includes(query))).slice(0, 6).forEach((row) => found.push({ type: 'Pengeluaran', title: row.title, sub: `${row.category} · ${row.expenseDate}`, route: 'expenses' }));
@@ -300,7 +300,9 @@ function parseHash() {
   const hash = window.location.hash.replace(/^#\/?/, '');
   const parts = hash.split('/').filter(Boolean);
   const route = parts[0] || 'dashboard';
-  const params = parts.slice(1);
+  const params = parts.slice(1).map((part) => {
+    try { return decodeURIComponent(part); } catch { return part; }
+  });
   return { route, params };
 }
 
@@ -547,4 +549,3 @@ async function checkAutomaticSync(options = {}) {
     console.error('[runBackgroundChecks] auto-sync', e);
   }
 }
-

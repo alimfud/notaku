@@ -134,7 +134,7 @@ async function draw(root, saleId) {
       <div class="sale-detail-section-heading"><div><h3>Riwayat pembayaran</h3></div><small>${payments.length} catatan</small></div>
       <div class="sale-detail-payment-list list">
         ${payments.map((p, index) => `
-          <button class="sale-detail-payment-row row" data-pid="${p.id}">
+          <button class="sale-detail-payment-row row" data-pid="${escapeHtml(p.id)}">
             <span class="sale-detail-payment-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h4"/></svg></span>
             <span class="sale-detail-payment-body">
               <span class="sale-detail-payment-label">Pembayaran ${index + 1}</span>

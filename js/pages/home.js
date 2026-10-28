@@ -187,7 +187,7 @@ async function renderList(root) {
       ? new Date(s.sale.createdAt).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
       : `${dateShort(s.sale.saleDate)} • ${s.sale.saleTime}`;
     return `
-      <button class="row" data-id="${s.sale.id}" style="opacity:${s.sale.completed ? 0.55 : 1};">
+      <button class="row" data-id="${escapeHtml(s.sale.id)}" style="opacity:${s.sale.completed ? 0.55 : 1};">
         <div class="avatar"><span>${initials(s.sale.customerName)}</span></div>
         <div class="row-body">
           <div class="row-title">${escapeHtml(s.sale.customerName)} <span class="home-layout-6">${processLabel}</span></div>
@@ -202,6 +202,6 @@ async function renderList(root) {
   }).join('');
 
   listEl.querySelectorAll('.row').forEach((r) => {
-    r.onclick = () => navigate(`sale/${r.dataset.id}`);
+    r.onclick = () => navigate(`sale/${encodeURIComponent(r.dataset.id)}`);
   });
 }

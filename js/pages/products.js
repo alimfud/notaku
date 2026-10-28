@@ -46,7 +46,7 @@ async function drawList(root, search) {
     return;
   }
   el.innerHTML = products.map((p) => `
-    <button class="row" data-id="${p.id}">
+    <button class="row" data-id="${escapeHtml(p.id)}">
       <div class="product-photo">${safeProductImage(p.imageData) ? `<img src="${safeProductImage(p.imageData)}" alt="${escapeHtml(p.name)}" loading="lazy">` : `<span aria-hidden="true">${escapeHtml(initials(p.name))}</span>`}</div>
       <div class="row-body">
         <div class="row-title">${escapeHtml(p.name)}</div>

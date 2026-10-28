@@ -25,7 +25,7 @@ async function draw(root) {
 
       <div class="list expense-list">
         ${rows.length ? rows.map(e => `
-          <button class="row expense-row" data-id="${e.id}" type="button">
+          <button class="row expense-row" data-id="${escapeHtml(e.id)}" type="button">
             <div class="avatar">−</div>
             <div class="row-body">
               <div class="row-title">${escapeHtml(e.title)}</div>
